@@ -14,6 +14,9 @@ export const CommentPostbyIdPost = ({CommentsDialog}) => {
 const [editComment, setEditComment] = useState(null);
 const [editContent, setEditContent] = useState("");
 const [editCommentIndex, setEditCommentIndex] = useState(null);
+const [userComment, setUserComment] = useState(null);
+const [IdUser, setIdUser] = useState(null);
+
     const [post, setPost] = useState("");
    const getCommentById=async(postId)=>{
 try {
@@ -30,12 +33,26 @@ try {
 }
     }
 
+   const getUsertByComment=async()=>{
+try {
+    const res= await axios.get(`${BaseUrl}/admin-users/${IdUser}`,
+        {headers:{Authorization:`Bearer ${tokenUser}` }})
+  if(res.status===200){
+   setUserComment(res.data)
+
+  }
+
+} catch (error) {
+    console.log("Lỗi nè",error)
+    setLoading(false)
+}
+    }
+
 const handleEditComment = (comment, index, postId) => {
   setEditComment({ ...comment, postId });
   setEditContent(comment.comment);
   setEditCommentIndex(index);
 };
-console.log(CommentByIdPost)
 const callPost=async(postId)=>{
 try {
 
@@ -45,6 +62,7 @@ try {
 
 if(res.status===200){
 setPost(res.data)
+setIdUser(res.data.authorId)
  setLoading(false) 
 }
 } catch (error) {
@@ -54,7 +72,7 @@ setPost(res.data)
 
 }
 
-console.log(post)
+
 const handleUpdateComment = async (postId) => {
   try {
     const res = await axios.put(
@@ -95,10 +113,11 @@ const handleDeleteComment = async (comment, index, postId) => {
 
 
 // console.log("data nè",CommentByIdPost.comments.length)
-
+console.log(post)
     useEffect(()=>{
 getCommentById(CommentsDialog.postId)
 callPost(CommentsDialog.postId)
+getUsertByComment()
     setLoading(false)
 
     },[])
@@ -123,11 +142,46 @@ callPost(CommentsDialog.postId)
           <div className="mb-2 text-gray-700 font-semibold">
             Bài viết: <span className="font-normal">{post.title}</span>
           </div>
+          
+          {post.images && Array.isArray(post.images) && post.images.length > 0 && (
+            <div className="mb-4">
+              <div className="text-sm text-gray-600 mb-2">Hình ảnh bài viết:</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {post.images.map((image, index) => (
+                  <img 
+                    key={index}
+                    src={
+                      image?.startsWith('http')
+                        ? image
+                        : `${BaseUrl}${image}`
+                    }
+                    alt={`Post image ${index + 1}`}
+                    className="w-full max-w-md h-auto rounded-lg shadow-sm border object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           <div className="mb-2 text-gray-700">
-            Ngày đăng: <span className="font-medium">{CommentByIdPost.createdAt ? new Date(CommentByIdPost.createdAt).toLocaleDateString() : ""}</span>
+            Miêu tả: <span className=" break-all font-medium"> {post.description|| ""}</span>
+          </div>
+           {/* <div className="mb-2 text-gray-700">
+            Người đăng: <span className=" break-all font-medium"> {post.authorId|| ""}</span>
+          </div> */}
+          <div className="mb-2 text-gray-700">
+            Kiểu: <span className="font-medium"> {post.type || ""}</span>
           </div>
           <div className="mb-2 text-gray-700">
-            Chỉnh sửa: <span className="font-medium">{CommentByIdPost.updatedAt ? new Date(CommentByIdPost.updatedAt).toLocaleDateString() : ""}</span>
+            Thẻ: <span className="font-medium"> {post.tags || ""}</span>
+          </div>
+          <div className="mb-2 text-gray-700">
+            Ngày đăng: <span className="font-medium">{post.createdAt ? new Date(CommentByIdPost.createdAt).toLocaleString() : ""}</span>
+          </div>
+          <div className="mb-2 text-gray-700">
+            Chỉnh sửa: <span className="font-medium"> {post.updatedAt ? new Date(CommentByIdPost.updatedAt).toLocaleString() : ""}</span>
           </div>
           {CommentByIdPost.content && (
             <div className="mt-2 text-base truncate text-gray-800 border-t pt-2">
@@ -151,7 +205,7 @@ callPost(CommentsDialog.postId)
         />
         <span className="font-semibold text-gray-800">{editComment.userId?.fullName}</span>
         <span className="text-xs text-gray-500 ml-2">
-          {editComment.createdAt ? new Date(editComment.createdAt).toLocaleDateString() : ""}
+          {editComment.createdAt ? new Date(editComment.createdAt).toLocaleString() : ""}
         </span>
       </div>
       <textarea
@@ -195,7 +249,7 @@ callPost(CommentsDialog.postId)
                 />
                 <span className="font-semibold text-gray-800">{item.userId?.fullName}</span>
                 <span className="text-xs text-gray-500 ml-2">
-                  {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ""}
+                  {item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}
                 </span>
               </div>
      <div className="ml-auto flex gap-2">
@@ -234,7 +288,7 @@ callPost(CommentsDialog.postId)
                         <span className="font-semibold text-gray-700">{rep.userId?.fullName}:</span>
                         <span className="ml-1 break-all" >{rep.comment}</span>
                         <span className="ml-2 text-xs text-gray-400">
-                          {rep.createdAt ? new Date(rep.createdAt).toLocaleDateString() : ""}
+                          {rep.createdAt ? new Date(rep.createdAt).toLocaleString() : ""}
                         </span>
                       </div>
                     </div>

@@ -365,6 +365,7 @@ export function PostList() {
         </thead>
         <tbody>
           {posts.map((post) => {
+            console.log("post nè",posts)
             const author = findUser(post.authorId);
             return (
               <tr

@@ -14,8 +14,8 @@ export const CommentPost = () => {
   const [openDialogComments, setOpenDialogComments] = useState(false)
   const [CommentsDialog, setCommentsDialog] = useState(null);
   const [searchTitle, setSearchTitle] = useState('')
-  const [allComments, setAllComments] = useState([]) // Store all comments from all pages
-
+  const [allComments, setAllComments] = useState([]) 
+console.log("comment dialog nè:",CommentsDialog)
   const [totalPages, setTotalPages] = useState(1);
     const limit = 10;
 const [comment,setComment]=useState([])
@@ -23,8 +23,6 @@ const [post,setPost]=useState([])
 const gotoCommentId=(id)=>{
 navigate(`/dashboard/CommentPostbyId/${id}`)
 }
-console.log(post)
-
 
 const handleOpenDialogComments=(cmtDiaolog)=>{
 setCommentsDialog(cmtDiaolog)
@@ -120,30 +118,75 @@ useEffect(() => {
 const postMap = React.useMemo(() => {
   const map = {};
   post.forEach(p => {
-    map[String(p.id ?? p._id).trim()] = p;
+    const key = String(p.id ?? p._id).trim();
+    map[key] = p;
   });
   return map;
 }, [post]);
 
 const getPost = async () => {
   try {
-  
     const currentPageIds = comment.map(item => item.postId);
     const allCommentsIds = allComments.map(item => item.postId);
     const uniqueIds = [...new Set([...currentPageIds, ...allCommentsIds])]; 
     
     if (uniqueIds.length === 0) return;
 
+    console.log('Requesting posts for IDs:', uniqueIds);
+
     const res = await axios.get(`${BaseUrl}/admin-post-feed?ids=${uniqueIds.join(',')}`, {
       headers: { Authorization: `Bearer ${tokenUser}` }
     });
 
+    let posts = [];
     if (res.status === 200) {
-      console.log('API trả về post:', res.data.data);
-
-      setPost(res.data.data);
-      setLoading(false);
+      posts = res.data.data;
+      
+      const foundIds = posts.map(p => String(p.id || p._id));
+      const missingIds = uniqueIds.filter(id => !foundIds.includes(String(id)));
+      console.log('Missing post IDs:', missingIds);
+      
+      if (missingIds.length > 0) {
+        console.log('Attempting to fetch missing posts individually...');
+        const individualPromises = missingIds.map(async (postId) => {
+          try {
+            let individualRes;
+            
+            try {
+              individualRes = await axios.get(`${BaseUrl}/admin-post-feed/${postId}`, {
+                headers: { Authorization: `Bearer ${tokenUser}` }
+              });
+            } catch (e1) {
+              try {
+                individualRes = await axios.get(`${BaseUrl}/admin-post/${postId}`, {
+                  headers: { Authorization: `Bearer ${tokenUser}` }
+                });
+              } catch (e2) {
+                individualRes = await axios.get(`${BaseUrl}/post/${postId}`, {
+                  headers: { Authorization: `Bearer ${tokenUser}` }
+                });
+              }
+            }
+            
+            if (individualRes.status === 200) {
+              console.log('Found individual post:', postId, individualRes.data);
+              return individualRes.data;
+            }
+          } catch (error) {
+            console.log('Individual post not found:', postId, error.response?.status);
+            return null;
+          }
+        });
+        
+        const individualResults = await Promise.all(individualPromises);
+        const foundIndividualPosts = individualResults.filter(p => p !== null);
+        posts = [...posts, ...foundIndividualPosts];
+        console.log('Total posts after individual fetch:', posts.length);
+      }
     }
+
+    setPost(posts);
+    setLoading(false);
   } catch (error) {
     setLoading(false);
     console.error("Lỗi getPost:", error);
@@ -154,17 +197,24 @@ const filteredComments = React.useMemo(() => {
   
   const dataSource = searchTitle.trim() ? allComments : comment;
   
+  let result;
   if (!searchTitle.trim()) {
-    return comment; 
+    result = comment; 
+  } else {
+    result = dataSource.filter(item => {
+      const postInfo = postMap[String(item.postId).trim()];
+      const title = postInfo && postInfo.title && postInfo.title.trim()
+        ? postInfo.title
+        : "";
+      
+      return title.toLowerCase().includes(searchTitle.toLowerCase());
+    });
   }
   
-  return dataSource.filter(item => {
-    const postInfo = postMap[String(item.postId).trim()];
-    const title = postInfo && postInfo.title && postInfo.title.trim()
-      ? postInfo.title
-      : "";
-    
-    return title.toLowerCase().includes(searchTitle.toLowerCase());
+  return result.sort((a, b) => {
+    const dateA = new Date(a.createdAt);
+    const dateB = new Date(b.createdAt);
+    return dateB - dateA; 
   });
 }, [comment, allComments, searchTitle, postMap]);
 
@@ -218,18 +268,29 @@ filteredComments.length === 0 ? (
 ) : (
 filteredComments.map((item) => {
  const postInfo = postMap[String(item.postId).trim()];
-  const title = postInfo && postInfo.title && postInfo.title.trim()
-    ? postInfo.title
-    : "Bài viết đã bị xóa hoặc không xác định";
+ 
+ const title = postInfo?.title?.trim() 
+   ? postInfo.title
+   : `Bài viết không tìm thấy (ID: ${String(item.postId).slice(-8)})`;
+   
   return (
     <div onClick={() => handleOpenDialogComments(item)} key={item.postId} className="mb-4 p-4 border rounded bg-white">
       <div className="cursor-pointer font-bold mb-2 w-full flex flex-col">
-        Tiêu đề bài viết: {title}
+        <div className="flex items-center gap-2">
+          <span>Tiêu đề bài viết: {title}</span>
+          {!postInfo && (
+            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+              Bài viết đã bị xóa
+            </span>
+          )}
+        </div>
 
         <span>
-          Ngày đăng: {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "Chưa cập nhật"}
+          Ngày đăng: {item.createdAt ? new Date(item.createdAt).toLocaleString() : "Chưa cập nhật"}
         </span>
-        {item.comments.map((cmt, index) => (
+        {item.comments
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) 
+          .map((cmt, index) => (
           <div key={index} className="mb-2 pl-2 border-l">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2 min-w-0">
@@ -244,21 +305,23 @@ filteredComments.map((item) => {
                 />
                 <span className="font-medium truncate">{cmt.userId.fullName}</span>
               </div>
-              <span className="text-xs text-gray-500 whitespace-nowrap text-right block min-w-[90px]">{new Date(cmt.createdAt).toLocaleDateString()}</span>
+              <span className="text-xs text-gray-500 whitespace-nowrap text-right block min-w-[90px]">{new Date(cmt.createdAt).toLocaleString()}</span>
             </div>
             <div className="ml-8 text-sm mt-1 overflow-hidden">
               <div className="break-all">{cmt.comment}</div>
             </div>
             {cmt.replies && cmt.replies.length > 0 && (
               <div className="ml-12 mt-1">
-                {cmt.replies.map((rep, ridx) => (
+                {cmt.replies
+                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) 
+                  .map((rep, ridx) => (
                   <div key={ridx} className="mb-1 text-sm text-gray-700">
                     <div className="flex items-center gap-2 justify-between mb-1">
                       <div className="flex items-center gap-2 min-w-0">
                         <img alt="" className="w-5 h-5 rounded-full" />
                         <span className="font-medium truncate">{rep.userId.fullName}</span>
                       </div>
-                      <span className="text-xs text-gray-500 whitespace-nowrap text-right block min-w-[90px]">{new Date(rep.createdAt).toLocaleDateString()}</span>
+                      <span className="text-xs text-gray-500 whitespace-nowrap text-right block min-w-[90px]">{new Date(rep.createdAt).toLocaleString()}</span>
                     </div>
                     <div className="ml-7 text-sm mt-1 max-w-full overflow-hidden">
                       <div className="break-all">{rep.comment}</div>
