@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import axios from 'axios'
 import { BaseUrl } from '@/ipconfig'
 import { Audio } from 'react-loader-spinner'
@@ -41,15 +41,14 @@ setLoading(false)
   }
 }
 
-const totalCommentCount = Array.isArray(videoComment)
-  ? videoComment.reduce(
-      (total, cmt) =>
-        total +
-        1 +
-        (Array.isArray(cmt.replies) ? cmt.replies.length : 0),
-      0
-    )
-  : 0;
+const totalCommentCount = useMemo(() => {
+  if (!Array.isArray(videoComment)) return 0;
+  
+  return videoComment.reduce((total, cmt) => {
+    const repliesCount = Array.isArray(cmt.replies) ? cmt.replies.length : 0;
+    return total + 1 + repliesCount;
+  }, 0);
+}, [videoComment]);
 
  const handleOpenLike = (e, videoId) => {
   e.stopPropagation(); 
