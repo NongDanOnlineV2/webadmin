@@ -90,25 +90,32 @@ const [answers, setAnswers] = useState([]);
     }
   };
   const cleanFarmId = farmId?.trim();
-  const fetchImages = async () => {
-    try {
-      const [farmRes, imageRes] = await Promise.all([
-        axios.get(`${BASE_URL}/adminfarms/${farmId}`, getOpts()),
-        axios.get(`${BASE_URL}/farm-pictures/${cleanFarmId}`, getOpts()),
-      ]);
+  const fetchImages = async (farmId) => {
+  try {
+    const [farmRes, imageRes] = await Promise.all([
+      axios.get(`${BASE_URL}/adminfarms/${farmId}`, getOpts()),
+      axios.get(`${BASE_URL}/farm-pictures/${farmId}`, getOpts()),
+    ]);
 
-      const user = farmRes.data?.data?.ownerInfo;
-      const farmImages = imageRes.data?.data || [];
+    const user = farmRes.data?.data?.ownerInfo;
+    const farmImages = imageRes.data?.data || [];
 
-      const avatarImage = user?.avatar
-        ? [{ url: user.avatar, isAvatar: true }]
-        : [];
+    // Gắn BASE_URL vào path trả về
+    const mappedFarmImages = farmImages.map(img => ({
+      url: `${BASE_URL}${img.path}`, // <- nối base url với path
+      isAvatar: false,
+    }));
 
-      setImages([...avatarImage, ...farmImages]);
-    } catch (err) {
-      console.error("Lỗi ảnh:", err);
-    }
-  };
+    const avatarImage = user?.avatar
+      ? [{ url: user.avatar, isAvatar: true }]
+      : [];
+
+    setImages([...avatarImage, ...mappedFarmImages]);
+  } catch (err) {
+    console.error("Lỗi ảnh:", err);
+    setImages([]); // fallback nếu lỗi
+  }
+};
 
   const fetchFarmVideos = async () => {
     try {
