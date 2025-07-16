@@ -86,7 +86,7 @@ function FarmForm({ open, onClose, initialData, onSubmit }) {
           street: "",
           location: "",
           area: "",
-cultivatedArea: "",
+          cultivatedArea: "",
           phone: "",
           zalo: "",
           description: "",
@@ -162,7 +162,7 @@ const handleSubmit = async () => {
           <Input label="Số điện thoại" name="phone" value={form.phone} onChange={handleChange} />
           <Input label="Zalo" name="zalo" value={form.zalo} onChange={handleChange} />
           <Input
-label="Chủ sở hữu"
+            label="Chủ sở hữu"
             name="ownerInfo.name"
             value={form.ownerInfo.name}
             onChange={handleChange}

@@ -89,12 +89,12 @@ const [answers, setAnswers] = useState([]);
       setFarm(null);
     }
   };
-
+  const cleanFarmId = farmId?.trim();
   const fetchImages = async () => {
     try {
       const [farmRes, imageRes] = await Promise.all([
-        axios.get(`${BASE_URL}/adminfarms/${farmId}`, getOpts()),
-        axios.get(`${BASE_URL}/farm-pictures/${farmId}`, getOpts()),
+        axios.get(`${BASE_URL}/adminfarms/${cleanFarmId}`, getOpts()),
+        axios.get(`${BASE_URL}/farm-pictures/${cleanFarmId}`, getOpts()),
       ]);
 
       const user = farmRes.data?.data?.ownerInfo;

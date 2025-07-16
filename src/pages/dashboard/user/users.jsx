@@ -372,21 +372,6 @@ console.log(users)
   <Option value="Đã cấp quyền">Active</Option>
   <Option value="Chưa cấp quyền">Inactive</Option>
 </Select>
-
-    <Typography className="font-bold">Chọn địa chỉ</Typography>
-      <Select
-        label="Địa chỉ"
-        value={formData.selectedAddress}
-        onChange={(val) => setFormData({ ...formData, selectedAddress: val })}
-      >
-        {userAddresses.map(addr => (
-          <Option key={addr.id} value={addr.address}>
-            {addr.addressName ? `${addr.addressName} - ${addr.address} - ${addr.ward} - ${addr.province}` : addr.address}
-          </Option>
-        ))}
-      </Select>
-
-
     <Typography className="font-bold">Quản lý role</Typography>
     <Select label="Thêm role" value={selectedRole} onChange={setSelectedRole}>
       {roles.map(role => (
