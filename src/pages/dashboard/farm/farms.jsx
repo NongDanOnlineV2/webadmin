@@ -48,14 +48,14 @@ export function Farms() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // ✅ Fetch tất cả nông trại (client lọc)
+  // Fetch tất cả nông trại
   const fetchFarms = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${BASE_URL}/adminfarms`, {
         ...getOpts(),
         params: {
-          limit: 10000, // lấy tất cả
+          limit: 10000, 
         },
       });
       const farms = res.data?.data || [];
@@ -116,7 +116,7 @@ export function Farms() {
     setOpenDetail(true);
   };
 
-  // ✅ Lọc client-side
+  //  Lọc client-side
   useEffect(() => {
     const keyword = search.toLowerCase();
     const filtered = allFarms

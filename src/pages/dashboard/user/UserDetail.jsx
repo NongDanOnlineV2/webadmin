@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Card, CardHeader, CardBody, Typography, Spinner, Collapse, Dialog, DialogBody, DialogFooter, DialogHeader, Button, Chip,
-  Avatar
+  Avatar, Input
 } from "@material-tailwind/react";
 import { useParams } from "react-router-dom";
 import PostLikeUserDialog from "./listpostlikeUser";
@@ -121,15 +121,52 @@ const handleOpenEditAddress = (addr) => {
 };
 
 const handleUpdateAddress = async () => {
-  if (!editingAddress) return;
+  if (!editingAddress || !editingAddress._id) {
+    console.error("Không tìm thấy ID địa chỉ để cập nhật", editingAddress);
+    alert("Không thể cập nhật địa chỉ vì thiếu ID.");
+    return;
+  }
+
   const token = localStorage.getItem("token");
+  const payload = {
+    ...addressForm,
+    userId: user?.id,
+  };
+
   try {
     await axios.put(
-      `https://api-ndolv2.nongdanonline.cc/admin/user-address/${editingAddress.id}`,
-      addressForm,
+      `https://api-ndolv2.nongdanonline.cc/admin/user-address/${editingAddress._id}`,
+      payload,
       { headers: { Authorization: `Bearer ${token}` } }
     );
+
     alert("Cập nhật địa chỉ thành công!");
+
+    const res = await axios.get(
+      `https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setAddresses(res.data || []);
+    setEditAddressOpen(false);
+  } catch (err) {
+    console.error("Lỗi khi cập nhật địa chỉ:", err.response?.data || err.message);
+    alert("Cập nhật địa chỉ thất bại!");
+  }
+};
+
+const handleDeleteAddress = async (addressId) => {
+  const confirmDelete = window.confirm("Bạn có chắc chắn muốn xoá địa chỉ này?");
+  if (!confirmDelete) return;
+
+  const token = localStorage.getItem("token");
+  try {
+    await axios.delete(
+      `https://api-ndolv2.nongdanonline.cc/admin/user-address/${addressId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    alert("Xoá địa chỉ thành công!");
 
     // Cập nhật lại danh sách địa chỉ
     const res = await axios.get(
@@ -137,12 +174,12 @@ const handleUpdateAddress = async () => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     setAddresses(res.data || []);
-    setEditAddressOpen(false);
   } catch (err) {
-    console.error("Lỗi khi cập nhật địa chỉ:", err);
-    alert("Cập nhật địa chỉ thất bại!");
+    console.error("Lỗi khi xoá địa chỉ:", err.response?.data || err.message);
+    alert("Xoá địa chỉ thất bại!");
   }
 };
+
 
 const fetchPostLikesUsers = async (postId, postTitle) => {
   const token = localStorage.getItem("token");
@@ -435,9 +472,14 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     <Typography className="text-gray-500 text-sm mt-1">
                       <b>Tạo lúc:</b> {new Date(addr.createdAt).toLocaleString()}
                     </Typography>
-                    <Button size="sm" variant="outlined" onClick={() => handleOpenEditAddress(addr)}>
-                      Chỉnh sửa
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Button size="sm" variant="outlined" onClick={() => handleOpenEditAddress(addr)}>
+                        Chỉnh sửa
+                      </Button>
+                      <Button size="sm" variant="outlined" color="red" onClick={() => handleDeleteAddress(addr._id)}>
+                        Xoá
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}
