@@ -19,9 +19,9 @@ export default function UserDetailDialog({ open, onClose, user, addresses, onAdd
             <Typography>
               
               Trạng thái: {user.isActive===true ? (
-                <span className="text-green-600 font-semibold">ĐÃ CẤP QUYỀN</span>
+                <span className="text-green-600 font-semibold">Active</span>
               ) : (
-                <span className="text-gray-500 font-semibold">CHƯA CẤP QUYỀN</span>
+                <span className="text-gray-500 font-semibold">InActive</span>
               )}
             </Typography>
             <Typography className="font-bold">Địa chỉ:</Typography>

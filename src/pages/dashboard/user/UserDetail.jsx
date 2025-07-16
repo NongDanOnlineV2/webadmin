@@ -34,6 +34,16 @@ export default function UserDetail() {
   const [selectedPostLikes, setSelectedPostLikes] = useState([]);
   const [openPostCommentDialog, setOpenPostCommentDialog] = useState(false);
   const [selectedPostComments, setSelectedPostComments] = useState([]);
+  const [addresses, setAddresses] = useState([]);
+  const [openAddress, setOpenAddress] = useState(false);
+  const [editAddressOpen, setEditAddressOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
+  const [addressForm, setAddressForm] = useState({
+    addressName: "",
+    address: "",
+    ward: "",
+    province: ""
+  });
 
   const fetchPaginatedData = async (url, config) => {
     let allData = [];
@@ -99,7 +109,40 @@ const fetchCommentCount = async (postId) => {
   }
 };
 
+const handleOpenEditAddress = (addr) => {
+  setEditingAddress(addr);
+  setAddressForm({
+    addressName: addr.addressName || "",
+    address: addr.address || "",
+    ward: addr.ward || "",
+    province: addr.province || ""
+  });
+  setEditAddressOpen(true);
+};
 
+const handleUpdateAddress = async () => {
+  if (!editingAddress) return;
+  const token = localStorage.getItem("token");
+  try {
+    await axios.put(
+      `https://api-ndolv2.nongdanonline.cc/admin/user-address/${editingAddress.id}`,
+      addressForm,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    alert("Cập nhật địa chỉ thành công!");
+
+    // Cập nhật lại danh sách địa chỉ
+    const res = await axios.get(
+      `https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setAddresses(res.data || []);
+    setEditAddressOpen(false);
+  } catch (err) {
+    console.error("Lỗi khi cập nhật địa chỉ:", err);
+    alert("Cập nhật địa chỉ thất bại!");
+  }
+};
 
 const fetchPostLikesUsers = async (postId, postTitle) => {
   const token = localStorage.getItem("token");
@@ -126,12 +169,13 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
         const token = localStorage.getItem("token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        const [userRes, allFarms, allVideos, allPosts, allUsers ] = await Promise.all([
+        const [userRes, allFarms, allVideos, allPosts, allUsers, addressRes ] = await Promise.all([
           axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, config), 
           fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/adminfarms`, config), 
           fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-video-farm`, config), 
           fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-post-feed`, config),
-          fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-users`, config), 
+          fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-users`, config),
+          axios.get(`https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`, config), 
         ]);
 
         setUser(userRes.data);
@@ -140,7 +184,7 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
         fetchVideoStats(allVideos);
         setPosts(allPosts);
         setUsers(allUsers);
-        
+        setAddresses(addressRes.data || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -196,7 +240,7 @@ const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   }
 };
 
-// Hàm lấy danh sách user đã bình luận
+
 const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   const token = localStorage.getItem("token");
   const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -208,7 +252,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     );
     console.log("Comment response for video", videoId, ":", res.data);
     setSelectedVideoTitle(videoTitle);
-    setSelectedVideoComments(res.data || []); // giả sử API trả về danh sách comments
+    setSelectedVideoComments(res.data || []); 
     setOpenCommentsDialog(true);
   } catch (err) {
     console.error(`Error fetching comments for video ${videoId}:`, err);
@@ -357,6 +401,94 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
       </Card>
 
+      <Card>
+      <div
+        onClick={() => setOpenAddress(!openAddress)}
+        className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
+      >
+        <Typography variant="h5">
+          Địa chỉ người dùng ({addresses.length})
+        </Typography>
+        <Typography
+          variant="h5"
+          className={`transform transition-transform duration-300 ${
+            openAddress ? "rotate-180" : ""
+          }`}
+        >
+          ▼
+        </Typography>
+      </div>
+
+      <Collapse open={openAddress}>
+        {openAddress && (
+          <div className="overflow-hidden transition-all duration-300">
+            <CardBody>
+              {addresses.length === 0 ? (
+                <Typography>Chưa có địa chỉ nào.</Typography>
+              ) : (
+                addresses.map((addr, index) => (
+                  <div key={addr.id || index} className="border p-4 mb-4 rounded shadow space-y-1">
+                    <Typography className="text-green-700 font-semibold">{addr.addressName}</Typography>
+                    <Typography><b>Địa chỉ:</b> {addr.address}</Typography>
+                    <Typography><b>Phường/Xã:</b> {addr.ward}</Typography>
+                    <Typography><b>Tỉnh/TP:</b> {addr.province}</Typography>
+                    <Typography className="text-gray-500 text-sm mt-1">
+                      <b>Tạo lúc:</b> {new Date(addr.createdAt).toLocaleString()}
+                    </Typography>
+                    <Button size="sm" variant="outlined" onClick={() => handleOpenEditAddress(addr)}>
+                      Chỉnh sửa
+                    </Button>
+                  </div>
+                ))
+              )}
+            </CardBody>
+          </div>
+        )}
+      </Collapse>
+    </Card>
+
+
+    <Dialog open={editAddressOpen} handler={setEditAddressOpen} size="sm">
+      <DialogHeader>Chỉnh sửa địa chỉ</DialogHeader>
+      <DialogBody className="space-y-4">
+        <Input
+          label="Tên địa chỉ"
+          value={addressForm.addressName}
+          onChange={(e) =>
+            setAddressForm({ ...addressForm, addressName: e.target.value })
+          }
+        />
+        <Input
+          label="Địa chỉ"
+          value={addressForm.address}
+          onChange={(e) =>
+            setAddressForm({ ...addressForm, address: e.target.value })
+          }
+        />
+        <Input
+          label="Phường/Xã"
+          value={addressForm.ward}
+          onChange={(e) =>
+            setAddressForm({ ...addressForm, ward: e.target.value })
+          }
+        />
+        <Input
+          label="Tỉnh/TP"
+          value={addressForm.province}
+          onChange={(e) =>
+            setAddressForm({ ...addressForm, province: e.target.value })
+          }
+        />
+      </DialogBody>
+      <DialogFooter>
+        <Button variant="text" onClick={() => setEditAddressOpen(false)}>
+          Huỷ
+        </Button>
+        <Button variant="gradient" onClick={handleUpdateAddress}>
+          Lưu
+        </Button>
+      </DialogFooter>
+    </Dialog>
 
       {/* Thông tin Farms của user */}
       <Card>
