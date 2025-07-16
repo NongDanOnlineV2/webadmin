@@ -63,8 +63,6 @@ setRoles(uniqueRoles);
 
       // counts
       const [farmsRes, videosRes, postsRes] = await Promise.all([
-        axios.get(`${apiUrl}/adminfarms?page=${page}&limit=1000`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${apiUrl}/admin-video-farm?page=${page}&limit=1000`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${apiUrl}/admin-post-feed?page=1&limit=1000`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
