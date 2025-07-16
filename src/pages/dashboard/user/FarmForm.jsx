@@ -119,6 +119,7 @@ const handleSubmit = async () => {
       ...form,
       tags: form.tags,
     };
+    console.log("Payload gửi API:", payload);
     await onSubmit(payload);
     alert(initialData ? "Cập nhật thành công!" : "Tạo mới thành công!");
     onClose();
@@ -129,7 +130,6 @@ const handleSubmit = async () => {
     setLoading(false);
   }
 };
-
 
   return (
     <Dialog open={open} size="xl" handler={onClose}>
