@@ -93,7 +93,7 @@ const [answers, setAnswers] = useState([]);
   const fetchImages = async () => {
     try {
       const [farmRes, imageRes] = await Promise.all([
-        axios.get(`${BASE_URL}/adminfarms/${cleanFarmId}`, getOpts()),
+        axios.get(`${BASE_URL}/adminfarms/${farmId}`, getOpts()),
         axios.get(`${BASE_URL}/farm-pictures/${cleanFarmId}`, getOpts()),
       ]);
 
