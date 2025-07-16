@@ -23,6 +23,7 @@
     const [likeDialogOpen, setLikeDialogOpen] = useState(false); 
     const [topTags, setTopTags] = useState([]);
     const [loadingTags, setLoadingTags] = useState(true);
+    const [selectedTag, setSelectedTag] = useState(null);
 
     const token = localStorage.getItem("token");
 
@@ -171,6 +172,10 @@
             <Typography className="text-center">
               Không tìm thấy bài viết
             </Typography>
+          ) : selectedTag && !post.tags.includes(selectedTag) ? ( // ✅ Lọc bài viết theo tag
+          <Typography className="text-center text-red-600">
+            Bài viết không chứa tag <b>{selectedTag}</b>
+          </Typography>
           ) : (
             <>
             <div className="flex justify-between items-center mb-4">
@@ -213,6 +218,30 @@
                   <Chip key={idx} value={tag} color="blue-gray" size="sm" />
                 ))}
               </div>
+
+              <div className="mb-6">
+              <Typography variant="h6" className="mb-2">Top Tags</Typography>
+              {loadingTags ? (
+                <Typography>Đang tải tags...</Typography>
+              ) : topTags.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {topTags.map((t, idx) => (
+                    <Chip
+                      key={idx}
+                      value={`${t.tag} (${t.count})`}
+                      color={selectedTag === t.tag ? "blue" : "blue-gray"}
+                      size="sm"
+                      className="cursor-pointer"
+                      onClick={() =>
+                        setSelectedTag((prev) => (prev === t.tag ? null : t.tag))
+                      }
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Typography>Chưa có tag nào.</Typography>
+              )}
+            </div>
 
               {/* Hình ảnh */}
               <div className="mb-2 font-semibold text-gray-700">Hình ảnh:</div>
@@ -342,26 +371,6 @@
               </Dialog>
             </>
           )}
-
-          <div className="mt-6">
-            <Typography variant="h6" className="mb-2">Top Tags</Typography>
-            {loadingTags ? (
-              <Typography>Đang tải tags...</Typography>
-            ) : topTags.length > 0 ? (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {topTags.map((t, idx) => (
-                  <Chip
-                    key={idx}
-                    value={`${t.tag} (${t.count})`}
-                    color="blue-gray"
-                    size="sm"
-                  />
-                ))}
-              </div>
-            ) : (
-              <Typography>Chưa có tag nào.</Typography>
-            )}
-          </div>
           
         </DialogBody>
         
