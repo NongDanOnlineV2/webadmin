@@ -270,7 +270,7 @@ console.log(users)
   </div>
 
   <div>
-    <Button className="bg-blue-500" onClick={handleSearch}>
+    <Button className="bg-black text-white" onClick={handleSearch}>
       TÌM KIẾM
     </Button>
   </div>
@@ -304,8 +304,8 @@ console.log(users)
                 <td className="p-2">{counts[user.id]?.videos ?? 0}</td>
                 <td className="p-2">
                   {user.isActive
-                    ? <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded">Active</span>
-                    : <span className="bg-gray-500 text-white text-xs px-2 py-0.5 rounded">Inactive</span>}
+                    ? <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded">Active</span>
+                    : <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">Inactive</span>}
                 </td>
                 <td className="p-2" onClick={e => e.stopPropagation()}>
                   <Menu placement="left-start">
