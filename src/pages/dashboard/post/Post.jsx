@@ -334,7 +334,7 @@ export function PostList() {
 
   {/* Nút lọc */}
   <Button
-    color="blue"
+    color="black"
     size="sm"
     className="h-10 px-4"
     onClick={handleFilter}
