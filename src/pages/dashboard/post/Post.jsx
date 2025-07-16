@@ -423,7 +423,6 @@ export function PostList() {
           )}
         </tbody>
       </table>
-
       <Dialog open={openEdit} handler={() => setOpenEdit(false)} size="md">
         <div className="p-4">
           <Typography variant="h6" className="mb-4">
@@ -511,7 +510,7 @@ export function PostList() {
         </div>
       </Dialog>
 
-      {/* Pagination */}
+ 
       <div className="flex justify-center items-center gap-2 mt-4">
         <Button
           size="sm"
