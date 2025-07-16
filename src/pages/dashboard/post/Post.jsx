@@ -35,6 +35,7 @@ export function PostList() {
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [filterTag, setFilterTag] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [topTags, setTopTags] = useState([]);
 
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
@@ -70,6 +71,23 @@ export function PostList() {
       setUsers([]);
     }
   };
+
+  const fetchTopTags = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${BASE_URL}/post-feed/tags/top`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (res.ok && Array.isArray(json)) {
+      setTopTags(json);
+    } else {
+      console.warn("Top tags không hợp lệ:", json);
+    }
+  } catch (err) {
+    console.error("Fetch top tags error:", err);
+  }
+};
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -154,6 +172,10 @@ export function PostList() {
     fetchAllUsers();
     fetchPosts();
   }, [currentPage]);
+
+  useEffect(() => {
+      fetchTopTags();
+    }, []);
 
   const findUser = (id) => users.find((u) => u.id === id);
 
@@ -273,6 +295,8 @@ export function PostList() {
     />
   </div>
 
+  
+
   {/* Trạng thái */}
   <select
     className="h-10 border border-gray-300 rounded px-2 text-sm text-gray-700"
@@ -294,6 +318,19 @@ export function PostList() {
     <option value="asc">Like tăng dần</option>
     <option value="desc">Like giảm dần</option>
   </select>
+
+  <select
+  className="h-10 border border-gray-300 rounded px-2 text-sm text-gray-700"
+  value={filterTag}
+  onChange={(e) => {setFilterTag(e.target.value)}}
+>
+  <option value="">Tất cả tags</option>
+  {topTags.map((tagObj, idx) => (
+    <option key={idx} value={tagObj.tag}>
+      {tagObj.tag} ({tagObj.count})
+    </option>
+  ))}
+</select>
 
   {/* Nút lọc */}
   <Button
@@ -423,7 +460,6 @@ export function PostList() {
           )}
         </tbody>
       </table>
-
       <Dialog open={openEdit} handler={() => setOpenEdit(false)} size="md">
         <div className="p-4">
           <Typography variant="h6" className="mb-4">
@@ -511,7 +547,7 @@ export function PostList() {
         </div>
       </Dialog>
 
-      {/* Pagination */}
+ 
       <div className="flex justify-center items-center gap-2 mt-4">
         <Button
           size="sm"
