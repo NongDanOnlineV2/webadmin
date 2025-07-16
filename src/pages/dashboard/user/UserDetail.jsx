@@ -82,14 +82,13 @@ const fetchCommentCount = async (postId) => {
 
     const comments = res.data.comments || [];
 
-    // Tính tổng số comment bao gồm reply nếu có dạng nested (dạng cha - con)
     let totalCount = 0;
 
     comments.forEach(comment => {
-      totalCount += 1; // count chính comment
+      totalCount += 1; 
 
       if (Array.isArray(comment.reply)) {
-        totalCount += comment.reply.length; // count reply nếu có
+        totalCount += comment.reply.length; 
       }
     });
 
@@ -363,7 +362,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       <Card>
         <div
           onClick={() => setOpenFarms(!openFarms)}
-          className="cursor-pointer flex gap-2 items-center px-4 py-2 bg-gray-100 rounded-t"
+          className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
         >
           <Typography variant="h5">
             Danh sách Farms ({userFarms.length})
@@ -447,103 +446,114 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
       {/* Danh sách video */}
       <Card>
-        <div
-          onClick={() => setOpenVideos(!openVideos)}
-          className="cursor-pointer flex gap-2 items-center px-4 py-2 bg-gray-100 rounded-t"
-        >
-          <Typography variant="h5">
-            Danh sách Videos ({userVideos.length})
-          </Typography>
-          <Typography
-            variant="h5"
-            className={`transform transition-transform duration-300 ${openVideos ? "rotate-180" : ""}`}
-          >
-            ▼
-          </Typography>
-        </div>
+  <div
+    onClick={() => setOpenVideos(!openVideos)}
+    className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
+  >
+    <Typography variant="h5" className="text-gray-800 font-bold">
+      Danh sách Videos ({userVideos.length})
+    </Typography>
+    <Typography
+      variant="h5"
+      className={`transform transition-transform duration-300 ${openVideos ? "rotate-180" : ""}`}
+    >
+      ▼
+    </Typography>
+  </div>
 
-        <Collapse open={openVideos}>
-          {openVideos && (
-            <div className="overflow-hidden transition-all duration-300">
-              <CardBody>
-                {userVideos.length === 0 ? (
-                  <Typography>Chưa có video nào.</Typography>
-                ) : userVideos.map((video) => (
-                  <div key={video._id} className="border p-4 mb-6 rounded shadow">
-                    <Typography variant="h6" className="mb-2">{video.title}</Typography>
+  <Collapse open={openVideos}>
+    {openVideos && (
+      <div className="overflow-hidden transition-all duration-300">
+        <CardBody className="bg-white rounded-b-md">
+          {userVideos.length === 0 ? (
+            <Typography className="text-center text-gray-500 py-6">Chưa có video nào.</Typography>
+          ) : userVideos.map((video) => (
+            <div key={video._id} className="border border-gray-200 p-6 mb-6 rounded-xl shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-gray-50">
+              {/* Tiêu đề */}
+              <Typography variant="h6" className="text-xl font-bold text-indigo-900 mb-3">
+                {video.title}
+              </Typography>
 
-                     <Typography className="mb-2 text-sm text-gray-700">
-                      <strong>Thuộc Farm:</strong>{" "}
-                      {video.farmId?.name || <span className="text-red-500">Không thuộc farm nào</span>}
-                    </Typography>
-                    
-                    {/* Video player */}
-                    {video.status === "pending" && video.localFilePath ? (
-                      <video
-                        src={
-                          video.localFilePath.startsWith('http')
-                            ? video.localFilePath
-                            : `https://api-ndolv2.nongdanonline.cc${video.localFilePath}`
-                        }
-                        controls
-                        className="h-[300px] w-full rounded shadow mb-4"
-                      />
-                    ) : video.youtubeLink && video.status === "uploaded" ? (
-                      video.youtubeLink.endsWith(".mp4") ? (
-                        <video
-                          src={video.youtubeLink}
-                          controls
-                          className="h-[320px] w-[600px] rounded shadow mb-4 mx-auto"
-                        />
-                      ) : (
-                        <iframe
-                          src={
-                            "https://www.youtube.com/embed/" +
-                            (video.youtubeLink.match(/(?:v=|\/embed\/|\.be\/)([^\s&?]+)/)?.[1] || "")
-                          }
-                          title="YouTube video"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="h-[320px] w-[600px] rounded shadow mb-4 mx-auto"
-                        />
-                      )
-                    ) : (
-                      <div className="flex items-center justify-center h-[300px] text-red-500 font-semibold bg-gray-100 rounded shadow mb-4">
-                        Video không tồn tại
-                      </div>
-                    )}
+              {/* Thuộc farm */}
+              <Typography className="mb-3 text-sm text-gray-700">
+                <strong>Thuộc Farm:</strong>{" "}
+                {video.farmId?.name || <span className="text-red-500">Không thuộc farm nào</span>}
+              </Typography>
 
-                    {/* Thông tin video */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
-                      <span>Danh sách phát: <strong>{video.playlistName}</strong></span>
-                      <span>Tên Farm: <strong>{video.farmId?.name}</strong></span>
-                      <span>Ngày đăng: <strong>{new Date(video.createdAt).toLocaleDateString()}</strong></span>
-                      <span>Người đăng: <strong>{video.uploadedBy?.fullName}</strong></span>
-                      <span>Email: <strong>{video.uploadedBy?.email}</strong></span>
-                      <span>Trạng thái: <strong>{video.status}</strong></span>
-                      <span>Link Local: <strong>{video.localFilePath}</strong></span>
-                      <span>Link YouTube: <strong>{video.youtubeLink || "Không có"}</strong></span>
-                      <span
-                        className="cursor-pointer text-blue-600 hover:underline"
-                        onClick={() => fetchVideoLikesUsers(video._id, video.title)}
-                      >
-                        Lượt thích: <strong>{videoLikes[video._id] ?? "Đang tải..."}</strong>
-                      </span>
-                      <span
-                        className="cursor-pointer text-blue-600 hover:underline"
-                        onClick={() => fetchVideoCommentsUsers(video._id, video.title)}
-                      >
-                        Lượt bình luận: <strong>{videoComments[video._id] ?? "Đang tải..."}</strong>
-                      </span>
+              {/* Video Player */}
+              {video.status === "pending" && video.localFilePath ? (
+                <video
+                  src={
+                    video.localFilePath.startsWith('http')
+                      ? video.localFilePath
+                      : `https://api-ndolv2.nongdanonline.cc${video.localFilePath}`
+                  }
+                  controls
+                  className="h-[300px] w-full rounded shadow mb-4"
+                />
+              ) : video.youtubeLink && video.status === "uploaded" ? (
+                video.youtubeLink.endsWith(".mp4") ? (
+                  <video
+                    src={video.youtubeLink}
+                    controls
+                    className="h-[320px] w-[600px] rounded shadow mb-4 mx-auto"
+                  />
+                ) : (
+                  <iframe
+                    src={
+                      "https://www.youtube.com/embed/" +
+                      (video.youtubeLink.match(/(?:v=|\/embed\/|\.be\/)([^\s&?]+)/)?.[1] || "")
+                    }
+                    title="YouTube video"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="h-[320px] w-[600px] rounded shadow mb-4 mx-auto"
+                  />
+                )
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-red-500 font-semibold bg-gray-100 rounded shadow mb-4">
+                  Video không tồn tại
+                </div>
+              )}
 
-                    </div>
-                  </div>
-                ))}
-              </CardBody>
+              {/* Thông tin video */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
+                <span><strong>Danh sách phát:</strong> {video.playlistName}</span>
+                <span><strong>Tên Farm:</strong> {video.farmId?.name}</span>
+                <span><strong>Ngày đăng:</strong> {new Date(video.createdAt).toLocaleDateString()}</span>
+                <span><strong>Người đăng:</strong> {video.uploadedBy?.fullName}</span>
+                <span><strong>Email:</strong> {video.uploadedBy?.email}</span>
+                <span><strong>Trạng thái:</strong> {video.status}</span>
+                <span><strong>Link Local:</strong> {video.localFilePath}</span>
+                <span><strong>Link YouTube:</strong> {video.youtubeLink || "Không có"}</span>
+              </div>
+
+              {/* Lượt thích & Lượt bình luận - Làm đẹp */}
+              <div className="flex flex-wrap gap-4 mt-5">
+                {/* Lượt thích */}
+                <div
+                  onClick={() => fetchVideoLikesUsers(video._id, video.title)}
+                  className="px-4 py-1 rounded-full bg-red-50 text-red-600 font-semibold text-sm cursor-pointer shadow hover:bg-red-100 transition"
+                >
+                  Lượt thích: {videoLikes[video._id] ?? "Đang tải..."}
+                </div>
+
+                {/* Lượt bình luận */}
+                <div
+                  onClick={() => fetchVideoCommentsUsers(video._id, video.title)}
+                  className="px-4 py-1 rounded-full bg-blue-50 text-blue-600 font-semibold text-sm cursor-pointer shadow hover:bg-blue-100 transition"
+                >
+                  Lượt bình luận: {videoComments[video._id] ?? "Đang tải..."}
+                </div>
+              </div>
             </div>
-          )}
-        </Collapse>
-      </Card>
+          ))}
+        </CardBody>
+      </div>
+    )}
+  </Collapse>
+</Card>
+
 
       <Dialog
         open={openVideoDialog}
@@ -719,9 +729,9 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       <Card>
         <div
           onClick={() => setOpenPosts(!openPosts)}
-          className="cursor-pointer flex gap-2 items-center px-4 py-2 bg-gray-100 rounded-t"
+          className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
         >
-          <Typography variant="h5">
+          <Typography variant="h5" className="text-gray-800 font-bold">
             Danh sách Posts ({userPosts.length})
           </Typography>
           <Typography
@@ -735,79 +745,95 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
         <Collapse open={openPosts}>
           {openPosts && (
             <div className="overflow-hidden transition-all duration-300">
-              <CardBody>
+              <CardBody className="bg-white rounded-b-md">
                 {userPosts.length === 0 ? (
-                  <Typography>Chưa có bài viết nào.</Typography>
+                  <Typography className="text-center text-gray-500 py-6">Chưa có bài viết nào.</Typography>
                 ) : userPosts.map((post) => (
-                  <div key={post._id} className="border p-4 mb-6 rounded shadow">
+                  <div
+                    key={post._id}
+                    className="border border-gray-200 rounded-xl p-6 mb-6 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-white to-gray-50"
+                  >
+                    {/* Tác giả + Ngày tạo/cập nhật */}
+                    <div className="flex justify-between items-center mb-4">
+                      {/* Tác giả */}
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={
+                            users.find(u => u.id === post.authorId)?.avatar?.startsWith("http")
+                              ? users.find(u => u.id === post.authorId)?.avatar
+                              : `https://api-ndolv2.nongdanonline.cc${users.find(u => u.id === post.authorId)?.avatar || ""}`
+                          }
+                          alt={users.find(u => u.id === post.authorId)?.fullName}
+                          className="w-9 h-9 rounded-full object-cover border-2 border-blue-200 shadow-sm"
+                        />
+                        <Typography className="text-gray-800 font-medium">
+                          {users.find(u => u.id === post.authorId)?.fullName || "Không rõ"}
+                        </Typography>
+                      </div>
+
+                      {/* Ngày tạo / cập nhật */}
+                      <div className="text-xs text-gray-500 text-right space-y-1">
+                        <p><b>Ngày tạo:</b> {new Date(post.createdAt).toLocaleString("vi-VN")}</p>
+                        <p><b>Cập nhật:</b> {new Date(post.updatedAt).toLocaleString("vi-VN")}</p>
+                      </div>
+                    </div>
+
                     {/* Tiêu đề */}
-                    <Typography variant="h6" className="mb-2">{post.title}</Typography>
-                    {/* Ngày tạo và cập nhật */}
-                    <div className="text-sm text-gray-600 mb-2">
-                      <p><b>Ngày tạo:</b> {new Date(post.createdAt).toLocaleString("vi-VN")}</p>
-                      <p><b>Cập nhật:</b> {new Date(post.updatedAt).toLocaleString("vi-VN")}</p>
-                    </div>
-                    {/* Tác giả */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <Typography className="font-semibold">Tác giả:</Typography>
-                      <img
-                        src={
-                          users.find(u => u.id === post.authorId)?.avatar?.startsWith("http")
-                            ? users.find(u => u.id === post.authorId)?.avatar
-                            : `https://api-ndolv2.nongdanonline.cc${users.find(u => u.id === post.authorId)?.avatar || ""}`
-                        }
-                        alt={users.find(u => u.id === post.authorId)?.fullName}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <Typography>
-                        {users.find(u => u.id === post.authorId)?.fullName || "Không rõ"}
-                      </Typography>
-                    </div>
+                    <Typography variant="h6" className="text-2xl font-bold text-blue-900 mb-3">{post.title}</Typography>
+
                     {/* Mô tả */}
-                    <Typography className="mb-3">
-                      <b>Mô tả:</b> {post.description}
+                    <Typography className="text-sm text-gray-700 mb-4">
+                      <span className="font-semibold text-gray-800">Mô tả:</span> {post.description}
                     </Typography>
+
                     {/* Tags */}
-                    <div className="flex gap-2 flex-wrap mb-3">
-                      <Typography className="font-semibold text-gray-700">Tags:</Typography>
+                    <div className="flex gap-2 flex-wrap mb-4">
+                      <Typography className="font-semibold text-gray-800">Tags:</Typography>
                       {post.tags?.map((tag, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded"
+                          className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full hover:bg-blue-200 transition"
                         >
                           {tag}
                         </span>
                       ))}
                     </div>
-                      {/* bình luận */}
-                    <div className="flex gap-2 items-center" onClick={() => fetchPostCommentsUsers(post.id, post.title)}>
-                      <Typography className="font-semibold cursor-pointer">Bình luận:</Typography>
-                      <Chip
-                        value={commentCounts[post.id] || 0}
-                        color="deep-purple"
-                        size="sm"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Typography className="font-semibold cursor-pointer" onClick={() => fetchPostLikesUsers(post.id, post.title)}>Lượt thích:</Typography>
-                      <Chip
-                        value={Array.isArray(post.like) ? post.like.length : (post.like || 0)}
-                        color="blue"
-                        size="sm"
-                        
-                      />
-                    </div>
-                    {/* Hình ảnh */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {post.images?.map((img, idx) => (
-                        <img
-                          key={idx}
-                          src={`https://api-ndolv2.nongdanonline.cc${img}`}
-                          alt={`img-${idx}`}
-                          className="w-full h-40 object-cover rounded shadow"
+
+                    {/* Bình luận và Lượt thích */}
+                    <div className="flex flex-wrap gap-6 items-center mb-4">
+                      <div
+                        className="flex items-center gap-2 cursor-pointer hover:underline text-sm"
+                        onClick={() => fetchPostCommentsUsers(post.id, post.title)}
+                      >
+                        <Typography className="font-semibold text-gray-800">Bình luận:</Typography>
+                        <Chip value={commentCounts[post.id] || 0} color="deep-purple" size="sm" />
+                      </div>
+                      <div
+                        className="flex items-center gap-2 cursor-pointer hover:underline text-sm"
+                        onClick={() => fetchPostLikesUsers(post.id, post.title)}
+                      >
+                        <Typography className="font-semibold text-gray-800">Lượt thích:</Typography>
+                        <Chip
+                          value={Array.isArray(post.like) ? post.like.length : (post.like || 0)}
+                          color="blue"
+                          size="sm"
                         />
-                      ))}
+                      </div>
                     </div>
+
+                    {/* Hình ảnh */}
+                    {post.images?.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {post.images.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={`https://api-ndolv2.nongdanonline.cc${img}`}
+                            alt={`img-${idx}`}
+                            className="w-full h-40 object-cover rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </CardBody>
@@ -815,6 +841,8 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           )}
         </Collapse>
       </Card>
+
+
 
     <Dialog
       open={openPostCommentDialog}
