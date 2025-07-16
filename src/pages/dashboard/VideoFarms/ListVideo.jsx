@@ -4,7 +4,8 @@ import { BaseUrl } from '@/ipconfig';
 import { Audio } from 'react-loader-spinner';
 import { useNavigate } from "react-router-dom";
 import { Typography, Button, Input } from '@material-tailwind/react';
-
+import { Dialog } from '@material-tailwind/react';
+import VideoById from './VideoById';
 const fetchAllVideosWithStats = async () => {
   const token = localStorage.getItem('token');
   let page = 1;
@@ -74,7 +75,19 @@ export const ListVideo = () => {
   const [searchText, setSearchText] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState(null);
   const limit = 10;
+
+const handleOpenDialog = (video) => {
+setSelectedVideo(video);
+setOpenDialog(true);
+};
+const handleCloseDialog = () => {
+
+  setOpenDialog(false);
+  setSelectedVideo(null);
+};
 
   useEffect(() => {
     setLoading(true);
@@ -206,7 +219,7 @@ const handleOpenStatusFilter = async () => {
             <tbody>
               {paginatedVideos.map((item) => (
                 <tr key={item._id} className="border-b hover:bg-gray-50 cursor-pointer"
-                    onClick={() => gotoVideoById(item._id)}>
+                    onClick={() => handleOpenDialog(item)}>
                   <td className="p-2">{item.title}</td>
                   <td className="p-2">{item.playlistName}</td>
                   <td className="p-2">{item.farmId?.name}</td>
@@ -242,6 +255,17 @@ const handleOpenStatusFilter = async () => {
           Trang sau
         </Button>
       </div>
+       { openDialog&&(
+<Dialog open={openDialog} handler={handleCloseDialog} size="xl">
+  <div className="max-h-[80vh] overflow-y-auto">
+    <VideoById
+      openDialog={openDialog}
+      handleCloseDialog={handleCloseDialog}
+      video={selectedVideo}
+    />
+  </div>
+</Dialog>  
+  )}
     </div>
   );
 };

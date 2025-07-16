@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { BaseUrl } from '@/ipconfig'
 import { Audio } from 'react-loader-spinner'
 import LikeButton from './LikeButton'
 import VideoLikeList from './VideoLikeList'
 import CommentVideo from './commentVideo';
- export const VideoById = () => {
-    const {id}= useParams()
+ export const VideoById = ({openDialog,handleCloseDialog,video}) => {
    const [selectedVideoId, setSelectedVideoId] = useState(null)
     const [openComment, setOpenComment] = useState(false);
    const [openLike, setOpenlike] = useState(false);
@@ -16,9 +14,9 @@ import CommentVideo from './commentVideo';
      const [loading, setLoading] = useState(true)
       // console.log(videoDetail)
      const tokenUser = localStorage.getItem('token');
-const getVideoDetail = async()=>{
+const getVideoDetail = async(videoId)=>{
   try {
-    const res= await axios.get(`${BaseUrl}/admin-video-farm/${id}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
+    const res= await axios.get(`${BaseUrl}/admin-video-farm/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
 if(res.status===200){
 setVideoDetail(res.data)
 setLoading(false)
@@ -29,9 +27,9 @@ setLoading(false)
 
   }
 }
-const getCommentVideo = async()=>{
+const getCommentVideo = async(videoId)=>{
   try {
-    const res= await axios.get(`${BaseUrl}/video-comment/${id}/comments`,{headers:{Authorization: `Bearer ${tokenUser}`}})
+    const res= await axios.get(`${BaseUrl}/video-comment/${videoId}/comments`,{headers:{Authorization: `Bearer ${tokenUser}`}})
 if(res.status===200){
 setVideoComment(res.data)
 setLoading(false)
@@ -74,14 +72,14 @@ const totalCommentCount = Array.isArray(videoComment)
     setOpenComment(false);
   };
 
-  const handleSaveEdit = async()=>{
+  const handleSaveEdit = async(videoId)=>{
 try {
       const updatedValue = { status: "uploaded" }; 
-    const res= await axios.post(`${BaseUrl}/admin-video-farm/upload-s3/${id}`, updatedValue,{
+    const res= await axios.post(`${BaseUrl}/admin-video-farm/upload-s3/${videoId}`, updatedValue,{
         headers: { Authorization: `Bearer ${tokenUser}` }})
 if(res.status===200){
   alert("Cập nhật thành công")
-    await  getVideoDetail();     
+    await  getVideoDetail(videoId);     
   }else {
       alert("Có lỗi trong lúc duyệt")
     }
@@ -94,7 +92,7 @@ const deletevideo = async(videoId)=>{
   try {
     const res= await axios.delete(`${BaseUrl}/admin-video-farm/delete-s3/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
 if(res.status===200){
-await getVideoDetail()
+await getVideoDetail(videoId)
 alert("Xóa thành công")
 }
   } catch (error) {
@@ -105,10 +103,12 @@ alert("Xóa thành công")
 
 
 
-useEffect(()=>{
-getVideoDetail()
-getCommentVideo()
-},[])
+useEffect(() => {
+    if (video && video._id) {
+      getVideoDetail(video._id);
+      getCommentVideo(video._id);
+    }
+  }, [video]);
   return (
      
   <div className="p-4">
@@ -136,7 +136,7 @@ getCommentVideo()
         <button
           onClick={async (e) => {
             e.stopPropagation();
-            await handleSaveEdit();
+            await handleSaveEdit(item._id);
           }}
           className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded shadow transition"
         >
