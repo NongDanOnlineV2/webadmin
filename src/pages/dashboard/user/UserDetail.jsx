@@ -82,14 +82,13 @@ const fetchCommentCount = async (postId) => {
 
     const comments = res.data.comments || [];
 
-    // Tính tổng số comment bao gồm reply nếu có dạng nested (dạng cha - con)
     let totalCount = 0;
 
     comments.forEach(comment => {
-      totalCount += 1; // count chính comment
+      totalCount += 1; 
 
       if (Array.isArray(comment.reply)) {
-        totalCount += comment.reply.length; // count reply nếu có
+        totalCount += comment.reply.length; 
       }
     });
 
@@ -719,9 +718,9 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       <Card>
         <div
           onClick={() => setOpenPosts(!openPosts)}
-          className="cursor-pointer flex gap-2 items-center px-4 py-2 bg-gray-100 rounded-t"
+          className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
         >
-          <Typography variant="h5">
+          <Typography variant="h5" className="text-gray-800 font-bold">
             Danh sách Posts ({userPosts.length})
           </Typography>
           <Typography
@@ -735,79 +734,95 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
         <Collapse open={openPosts}>
           {openPosts && (
             <div className="overflow-hidden transition-all duration-300">
-              <CardBody>
+              <CardBody className="bg-white rounded-b-md">
                 {userPosts.length === 0 ? (
-                  <Typography>Chưa có bài viết nào.</Typography>
+                  <Typography className="text-center text-gray-500 py-6">Chưa có bài viết nào.</Typography>
                 ) : userPosts.map((post) => (
-                  <div key={post._id} className="border p-4 mb-6 rounded shadow">
+                  <div
+                    key={post._id}
+                    className="border border-gray-200 rounded-xl p-6 mb-6 shadow-md hover:shadow-lg transition-shadow bg-gradient-to-br from-white to-gray-50"
+                  >
+                    {/* Tác giả + Ngày tạo/cập nhật */}
+                    <div className="flex justify-between items-center mb-4">
+                      {/* Tác giả */}
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={
+                            users.find(u => u.id === post.authorId)?.avatar?.startsWith("http")
+                              ? users.find(u => u.id === post.authorId)?.avatar
+                              : `https://api-ndolv2.nongdanonline.cc${users.find(u => u.id === post.authorId)?.avatar || ""}`
+                          }
+                          alt={users.find(u => u.id === post.authorId)?.fullName}
+                          className="w-9 h-9 rounded-full object-cover border-2 border-blue-200 shadow-sm"
+                        />
+                        <Typography className="text-gray-800 font-medium">
+                          {users.find(u => u.id === post.authorId)?.fullName || "Không rõ"}
+                        </Typography>
+                      </div>
+
+                      {/* Ngày tạo / cập nhật */}
+                      <div className="text-xs text-gray-500 text-right space-y-1">
+                        <p><b>Ngày tạo:</b> {new Date(post.createdAt).toLocaleString("vi-VN")}</p>
+                        <p><b>Cập nhật:</b> {new Date(post.updatedAt).toLocaleString("vi-VN")}</p>
+                      </div>
+                    </div>
+
                     {/* Tiêu đề */}
-                    <Typography variant="h6" className="mb-2">{post.title}</Typography>
-                    {/* Ngày tạo và cập nhật */}
-                    <div className="text-sm text-gray-600 mb-2">
-                      <p><b>Ngày tạo:</b> {new Date(post.createdAt).toLocaleString("vi-VN")}</p>
-                      <p><b>Cập nhật:</b> {new Date(post.updatedAt).toLocaleString("vi-VN")}</p>
-                    </div>
-                    {/* Tác giả */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <Typography className="font-semibold">Tác giả:</Typography>
-                      <img
-                        src={
-                          users.find(u => u.id === post.authorId)?.avatar?.startsWith("http")
-                            ? users.find(u => u.id === post.authorId)?.avatar
-                            : `https://api-ndolv2.nongdanonline.cc${users.find(u => u.id === post.authorId)?.avatar || ""}`
-                        }
-                        alt={users.find(u => u.id === post.authorId)?.fullName}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <Typography>
-                        {users.find(u => u.id === post.authorId)?.fullName || "Không rõ"}
-                      </Typography>
-                    </div>
+                    <Typography variant="h6" className="text-2xl font-bold text-blue-900 mb-3">{post.title}</Typography>
+
                     {/* Mô tả */}
-                    <Typography className="mb-3">
-                      <b>Mô tả:</b> {post.description}
+                    <Typography className="text-sm text-gray-700 mb-4">
+                      <span className="font-semibold text-gray-800">Mô tả:</span> {post.description}
                     </Typography>
+
                     {/* Tags */}
-                    <div className="flex gap-2 flex-wrap mb-3">
-                      <Typography className="font-semibold text-gray-700">Tags:</Typography>
+                    <div className="flex gap-2 flex-wrap mb-4">
+                      <Typography className="font-semibold text-gray-800">Tags:</Typography>
                       {post.tags?.map((tag, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded"
+                          className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full hover:bg-blue-200 transition"
                         >
                           {tag}
                         </span>
                       ))}
                     </div>
-                      {/* bình luận */}
-                    <div className="flex gap-2 items-center" onClick={() => fetchPostCommentsUsers(post.id, post.title)}>
-                      <Typography className="font-semibold cursor-pointer">Bình luận:</Typography>
-                      <Chip
-                        value={commentCounts[post.id] || 0}
-                        color="deep-purple"
-                        size="sm"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Typography className="font-semibold cursor-pointer" onClick={() => fetchPostLikesUsers(post.id, post.title)}>Lượt thích:</Typography>
-                      <Chip
-                        value={Array.isArray(post.like) ? post.like.length : (post.like || 0)}
-                        color="blue"
-                        size="sm"
-                        
-                      />
-                    </div>
-                    {/* Hình ảnh */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {post.images?.map((img, idx) => (
-                        <img
-                          key={idx}
-                          src={`https://api-ndolv2.nongdanonline.cc${img}`}
-                          alt={`img-${idx}`}
-                          className="w-full h-40 object-cover rounded shadow"
+
+                    {/* Bình luận và Lượt thích */}
+                    <div className="flex flex-wrap gap-6 items-center mb-4">
+                      <div
+                        className="flex items-center gap-2 cursor-pointer hover:underline text-sm"
+                        onClick={() => fetchPostCommentsUsers(post.id, post.title)}
+                      >
+                        <Typography className="font-semibold text-gray-800">Bình luận:</Typography>
+                        <Chip value={commentCounts[post.id] || 0} color="deep-purple" size="sm" />
+                      </div>
+                      <div
+                        className="flex items-center gap-2 cursor-pointer hover:underline text-sm"
+                        onClick={() => fetchPostLikesUsers(post.id, post.title)}
+                      >
+                        <Typography className="font-semibold text-gray-800">Lượt thích:</Typography>
+                        <Chip
+                          value={Array.isArray(post.like) ? post.like.length : (post.like || 0)}
+                          color="blue"
+                          size="sm"
                         />
-                      ))}
+                      </div>
                     </div>
+
+                    {/* Hình ảnh */}
+                    {post.images?.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {post.images.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={`https://api-ndolv2.nongdanonline.cc${img}`}
+                            alt={`img-${idx}`}
+                            className="w-full h-40 object-cover rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </CardBody>
@@ -815,6 +830,8 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           )}
         </Collapse>
       </Card>
+
+
 
     <Dialog
       open={openPostCommentDialog}
