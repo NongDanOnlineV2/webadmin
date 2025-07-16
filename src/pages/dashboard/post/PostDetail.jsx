@@ -21,9 +21,7 @@
     const [commentLoading, setCommentLoading] = useState(true);
     const [showComments, setShowComments] = useState(false);
     const [likeDialogOpen, setLikeDialogOpen] = useState(false); 
-    const [topTags, setTopTags] = useState([]);
-    const [loadingTags, setLoadingTags] = useState(true);
-    const [selectedTag, setSelectedTag] = useState(null);
+   
 
     const token = localStorage.getItem("token");
 
@@ -49,23 +47,7 @@
       }
     };
 
-    const fetchTopTags = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/post-feed/tags/top`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (res.ok && Array.isArray(json)) {
-          setTopTags(json);
-        } else {
-          console.warn("Top tags không hợp lệ:", json);
-        }
-      } catch (err) {
-        console.error("Fetch top tags error:", err);
-      } finally {
-        setLoadingTags(false);
-      }
-    };
+    
 
     const fetchComments = async () => {
       try {
@@ -140,9 +122,7 @@
       }
     }, [postId, open]);
 
-    useEffect(() => {
-      fetchTopTags();
-    }, []);
+    
 
 
     const findUser = (userId) =>
@@ -172,10 +152,6 @@
             <Typography className="text-center">
               Không tìm thấy bài viết
             </Typography>
-          ) : selectedTag && !post.tags.includes(selectedTag) ? ( // ✅ Lọc bài viết theo tag
-          <Typography className="text-center text-red-600">
-            Bài viết không chứa tag <b>{selectedTag}</b>
-          </Typography>
           ) : (
             <>
             <div className="flex justify-between items-center mb-4">
@@ -219,29 +195,7 @@
                 ))}
               </div>
 
-              <div className="mb-6">
-              <Typography variant="h6" className="mb-2">Top Tags</Typography>
-              {loadingTags ? (
-                <Typography>Đang tải tags...</Typography>
-              ) : topTags.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {topTags.map((t, idx) => (
-                    <Chip
-                      key={idx}
-                      value={`${t.tag} (${t.count})`}
-                      color={selectedTag === t.tag ? "blue" : "blue-gray"}
-                      size="sm"
-                      className="cursor-pointer"
-                      onClick={() =>
-                        setSelectedTag((prev) => (prev === t.tag ? null : t.tag))
-                      }
-                    />
-                  ))}
-                </div>
-              ) : (
-                <Typography>Chưa có tag nào.</Typography>
-              )}
-            </div>
+              
 
               {/* Hình ảnh */}
               <div className="mb-2 font-semibold text-gray-700">Hình ảnh:</div>

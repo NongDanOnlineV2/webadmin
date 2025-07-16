@@ -35,6 +35,9 @@ export function PostList() {
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [filterTag, setFilterTag] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [topTags, setTopTags] = useState([]);
+  const [loadingTags, setLoadingTags] = useState(true);
+  const [selectedTag, setSelectedTag] = useState(null);
 
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
@@ -71,6 +74,23 @@ export function PostList() {
     }
   };
 
+  const fetchTopTags = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/post-feed/tags/top`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (res.ok && Array.isArray(json)) {
+          setTopTags(json);
+        } else {
+          console.warn("Top tags không hợp lệ:", json);
+        }
+      } catch (err) {
+        console.error("Fetch top tags error:", err);
+      } finally {
+        setLoadingTags(false);
+      }
+    };
   const fetchPosts = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
@@ -154,6 +174,9 @@ export function PostList() {
     fetchAllUsers();
     fetchPosts();
   }, [currentPage]);
+  useEffect(() => {
+      fetchTopTags();
+    }, []);
 
   const findUser = (id) => users.find((u) => u.id === id);
 
@@ -272,6 +295,19 @@ export function PostList() {
       containerProps={{ className: "min-w-0" }}
     />
   </div>
+
+  <select
+  className="h-10 border border-gray-300 rounded px-2 text-sm text-gray-700"
+  value={filterTag}
+  onChange={(e) => setFilterTag(e.target.value)}
+>
+  <option value="">Tất cả tags</option>
+  {topTags.map((tagObj, idx) => (
+    <option key={idx} value={tagObj.tag}>
+      {tagObj.tag} ({tagObj.count})
+    </option>
+  ))}
+</select>
 
   {/* Trạng thái */}
   <select
