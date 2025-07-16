@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Typography, Button, Input } from '@material-tailwind/react';
 import { Dialog } from '@material-tailwind/react';
 import VideoById from './VideoById';
+
 const fetchAllVideosWithStats = async () => {
   const token = localStorage.getItem('token');
   let page = 1;
