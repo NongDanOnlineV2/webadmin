@@ -287,22 +287,22 @@ filteredComments.length === 0 ? (
   </div>
 ) : (
   <div className="overflow-x-auto">
-    <table className="min-w-full bg-white border border-gray-200">
+    <table className="min-w-full bg-white border border-gray-200 table-fixed">
       <thead className="bg-gray-50">
         <tr>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/4">
             Tiêu đề bài viết
           </th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/6">
             Ngày đăng
           </th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/8">
             Số bình luận
           </th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/3">
             Bình luận mới nhất
           </th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b w-1/8">
             Trạng thái
           </th>
         
@@ -325,9 +325,9 @@ filteredComments.length === 0 ? (
           return (
             <tr key={item.postId} className="hover:bg-gray-50 cursor-pointer"
                 onClick={() => handleOpenDialogComments(item)}>
-              <td className="px-4 py-4 border-b">
+              <td className="px-4 py-4 border-b max-w-xs">
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-900 break-words">
+                  <span className="text-sm font-medium text-gray-900 break-words line-clamp-2 overflow-hidden text-ellipsis">
                     {title}
                   </span>
                   {!postInfo && (
@@ -345,9 +345,9 @@ filteredComments.length === 0 ? (
                   {totalComments} bình luận
                 </span>
               </td>
-              <td className="px-4 py-4 border-b">
+              <td className="px-4 py-4 border-b w-1/3">
                 {latestComment && (
-                  <div className="text-sm">
+                  <div className="text-sm max-w-full">
                     <div className="flex items-center gap-2 mb-1">
                       <img
                         src={
@@ -356,16 +356,16 @@ filteredComments.length === 0 ? (
                             : `${BaseUrl}${latestComment.userId.avatar}`
                         }
                         alt=""
-                        className="w-6 h-6 rounded-full"
+                        className="w-6 h-6 rounded-full flex-shrink-0"
                       />
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-gray-900 truncate">
                         {latestComment.userId.fullName}
                       </span>
                     </div>
-                    <p className="text-gray-600 text-xs break-all line-clamp-2">
+                    <p className="text-gray-600 text-xs break-words line-clamp-2 max-w-xs overflow-hidden text-ellipsis">
                       {latestComment.comment}
                     </p>
-                    <span className="text-xs text-gray-400 mt-1">
+                    <span className="text-xs text-gray-400 mt-1 block">
                       {new Date(latestComment.createdAt).toLocaleString('vi-VN')}
                     </span>
                   </div>

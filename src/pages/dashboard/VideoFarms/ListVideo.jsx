@@ -108,7 +108,6 @@ const handleCloseCommentDialog = () => {
     fetchVideoStats(videoIds);
   }
 };
-
 const fetchVideoStats = async (videoIds) => {
   const token = localStorage.getItem('token');
   const stats = {};
@@ -177,8 +176,7 @@ const fetchVideoStats = async (videoIds) => {
         }
         
         let commentCount = 0;
-        // Tạm thời bỏ qua việc đếm comment để tránh lỗi 404
-        // commentCount = 0;
+
         
         stats[videoId] = { likeCount, commentCount };
         
@@ -348,16 +346,13 @@ const handleOpenStatusFilter = async () => {
                   </div>
                 )}
               </div>
-
-              {/* Video Info */}
               <div className="p-4">
-                {/* Header với title và menu 3 chấm */}
+
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-lg text-gray-900 line-clamp-2 flex-1 mr-2">
                     {item.title}
                   </h3>
-                  
-                  {/* Menu 3 chấm */}
+                
                   <Menu placement="bottom-end">
                     <MenuHandler>
                       <Button
@@ -406,7 +401,14 @@ const handleOpenStatusFilter = async () => {
                     <span className="font-medium">Ngày đăng:</span> {new Date(item.createdAt).toLocaleDateString()}
                   </div>
                   <div>
-                    <span className="font-medium">Người đăng:</span> {item.uploadedBy?.fullName}
+                    <span className="font-medium cursor-pointer hover:text-blue-600 transition-colors"  
+                    onClick={() => {
+                       const authorId = item.uploadedBy?._id || item.uploadedBy?.id || item.uploadedBy;
+                       if (authorId) {
+                         navigate(`/dashboard/users/${authorId}`);
+                       }
+                     }}
+                     title="Xem chi tiết người dùng">Người đăng: {item.uploadedBy?.fullName}</span> 
                   </div>
                   <div>
                     <span className="font-medium">Email:</span>
@@ -450,10 +452,11 @@ const handleOpenStatusFilter = async () => {
                   >
                     <span>💬</span>
                     <span className="text-sm">
-                      Bình luận: {(() => {
+                      Bình luận
+                      {/* Bình luận: {(() => {
                         const count = videoStats[item._id]?.commentCount;
                         return count !== undefined ? count : '...';
-                      })()}
+                      })()} */}
                     </span>
                   </button>
                 </div>

@@ -310,13 +310,6 @@ export const approvevideo = async (videoId, callback) => {
     }
   } catch (error) {
     console.log("Lỗi khi duyệt video:", error);
-    console.log("Error details:", {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data
-    });
-    return { success: false, message: `Lỗi khi duyệt video: ${error.response?.data?.message || error.message}`, error };
   }
 };
 
