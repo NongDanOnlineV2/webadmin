@@ -135,199 +135,193 @@
     };
 
     return (
-      <Dialog open={open} handler={onClose} size="xl">
-        <DialogHeader className="flex justify-between items-center bg-gradient-to-r from-blue-100 to-indigo-100 rounded-t px-6 py-4 shadow">
-          <Typography variant="h5">Chi tiết bài viết</Typography>
-          <Button size="sm" onClick={onClose}>
-            Đóng
-          </Button>
-        </DialogHeader>
+      <Dialog
+  open={open}
+  handler={onClose}
+  className={`rounded-lg mx-auto ${
+    post?.images?.length === 0 
+    ? "max-w-lg" 
+    : post?.images?.length === 1
+    ? "max-w-xl" 
+    : post?.images?.length === 2
+    ? "max-w-3xl" 
+    : "max-w-5xl" 
+  }`}
+>
+  <DialogHeader className="flex justify-between items-center bg-gradient-to-r from-blue-100 to-indigo-100 rounded-t px-4 py-2 shadow">
+    <Typography variant="h5" className="font-semibold">Chi tiết bài viết</Typography>
+    <Button size="sm" onClick={onClose}>Đóng</Button>
+  </DialogHeader>
 
-        <DialogBody className="max-h-[75vh] overflow-y-auto">
-          {loading ? (
-            <div className="flex justify-center items-center h-60">
-              <Audio height="80" width="80" color="green" ariaLabel="loading" />
-            </div>
-          ) : !post ? (
-            <Typography className="text-center">
-              Không tìm thấy bài viết
+  <DialogBody className="max-h-[75vh] overflow-y-auto px-4 py-2">
+    {loading ? (
+      <div className="flex justify-center items-center h-60">
+        <Audio height="80" width="80" color="green" ariaLabel="loading" />
+      </div>
+    ) : !post ? (
+      <Typography className="text-center">Không tìm thấy bài viết</Typography>
+    ) : (
+      <>
+        {/* Tác giả và ngày */}
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-2">
+            <Avatar
+              src={
+                findUser(post.authorId)?.avatar?.startsWith("http")
+                  ? findUser(post.authorId).avatar
+                  : `${BASE_URL}${findUser(post.authorId)?.avatar || ""}`
+              }
+              alt={findUser(post.authorId)?.fullName}
+              size="md"
+            />
+            <Typography className="font-semibold text-gray-800">
+              {findUser(post.authorId)?.fullName || "Không rõ"}
             </Typography>
-          ) : (
+          </div>
+          <div className="text-sm text-gray-500 text-right">
+            <p><b>Ngày tạo:</b> {formatDateTime(post.createdAt)}</p>
+            <p><b>Cập nhật:</b> {formatDateTime(post.updatedAt)}</p>
+          </div>
+        </div>
+
+        {/* Tiêu đề */}
+        <Typography variant="h4" className="font-bold mb-3 text-indigo-800">
+          {post.title}
+        </Typography>
+
+        {/* Mô tả */}
+        <Typography className="mb-3 text-sm text-gray-700 leading-snug">
+          <b>Mô tả:</b> {post.description}
+        </Typography>
+
+        {/* Tags */}
+        {post.tags?.length > 0 && (
+          <div className="flex gap-1 flex-wrap mb-3 items-center">
+            <Typography className="font-semibold text-gray-700">Tags:</Typography>
+            {post.tags.map((tag, idx) => (
+              <Chip key={idx} value={tag} color="blue-gray" size="sm" />
+            ))}
+          </div>
+        )}
+
+        {/* Hình ảnh */}
+        {post.images?.length > 0 && (
+          <>
+            <Typography className="mb-1 font-semibold text-gray-700">Hình ảnh:</Typography>
+            <div
+              className={`grid gap-2 mb-3 ${
+                post.images.length === 1
+                  ? "grid-cols-1"
+                  : post.images.length === 2
+                  ? "grid-cols-2"
+                  : "grid-cols-3"
+              }`}
+            >
+              {post.images.map((img, idx) => (
+                <img
+                  key={idx}
+                  src={`${BASE_URL}${img}`}
+                  alt={`img-${idx}`}
+                  className="w-full h-52 object-cover rounded shadow"
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Trạng thái và like */}
+        <div className="flex gap-4 items-center mb-3">
+          <div className="flex items-center gap-1">
+            <Typography className="font-semibold">Trạng thái:</Typography>
+            <Chip
+              value={post.status ? "Hoạt động" : "Ẩn"}
+              color={post.status ? "teal" : "red"}
+              size="sm"
+            />
+          </div>
+          <div
+            className="flex items-center gap-1 cursor-pointer"
+            onClick={() => {fetchLikeUsers(); setLikeDialogOpen(true)}}
+          >
+            <Typography className="font-semibold">Lượt thích:</Typography>
+            <Chip value={post.like || 0} color="blue" size="sm" />
+          </div>
+        </div>
+
+        {/* Bình luận */}
+        <div className="border-t pt-3">
+          <div
+            className="cursor-pointer mb-2"
+            onClick={() => setShowComments(!showComments)}
+          >
+            <Typography variant="h5" className="text-blue-800">
+              Bình luận ({comments.length + comments.reduce((total, cmt) => total + (cmt.replies?.length || 0), 0)})
+            </Typography>
+          </div>
+
+          {showComments && (
             <>
-            <div className="flex justify-between items-center mb-4">
-                {/* Tác giả */}
-                <div className="flex items-center gap-3">
-                  <Avatar
-                    src={
-                      findUser(post.authorId)?.avatar?.startsWith("http")
-                        ? findUser(post.authorId).avatar
-                        : `${BASE_URL}${findUser(post.authorId)?.avatar || ""}`
-                    }
-                    alt={findUser(post.authorId)?.fullName}
-                  />
-                  <Typography className="font-semibold text-gray-700">
-                    {findUser(post.authorId)?.fullName || "Không rõ"}
-                  </Typography>
-                </div>
+              {commentLoading ? (
+                <Typography>Đang tải bình luận...</Typography>
+              ) : comments.length > 0 ? (
+                comments.map((cmt) => (
+                  <div key={cmt._id} className="border-b py-2 flex gap-2">
+                    <Avatar
+                      src={
+                        cmt.userId?.avatar?.startsWith("http")
+                          ? cmt.userId.avatar
+                          : `${BASE_URL}${cmt.userId?.avatar || ""}`
+                      }
+                      alt={cmt.userId?.fullName}
+                      size="sm"
+                    />
+                    <div className="flex-1">
+                      <Typography className="font-medium">
+                        {cmt.userId?.fullName || "Ẩn danh"}
+                      </Typography>
+                      <Typography className="text-sm text-gray-700">{cmt.comment}</Typography>
 
-                {/* Ngày tạo và cập nhật */}
-                <div className="text-sm text-right text-gray-500">
-                  <p><b>Ngày tạo:</b> {formatDateTime(post.createdAt)}</p>
-                  <p><b>Cập nhật:</b> {formatDateTime(post.updatedAt)}</p>
-                </div>
-              </div>
-            
-              {/* Tiêu đề */}
-              <Typography variant="h4" className="font-bold mb-4 text-indigo-900">
-                {post.title}
-              </Typography>
-
-              {/* Mô tả */}
-              <Typography className="mb-4 text-sm text-gray-700 leading-relaxed">
-                <b>Mô tả:</b> {post.description}
-              </Typography>
-
-              {/* Tags */}
-              <div className="flex gap-2 flex-wrap mb-4 items-center">
-                <Typography className="font-semibold text-gray-800">Tags:</Typography>
-                {post.tags?.map((tag, idx) => (
-                  <Chip key={idx} value={tag} color="blue-gray" size="sm" />
-                ))}
-              </div>
-
-              
-
-              {/* Hình ảnh */}
-              <div className="mb-2 font-semibold text-gray-700">Hình ảnh:</div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-                {post.images?.map((img, idx) => (
-                  <img
-                    key={idx}
-                    src={`${BASE_URL}${img}`}
-                    alt={`img-${idx}`}
-                    className="w-full h-40 object-cover rounded shadow"
-                  />
-                ))}
-              </div>
-
-              <div className="flex gap-3 items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <Typography className="font-semibold">Trạng thái:</Typography>
-                  <Chip
-                    value={post.status ? "Hoạt động" : "Ẩn"}
-                    color={post.status ? "teal" : "red"}
-                    size="sm"
-                  />
-                </div>
-                <div className="flex items-center gap-2 cursor-pointer" onClick={() => {fetchLikeUsers(); setLikeDialogOpen(true)}}>
-                  <Typography className="font-semibold">Lượt thích:</Typography>
-                  <Chip value={post.like || 0} color="blue" size="sm" />
-                </div>
-              </div>
-
-              {/* Bình luận */}
-              <div className="border-t pt-4 mt-6">
-                <div
-                  className="cursor-pointer mb-2"
-                  onClick={() => setShowComments(!showComments)}
-                >
-                  <Typography variant="h5" className="text-blue-800">
-                    Bình luận ({comments.length + comments.reduce((total, cmt) => total + (cmt.replies?.length || 0), 0)})
-                  </Typography>
-                  {showComments && (
-                    <>
-                      {commentLoading ? (
-                        <Typography>Đang tải bình luận...</Typography>
-                      ) : comments.length > 0 ? (
-                        comments.map((cmt) => (
-                          <div key={cmt._id} className="border-b py-3 flex items-start gap-3">
-                            <Avatar
-                              src={
-                                cmt.userId?.avatar?.startsWith("http")
-                                  ? cmt.userId.avatar
-                                  : `${BASE_URL}${cmt.userId?.avatar || ""}`
-                              }
-                              alt={cmt.userId?.fullName}
-                            />
-                            <div className="flex-1">
-                              <div className="flex justify-between">
-                                <Typography className="font-medium">
-                                  {cmt.userId?.fullName || "Ẩn danh"}
-                                </Typography>
-                              </div>
-                              <Typography className="text-gray-700">{cmt.comment}</Typography>
-
-                              {/* Replies */}
-                              {cmt.replies?.length > 0 && (
-                                <div className="ml-4 mt-2 border-l-2 pl-2 border-blue-200">
-                                  {cmt.replies.map((rep, idx) => {
-                                    const replyUser = findUser(rep.userId); // Vì rep.userId là string
-
-                                    return (
-                                      <div key={idx} className="flex items-start gap-2 mt-1">
-                                        <Avatar
-                                          src={
-                                            replyUser?.avatar?.startsWith("http")
-                                              ? replyUser.avatar
-                                              : `${BASE_URL}${replyUser?.avatar || ""}`
-                                          }
-                                          alt={replyUser?.fullName}
-                                          size="xs"
-                                        />
-                                        <div className="flex-1">
-                                          <div className="flex justify-between">
-                                            <Typography className="font-semibold">
-                                              {replyUser?.fullName || "Ẩn danh"}:
-                                            </Typography>
-                                          </div>
-                                          <Typography className="text-sm">{rep.comment}</Typography>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                      {/* Replies */}
+                      {cmt.replies?.length > 0 && (
+                        <div className="ml-4 mt-1 border-l pl-2 border-blue-100">
+                          {cmt.replies.map((rep, idx) => {
+                            const replyUser = findUser(rep.userId);
+                            return (
+                              <div key={idx} className="flex gap-1 mt-1">
+                                <Avatar
+                                  src={
+                                    replyUser?.avatar?.startsWith("http")
+                                      ? replyUser.avatar
+                                      : `${BASE_URL}${replyUser?.avatar || ""}`
+                                  }
+                                  alt={replyUser?.fullName}
+                                  size="xs"
+                                />
+                                <div>
+                                  <Typography className="font-semibold text-sm">
+                                    {replyUser?.fullName || "Ẩn danh"}:
+                                  </Typography>
+                                  <Typography className="text-sm">{rep.comment}</Typography>
                                 </div>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <Typography>Không có bình luận</Typography>
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <Dialog open={likeDialogOpen} handler={() => setLikeDialogOpen(false)} size="sm">
-                <DialogHeader className="flex justify-between">
-                  <Typography variant="h5">Người đã thích</Typography>
-                  <Button size="sm" onClick={() => setLikeDialogOpen(false)}>Đóng</Button>
-                </DialogHeader>
-                <DialogBody className="max-h-[60vh] overflow-y-auto">
-                  {likeUsers.length > 0 ? (
-                    likeUsers.map((user) => (
-                      <div key={user.id} className="flex items-center gap-3 mb-2">
-                        <Avatar
-                          src={
-                            user.avatar?.startsWith("http")
-                              ? user.avatar
-                              : `${BASE_URL}${user.avatar || ""}`
-                          }
-                          alt={user.fullName}
-                        />
-                        <Typography>{user.fullName}</Typography>
-                      </div>
-                    ))
-                  ) : (
-                    <Typography>Không có ai thích bài viết này.</Typography>
-                  )}
-                </DialogBody>
-              </Dialog>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <Typography>Không có bình luận</Typography>
+              )}
             </>
           )}
-          
-        </DialogBody>
-        
-      </Dialog>
+        </div>
+      </>
+    )}
+  </DialogBody>
+</Dialog>
+
+
     );
   }

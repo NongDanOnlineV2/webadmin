@@ -354,7 +354,7 @@ export function PostList() {
           <tr>
             <th className="p-3 border">Tiêu đề</th>
             <th className="p-3 border">Mô tả</th>
-            <th className="p-3 border">Tags</th>
+            <th className="p-3 border">Ngày tạo</th>
             <th className="p-3 border">Hình</th>
             <th className="p-3 border">Tác giả</th>
             <th className="p-3 border text-center">Like</th>
@@ -379,24 +379,15 @@ export function PostList() {
                 <td className="p-3 border">{post.title}</td>
                 <td className="p-3 border max-w-xs">
                   <p className="line-clamp-2 text-sm leading-snug break-words">
-                    {post.description?.length > 45
-                      ? post.description.slice(0, 40) + "..."
+                    {post.description?.length > 20
+                      ? post.description.slice(0, 15) + "..."
                       : post.description || "Không có mô tả"}
                   </p>
                 </td>
                 <td className="p-3 border">
-                  {Array.isArray(post.tags) && post.tags.length > 0 && (
-                    <div className="flex items-center gap-1">
-                      <div className="px-2 py-1 text-xs bg-gray-200 rounded">
-                        {post.tags[0]}
-                      </div>
-                      {post.tags.length > 1 && (
-                        <span className="text-xs text-gray-500">
-                          +{post.tags.length - 1}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {post.createdAt
+                    ? new Date(post.createdAt).toLocaleDateString("vi-VN")
+                    : "Không rõ"}
                 </td>
                 <td className="p-3 border">
                   {post.images?.length > 0 ? (
