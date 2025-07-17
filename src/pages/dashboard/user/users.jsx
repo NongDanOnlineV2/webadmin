@@ -19,7 +19,7 @@ export default function Users() {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
-    fullName: "", email: "", phone: "", isActive: true, addresses: [""]
+    fullName: "", email: "", phone: "", isActive: true, selectedAddress: ""
   });
   const [selectedRole, setSelectedRole] = useState("Farmer");
 console.log(formData)
@@ -31,6 +31,7 @@ console.log(formData)
   const [filterStatus, setFilterStatus] = useState("");
   const [searchText, setSearchText] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [userAddresses, setUserAddresses] = useState([]);
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -133,15 +134,32 @@ setRoles(uniqueRoles);
   }, [token, page, filterRole, filterStatus, isSearching]);
 
   // Edit
-  const openEdit = (user) => {
+  const openEdit = async  (user) => {
     setSelectedUser(user);
     setFormData({
       fullName: user.fullName, email: user.email,
       phone: user.phone || "", isActive: user.isActive,
-      addresses: user?.addresses?.map(a => a.address) || [""],
+      selectedAddress: "",
     });
+    try {
+    const res = await axios.get(`${apiUrl}/admin/user-address/user/${user.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setUserAddresses(res.data || []);
+    if (res.data.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        selectedAddress: res.data[0].address
+      }));
+    }
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách địa chỉ:", error);
+    setUserAddresses([]);
+  }
+
     setEditOpen(true);
   };
+  
 console.log(users)
 // CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
  const handleUpdate = async () => {
@@ -351,31 +369,9 @@ console.log(users)
   value={formData.isActive ? "Đã cấp quyền" : "Chưa cấp quyền"}
   onChange={val => setFormData({ ...formData, isActive: val === "Đã cấp quyền" })}
 >
-  <Option value="Đã cấp quyền">Đã cấp quyền</Option>
-  <Option value="Chưa cấp quyền">Chưa cấp quyền</Option>
+  <Option value="Đã cấp quyền">Active</Option>
+  <Option value="Chưa cấp quyền">Inactive</Option>
 </Select>
-
-    <Typography className="font-bold">Địa chỉ</Typography>
-<CreatableSelect
-  isClearable
-  placeholder="Nhập hoặc chọn địa chỉ mới..."
-  value={formData.addresses[0] ? { label: formData.addresses[0], value: formData.addresses[0] } : null}
-  options={
-    selectedUser?.addresses?.map(addr => ({
-      label: addr.address,
-      value: addr.address
-    })) || []
-  }
-  onChange={(selected) => {
-    setFormData({
-      ...formData,
-      addresses: selected ? [selected.value] : [],
-    });
-  }}
-  formatCreateLabel={(inputValue) => `+ Thêm mới: "${inputValue}"`}
-/>
-
-
     <Typography className="font-bold">Quản lý role</Typography>
     <Select label="Thêm role" value={selectedRole} onChange={setSelectedRole}>
       {roles.map(role => (

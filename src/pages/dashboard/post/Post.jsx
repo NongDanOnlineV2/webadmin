@@ -334,7 +334,7 @@ export function PostList() {
 
   {/* Nút lọc */}
   <Button
-    color="blue"
+    color="black"
     size="sm"
     className="h-10 px-4"
     onClick={handleFilter}
@@ -365,6 +365,7 @@ export function PostList() {
         </thead>
         <tbody>
           {posts.map((post) => {
+            console.log("post nè",posts)
             const author = findUser(post.authorId);
             return (
               <tr
@@ -378,8 +379,8 @@ export function PostList() {
                 <td className="p-3 border">{post.title}</td>
                 <td className="p-3 border max-w-xs">
                   <p className="line-clamp-2 text-sm leading-snug break-words">
-                    {post.description?.length > 50
-                      ? post.description.slice(0, 50) + "..."
+                    {post.description?.length > 45
+                      ? post.description.slice(0, 40) + "..."
                       : post.description || "Không có mô tả"}
                   </p>
                 </td>
@@ -410,7 +411,7 @@ export function PostList() {
                 </td>
                 <td className="p-3 border">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{author?.fullName || "Không rõ"}</span>
+                    <span className="text-sm">{author?.fullName?.length > 20? author?.fullName.slice(0, 15) + "..." : author?.fullName || "Không rõ"}</span>
                   </div>
                 </td>
                 <td className="p-3 border text-center">{post.like}</td>
@@ -418,7 +419,7 @@ export function PostList() {
                 <td className="p-3 border text-center">
                   <Chip
                     value={post.status ? "Đang hoạt động" : "Đã ẩn"}
-                    color={post.status ? "green" : "red"}
+                    color={post.status ? "teal" : "red"}
                     size="sm"
                   />
                 </td>

@@ -39,12 +39,25 @@ const serviceOptions = [
 
 const featureOptions = [
   { label: "Mô hình aquaponic", value: "aquaponic_model" },
+  { label: "Mô hình RAS", value: "ras_ready" },
+  { label: "Thủy canh", value: "hydroponic" },
+  { label: "Nhà kính", value: "greenhouse" },
+  { label: "Nông trại thẳng đứng", value: "vertical_farming" },
   { label: "Chứng nhận VietGAP", value: "viet_gap_cert" },
   { label: "Chứng nhận hữu cơ", value: "organic_cert" },
-  { label: "Nông trại thông minh", value: "smart_farm" },
-  { label: "Tự động hóa", value: "automation" },
-  { label: "Sử dụng IoT", value: "iot_enabled" },
+  { label: "Chứng nhận GlobalGAP", value: "global_gap_cert" },
+  { label: "Chứng nhận HACCP", value: "haccp_cert" },
+  { label: "Camera trực tuyến", value: "camera_online" },
+  { label: "Giám sát bằng drone", value: "drone_monitoring" },
+  { label: "Tự động phát hiện sâu bệnh", value: "automated_pest_detection" },
+  { label: "Tưới chính xác (precision)", value: "precision_irrigation" },
+  { label: "Tưới tự động", value: "auto_irrigation" },
+  { label: "Tưới dựa theo độ ẩm đất", value: "soil_based_irrigation" },
+  { label: "Cảm biến IoT", value: "iot_sensors" },
+  { label: "Theo dõi độ ẩm đất", value: "soil_moisture_monitoring" },
+  { label: "Cảm biến chất lượng không khí", value: "air_quality_sensor" },
 ];
+
 
 export default function FarmDetail({ open, onClose, farmId }) {
   const [selectedVideo, setSelectedVideo] = useState(null);
@@ -55,7 +68,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
   const [videoCount, setVideoCount] = useState(0);
   const [showChanges, setShowChanges] = useState(false);
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState([]);
+const [answers, setAnswers] = useState([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [loadingAnswers, setLoadingAnswers] = useState(true);
 
@@ -76,26 +89,33 @@ export default function FarmDetail({ open, onClose, farmId }) {
       setFarm(null);
     }
   };
+  const cleanFarmId = farmId?.trim();
+  const fetchImages = async (farmId) => {
+  try {
+    const [farmRes, imageRes] = await Promise.all([
+      axios.get(`${BASE_URL}/adminfarms/${farmId}`, getOpts()),
+      axios.get(`${BASE_URL}/farm-pictures/${farmId}`, getOpts()),
+    ]);
 
-  const fetchImages = async () => {
-    try {
-      const [farmRes, imageRes] = await Promise.all([
-        axios.get(`${BASE_URL}/adminfarms/${farmId}`, getOpts()),
-        axios.get(`${BASE_URL}/farm-pictures/${farmId}`, getOpts()),
-      ]);
+    const user = farmRes.data?.data?.ownerInfo;
+    const farmImages = imageRes.data?.data || [];
 
-      const user = farmRes.data?.data?.ownerInfo;
-      const farmImages = imageRes.data?.data || [];
+    // Gắn BASE_URL vào path trả về
+    const mappedFarmImages = farmImages.map(img => ({
+      url: `${BASE_URL}${img.path}`, // <- nối base url với path
+      isAvatar: false,
+    }));
 
-      const avatarImage = user?.avatar
-        ? [{ url: user.avatar, isAvatar: true }]
-        : [];
+    const avatarImage = user?.avatar
+      ? [{ url: user.avatar, isAvatar: true }]
+      : [];
 
-      setImages([...avatarImage, ...farmImages]);
-    } catch (err) {
-      console.error("Lỗi ảnh:", err);
-    }
-  };
+    setImages([...avatarImage, ...mappedFarmImages]);
+  } catch (err) {
+    console.error("Lỗi ảnh:", err);
+    setImages([]); // fallback nếu lỗi
+  }
+};
 
   const fetchFarmVideos = async () => {
     try {
@@ -159,7 +179,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
 
         {!farm ? (
           <Typography color="red">Không tìm thấy dữ liệu</Typography>
-        ) : (
+) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <Info label="Chủ sở hữu" value={farm.ownerInfo?.name} />
@@ -218,7 +238,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
 
             <div className="mt-6">
               <Typography variant="h6" className="mb-2 text-blue-gray-900">Danh sách video</Typography>
-              {videos.length > 0 ? (
+{videos.length > 0 ? (
                 <div className="border border-gray-200 rounded-md max-h-[400px] overflow-y-auto">
                   <table className="min-w-full table-auto text-sm text-left">
                     <thead className="bg-gray-100 sticky top-0 z-10">
@@ -271,7 +291,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+</table>
                 </div>
               ) : (
                 <Typography className="text-sm italic text-gray-500">Chưa có video nào</Typography>
@@ -351,7 +371,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
                     const ans = match?.answer;
                     return (
                       <div key={q._id} className="border p-3 rounded-lg bg-gray-50">
-                        <Typography className="text-sm font-semibold text-gray-800">
+<Typography className="text-sm font-semibold text-gray-800">
                           {idx + 1}. {q.text}
                         </Typography>
                         {ans ? (

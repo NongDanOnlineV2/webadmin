@@ -23,11 +23,23 @@ const serviceOptions = [
 
 const featureOptions = [
   { label: "Mô hình aquaponic", value: "aquaponic_model" },
+  { label: "Mô hình RAS", value: "ras_ready" },
+  { label: "Thủy canh", value: "hydroponic" },
+  { label: "Nhà kính", value: "greenhouse" },
+  { label: "Nông trại thẳng đứng", value: "vertical_farming" },
   { label: "Chứng nhận VietGAP", value: "viet_gap_cert" },
   { label: "Chứng nhận hữu cơ", value: "organic_cert" },
-  { label: "Nông trại thông minh", value: "smart_farm" },
-  { label: "Tự động hóa", value: "automation" },
-  { label: "Sử dụng IoT", value: "iot_enabled" },
+  { label: "Chứng nhận GlobalGAP", value: "global_gap_cert" },
+  { label: "Chứng nhận HACCP", value: "haccp_cert" },
+  { label: "Camera trực tuyến", value: "camera_online" },
+  { label: "Giám sát bằng drone", value: "drone_monitoring" },
+  { label: "Tự động phát hiện sâu bệnh", value: "automated_pest_detection" },
+  { label: "Tưới chính xác (precision)", value: "precision_irrigation" },
+  { label: "Tưới tự động", value: "auto_irrigation" },
+  { label: "Tưới dựa theo độ ẩm đất", value: "soil_based_irrigation" },
+  { label: "Cảm biến IoT", value: "iot_sensors" },
+  { label: "Theo dõi độ ẩm đất", value: "soil_moisture_monitoring" },
+  { label: "Cảm biến chất lượng không khí", value: "air_quality_sensor" },
 ];
 
 function FarmForm({ open, onClose, initialData, onSubmit }) {
@@ -100,22 +112,24 @@ function FarmForm({ open, onClose, initialData, onSubmit }) {
     }
   };
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    try {
-      const payload = {
-        ...form,
-        tags: form.tags,
-      };
-      await onSubmit(payload);
-      onClose();
-    } catch (err) {
-      console.error(err);
-      alert("Có lỗi xảy ra!");
-    } finally {
-      setLoading(false);
-    }
-  };
+const handleSubmit = async () => {
+  setLoading(true);
+  try {
+    const payload = {
+      ...form,
+      tags: form.tags,
+    };
+    console.log("Payload gửi API:", payload);
+    await onSubmit(payload);
+    alert(initialData ? "Cập nhật thành công!" : "Tạo mới thành công!");
+    onClose();
+  } catch (err) {
+    console.error(err);
+    alert("Có lỗi xảy ra!");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Dialog open={open} size="xl" handler={onClose}>

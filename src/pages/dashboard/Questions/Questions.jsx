@@ -4,6 +4,8 @@ import { BaseUrl } from '@/ipconfig';
 import { Oval } from 'react-loader-spinner';
 import AddQuestion from './AddQuestion';
 import AnswersTable from './answerstable';
+import {MenuHandler, Menu, IconButton, MenuList, MenuItem, Input } from '@material-tailwind/react';
+import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import {
   Dialog,
   DialogBody,
@@ -20,17 +22,19 @@ export const Questions = () => {
   const [editData, setEditData] = useState(null);
   const [editValue, setEditValue] = useState({ options: [] });
   const [currentPage, setCurrentPage] = useState(1);
-const questionsPerPage = 5;
+  const questionsPerPage = 5;
   const [addDialog, setAddDialog] = useState(false);
   const [addValue, setAddValue] = useState({ text: '', options: [''], type: 'option', link: '' });
-
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredQuestions, setFilteredQuestions] = useState([]);
+  const [filterType, setFilterType] = useState('');
   const [showAnswersDialog, setShowAnswersDialog] = useState(false);
 
   const tokenUser = localStorage.getItem('token');
-const indexOfLastQuestion = currentPage * questionsPerPage;
-const indexOfFirstQuestion = indexOfLastQuestion - questionsPerPage;
-const paginatedQuestions = questions.slice(indexOfFirstQuestion, indexOfLastQuestion);
-const totalPages = Math.ceil(questions.length / questionsPerPage);
+  const indexOfLastQuestion = currentPage * questionsPerPage;
+  const indexOfFirstQuestion = indexOfLastQuestion - questionsPerPage;
+  const paginatedQuestions = filteredQuestions.slice(indexOfFirstQuestion, indexOfLastQuestion);
+  const totalPages = Math.ceil(questions.length / questionsPerPage);
 
 
   const getData = async () => {
@@ -40,6 +44,7 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
       });
       if (res.status === 200) {
         setQuestions(res.data.data);
+        setFilteredQuestions(res.data.data);
       }
     } catch (error) {
       console.log('Lỗi nè:', error);
@@ -179,12 +184,12 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
           setAddValue={setAddValue}
         />
 
-        <Button
+        {/* <Button
           color="blue"
           onClick={() => setShowAnswersDialog(true)}
         >
           Danh sách câu trả lời
-        </Button>
+        </Button> */}
       </div>
 
       <Dialog open={showAnswersDialog} handler={() => setShowAnswersDialog(false)} size="xl">
@@ -198,6 +203,46 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
           </Button>
         </DialogFooter>
       </Dialog>
+
+      <div className="flex gap-4 items-center mb-4">
+  <input
+    type="text"
+    placeholder="Tìm câu hỏi..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="border px-4 py-2 rounded w-full max-w-sm"
+  />
+
+  <select
+  value={filterType}
+  onChange={(e) => setFilterType(e.target.value)}
+  className="border px-4 py-2 rounded"
+>
+  <option value="">Tất cả loại</option>
+  <option value="single-choice">Chọn nhiều đáp án</option>
+  <option value="text">Nhập văn bản</option>
+  <option value="link">Nhập đường dẫn</option>
+  <option value="upload">Tải lên hình ảnh</option>
+</select>
+
+  <Button
+    size="sm"
+    color="black"
+    onClick={() => {
+      const keyword = searchTerm.toLowerCase().trim();
+      const filtered = questions.filter(q => {
+        const matchesText = q.text?.toLowerCase().includes(keyword);
+        const matchesType = filterType === '' || q.type === filterType;
+        return matchesText && matchesType;
+      });
+      setFilteredQuestions(filtered);
+      setCurrentPage(1);
+    }}
+  >
+    Tìm kiếm
+  </Button>
+</div>
+
 
       {loading ? (
         <div className="flex justify-center items-center h-40">
@@ -224,27 +269,30 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
           >
             <div className="flex justify-between">
               <div className="font-semibold mb-2">{item.text}</div>
-              <div className="flex gap-2">
-                <button
-                  className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded shadow text-sm"
-                  onClick={() => handleOpenDialog(item)}
-                >
-                  Cập nhật
-                </button>
-                <button
-                  className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow text-sm"
-                  onClick={() => handleDelete(item._id)}
-                >
-                  Xóa
-                </button>
+              <div className="flex items-center">
+                <Menu placement="left-start">
+                  <MenuHandler>
+                    <IconButton variant="text">
+                      <EllipsisVerticalIcon className="h-5 w-5" />
+                    </IconButton>
+                  </MenuHandler>
+                  <MenuList>
+                    <MenuItem onClick={() => handleOpenDialog(item)}>Cập nhật</MenuItem>
+                    <MenuItem onClick={() => handleDelete(item._id)} className="text-red-500">
+                      Xoá
+                    </MenuItem>
+                    <MenuItem onClick={handleOpenAddDialog}>Thêm câu hỏi</MenuItem>
+                  </MenuList>
+                </Menu>
               </div>
+
             </div>
             <div className="flex gap-4 mt-8">
               {["single-choice", "multiple-choice", "multi-choice"].includes(item.type) && Array.isArray(item.options) && item.options.length > 0 ? (
                 item.options.map((opt, idx) => (
                   <button
                     key={idx}
-                    className="px-4 py-2 bg-blue-400 hover:bg-blue-600 text-white rounded"
+                    className="px-4 py-2 bg-blue-gray-400 hover:bg-blue-gray-600 text-white rounded"
                   >
                     {opt}
                   </button>
@@ -276,25 +324,28 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
         ))
 )}
 
-<div className="flex justify-center items-center gap-2 mt-4">
-  <button
-    className="px-3 py-1 rounded bg-blue-500 text-white disabled:bg-gray-300"
+<div className="flex justify-center items-center gap-2 mt-6">
+  <Button
+    size="sm"
+    variant="outlined"
+    onClick={() => setCurrentPage(prev => prev - 1)}
     disabled={currentPage === 1}
-    onClick={() => setCurrentPage(currentPage - 1)}
   >
     Trang trước
-  </button>
-  <span>
-    {currentPage} / {totalPages}
+  </Button>
+  <span className="text-sm text-gray-700">
+    Trang <strong>{currentPage}</strong> / {totalPages}
   </span>
-  <button
-    className="px-3 py-1 rounded bg-blue-500 text-white disabled:bg-gray-300"
-    disabled={currentPage === totalPages || totalPages === 0}
-    onClick={() => setCurrentPage(currentPage + 1)}
+  <Button
+    size="sm"
+    variant="outlined"
+    onClick={() => setCurrentPage(prev => prev + 1)}
+    disabled={currentPage >= totalPages}
   >
     Trang sau
-  </button>
+  </Button>
 </div>
+
 
 <EditQuestion
 setEditValue={setEditValue}

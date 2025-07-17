@@ -215,7 +215,7 @@
                   <Typography className="font-semibold">Trạng thái:</Typography>
                   <Chip
                     value={post.status ? "Hoạt động" : "Ẩn"}
-                    color={post.status ? "green" : "red"}
+                    color={post.status ? "teal" : "red"}
                     size="sm"
                   />
                 </div>
