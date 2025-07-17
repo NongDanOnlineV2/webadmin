@@ -92,81 +92,89 @@ export function PostList() {
 };
 
   const fetchPosts = async () => {
-    setLoading(true);
-    const token = localStorage.getItem("token");
-    const queryParams = new URLSearchParams({
-      page: currentPage,
-      limit: postsPerPage,
-    });
+  setLoading(true);
+  const token = localStorage.getItem("token");
+  const queryParams = new URLSearchParams({
+    page: currentPage,
+    limit: postsPerPage,
+  });
 
-    if (filterUserId) queryParams.append("userId", filterUserId);
-    if (filterTitle) queryParams.append("title", filterTitle);
-    if (filterStatus === "true") queryParams.append("status", true);
-    else if (filterStatus === "false") queryParams.append("status", false);
-    if (filterSortLikes) queryParams.append("sortLikes", filterSortLikes);
-    if (filterSortComments) queryParams.append("sortComments", filterSortComments);
-    if (filterTag) queryParams.append("tags", filterTag);
+  if (filterUserId) queryParams.append("userId", filterUserId);
+  if (filterTitle) queryParams.append("title", filterTitle);
+  if (filterStatus === "true") queryParams.append("status", true);
+  else if (filterStatus === "false") queryParams.append("status", false);
+  if (filterSortLikes) queryParams.append("sortLikes", filterSortLikes);
+  if (filterSortComments) queryParams.append("sortComments", filterSortComments);
+  if (filterTag) queryParams.append("tags", filterTag);
 
-    try {
-      const res = await fetch(
-        `${BASE_URL}/admin-post-feed?${queryParams.toString()}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const json = await res.json();
-      if (res.ok) {
-        const fetchPosts = json.data || [];
-        const postsWithComments = await Promise.all(
+  try {
+    const res = await fetch(
+      `${BASE_URL}/admin-post-feed?${queryParams.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const json = await res.json();
+
+    if (res.ok) {
+      const fetchPosts = json.data || [];
+      const postsWithComments = await Promise.all(
         fetchPosts.map(async (post) => {
           try {
+            // ✅ Fix dùng post.id thay vì post._id
             const commentRes = await fetch(
-              `${BASE_URL}/admin-comment-post/post/${post._id}`,
+              `${BASE_URL}/admin-comment-post/post/${post.id}`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
             );
-            console.log("Đang gọi API:", `${BASE_URL}/admin-comment-post/post/${post._id}`);
-            const commentJson  = await commentRes.json();
-            console.log("commentJson:", commentJson);
-            const commentsArray = commentJson?.comments || [];
 
-            if (commentRes.ok && Array.isArray(commentsArray)) {
-              const totalComments = commentsArray.length;
-              const totalReplies = commentsArray.reduce(
-                (acc, comment) => acc + (comment.replies?.length || 0),
-                0
-              );
-              return {
-                ...post,
-                commentCount: totalComments + totalReplies,
-              };
-            } else {
-              console.warn("Không lấy được comment cho post:", post.id);
+            console.log("Đang gọi API:", `${BASE_URL}/admin-comment-post/post/${post.id}`);
+
+            if (!commentRes.ok) {
+              console.warn(`Không lấy được comment cho post ${post.id}:`, await commentRes.text());
               return { ...post, commentCount: 0 };
             }
+
+            const commentJson = await commentRes.json();
+            console.log("commentJson:", commentJson);
+
+            const commentsArray = Array.isArray(commentJson?.comments) ? commentJson.comments : [];
+
+            const totalComments = commentsArray.length;
+            const totalReplies = commentsArray.reduce(
+              (acc, comment) => acc + (Array.isArray(comment.replies) ? comment.replies.length : 0),
+              0
+            );
+
+            return {
+              ...post,
+              commentCount: totalComments + totalReplies,
+            };
           } catch (err) {
             console.error("Fetch comment error:", err);
             return { ...post, commentCount: 0 };
           }
         })
       );
-        setPosts(postsWithComments);
-        setTotalPages(json.totalPages || 1);
-      } else {
-        console.error("API lỗi:", json.message);
-        alert("Không lấy được dữ liệu: " + json.message);
-      }
-    } catch (err) {
-      console.error("Fetch posts error:", err);
-      alert("Không thể lấy danh sách bài viết: " + err.message);
+      setPosts(postsWithComments);
+      setTotalPages(json.totalPages || 1);
+    } else {
+      console.error("API lỗi:", json.message);
+      alert("Không lấy được dữ liệu: " + json.message);
     }
+  } catch (err) {
+    console.error("Fetch posts error:", err);
+    alert("Không thể lấy danh sách bài viết: " + err.message);
+  }
 
-    setLoading(false);
-  };
+  setLoading(false);
+};
+
 
   const handleFilter = () => {
     setCurrentPage(1);
