@@ -195,7 +195,7 @@ useEffect(() => {
             
             <button
               onClick={() => {
-                if(confirm('�️‍🗨️ Bạn có chắc chắn muốn ẩn bình luận này không?\n\n"' + item.comment + '"\n\nBình luận sẽ được ẩn khỏi người dùng (status = false).')) {
+                if(confirm('�️‍🗨️ Bạn có chắc chắn muốn xóa bình luận này không?\n\n"' + item.comment + '"\n\nBình luận sẽ được xóa khỏi người dùng (status = false).')) {
                   handleDeleteComment(item, index, CommentsDialog.postId);
                 }
                 setOpenMenuIndex(null);
@@ -208,8 +208,8 @@ useEffect(() => {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="font-semibold text-sm">Ẩn bình luận</div>
-                <div className="text-xs text-gray-500">Ẩn bình luận khỏi người dùng</div>
+                <div className="font-semibold text-sm">Xóa bình luận</div>
+                <div className="text-xs text-gray-500">Xóa bình luận khỏi người dùng</div>
               </div>
               <div className="text-xs text-gray-400">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -300,7 +300,7 @@ useEffect(() => {
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-bold text-gray-900 text-lg">{comment.userId?.fullName || 'Người dùng'}</h4>
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                        {comment.status ? 'Đang hoạt động' : 'Đã ẩn'}
+                        {comment.status ? 'Đang hoạt động' : 'Đã xóa'}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 flex items-center gap-2">
@@ -433,10 +433,10 @@ const handleDeleteComment = async (comment, index, postId) => {
     
     if (res.status === 200) {
       await getCommentById(postId);
-      alert("✅ Ẩn bình luận thành công!");
+      alert("✅ Xóa bình luận thành công!");
     }
   } catch (error) {
-    alert("❌ Lỗi khi ẩn bình luận: " + (error.response?.data?.message || error.message));
+    alert("❌ Lỗi khi xóa bình luận: " + (error.response?.data?.message || error.message));
   }
 };
 
