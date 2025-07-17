@@ -9,16 +9,19 @@ import { Typography } from '@material-tailwind/react'
 export const CommentPostbyIdPost = ({CommentsDialog}) => {
 
     const [CommentByIdPost,setCommentByIdPost]=useState([])
-     const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(true)
     const tokenUser = localStorage.getItem('token');
-const [editComment, setEditComment] = useState(null);
-const [editContent, setEditContent] = useState("");
-const [editCommentIndex, setEditCommentIndex] = useState(null);
-const [userComment, setUserComment] = useState(null);
-const [IdUser, setIdUser] = useState(null);
-
+    const [editComment, setEditComment] = useState(null);
+    const [editContent, setEditContent] = useState("");
+    const [editCommentIndex, setEditCommentIndex] = useState(null);
+    const [userComment, setUserComment] = useState(null);
+    const [IdUser, setIdUser] = useState(null);
     const [post, setPost] = useState("");
-   const getCommentById=async(postId)=>{
+    const [users, setUsers] = useState([]);
+    const limit = 10;
+    const [page, setPage] = useState(1)
+
+    const getCommentById=async(postId)=>{
 try {
     const res= await axios.get(`${BaseUrl}/admin-comment-post/post/${postId}`,
         {headers:{Authorization:`Bearer ${tokenUser}` }})
@@ -71,6 +74,42 @@ setIdUser(res.data.authorId)
 }
 
 }
+
+const getAllUsers = async () => {
+    try {
+      let allUsers = []
+      let currentPage = 1
+      while (true) {
+        const res = await axios.get(`${BaseUrl}/admin-users?page=${currentPage}&limit=50`, {
+          headers: { Authorization: `Bearer ${tokenUser}` },
+        })
+        if (res.status === 200 && res.data.data.length > 0) {
+          allUsers = [...allUsers, ...res.data.data]
+          currentPage++
+        } else {
+          break
+        }
+      }
+      setUsers(allUsers)
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách user:", error)
+    }
+  }
+
+
+useEffect(() => {
+  getAllUsers();
+}, []);
+
+const getFullNameById = (id) => {
+  const user = users.find(u => u.id === id || u._id === id);
+  return user?.fullName || "Không xác định";
+};
+
+const getAvatarById = (id) => {
+  const user = users.find(u => u.id === id || u._id === id);
+  return user?.avatar || '';
+};
 
 
 const handleUpdateComment = async (postId) => {
@@ -276,16 +315,16 @@ getUsertByComment()
                       className="flex items-start gap-2 text-sm text-gray-700 mb-2"
                     >
                       <img
-                        src={
-                          rep.userId?.avatar?.startsWith('http')
-                            ? rep.userId.avatar
-                            : `${BaseUrl}${rep.userId?.avatar || ''}`
-                        }
                         alt=""
-                        className="w-6 h-6 rounded-full border"
+                        className="w-5 h-5 rounded-full"
+                        src={
+                          getAvatarById(rep.userId)?.startsWith('http')
+                            ? getAvatarById(rep.userId)
+                            : `${BaseUrl}${getAvatarById(rep.userId)}`
+                        }
                       />
                       <div>
-                        <span className="font-semibold text-gray-700">{rep.userId?.fullName}:</span>
+                        <span className="font-semibold text-gray-700">{getFullNameById(rep.userId)}:</span>
                         <span className="ml-1 break-all" >{rep.comment}</span>
                         <span className="ml-2 text-xs text-gray-400">
                           {rep.createdAt ? new Date(rep.createdAt).toLocaleString() : ""}

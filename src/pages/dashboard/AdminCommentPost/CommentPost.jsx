@@ -14,12 +14,13 @@ export const CommentPost = () => {
   const [openDialogComments, setOpenDialogComments] = useState(false)
   const [CommentsDialog, setCommentsDialog] = useState(null);
   const [searchTitle, setSearchTitle] = useState('')
-  const [allComments, setAllComments] = useState([]) 
-console.log("comment dialog nè:",CommentsDialog)
+  const [allComments, setAllComments] = useState([])
+  const [users, setUsers] = useState([]);
+  console.log("comment dialog nè:",CommentsDialog)
   const [totalPages, setTotalPages] = useState(1);
-    const limit = 10;
-const [comment,setComment]=useState([])
-const [post,setPost]=useState([])
+  const limit = 10;
+  const [comment,setComment]=useState([])
+  const [post,setPost]=useState([])
 const gotoCommentId=(id)=>{
 navigate(`/dashboard/CommentPostbyId/${id}`)
 }
@@ -66,6 +67,42 @@ setTotalPages(res.data.totalPages)
 }
 
 }
+
+const getAllUsers = async () => {
+    try {
+      let allUsers = []
+      let currentPage = 1
+      while (true) {
+        const res = await axios.get(`${BaseUrl}/admin-users?page=${currentPage}&limit=50`, {
+          headers: { Authorization: `Bearer ${tokenUser}` },
+        })
+        if (res.status === 200 && res.data.data.length > 0) {
+          allUsers = [...allUsers, ...res.data.data]
+          currentPage++
+        } else {
+          break
+        }
+      }
+      setUsers(allUsers)
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách user:", error)
+    }
+  }
+
+
+useEffect(() => {
+  getAllUsers();
+}, []);
+
+const getFullNameById = (id) => {
+  const user = users.find(u => u.id === id || u._id === id);
+  return user?.fullName || "Không xác định";
+};
+
+const getAvatarById = (id) => {
+  const user = users.find(u => u.id === id || u._id === id);
+  return user?.avatar || '';
+};
 
 
 const loadAllComments = async () => {
@@ -311,25 +348,36 @@ filteredComments.map((item) => {
               <div className="break-all">{cmt.comment}</div>
             </div>
             {cmt.replies && cmt.replies.length > 0 && (
-              <div className="ml-12 mt-1">
-                {cmt.replies
-                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) 
-                  .map((rep, ridx) => (
-                  <div key={ridx} className="mb-1 text-sm text-gray-700">
-                    <div className="flex items-center gap-2 justify-between mb-1">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <img alt="" className="w-5 h-5 rounded-full" />
-                        <span className="font-medium truncate">{rep.userId.fullName}</span>
-                      </div>
-                      <span className="text-xs text-gray-500 whitespace-nowrap text-right block min-w-[90px]">{new Date(rep.createdAt).toLocaleString()}</span>
-                    </div>
-                    <div className="ml-7 text-sm mt-1 max-w-full overflow-hidden">
-                      <div className="break-all">{rep.comment}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+  <div className="ml-12 mt-1">
+    {cmt.replies
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) 
+      .map((rep, ridx) => (
+      <div key={ridx} className="mb-1 text-sm text-gray-700">
+        <div className="flex items-center gap-2 justify-between mb-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <img
+              alt=""
+              className="w-5 h-5 rounded-full"
+              src={
+                getAvatarById(rep.userId)?.startsWith('http')
+                  ? getAvatarById(rep.userId)
+                  : `${BaseUrl}${getAvatarById(rep.userId)}`
+              }
+            />
+            <span className="font-medium truncate">{getFullNameById(rep.userId)}</span>
+          </div>
+          <span className="text-xs text-gray-500 whitespace-nowrap text-right block min-w-[90px]">
+            {new Date(rep.createdAt).toLocaleString()}
+          </span>
+        </div>
+        <div className="ml-7 text-sm mt-1 max-w-full overflow-hidden">
+          <div className="break-all">{rep.comment}</div>
+        </div>
+      </div>
+    ))}
+  </div>
+)}
+
           </div>
         ))}
       </div>
