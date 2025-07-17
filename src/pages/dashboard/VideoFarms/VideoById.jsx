@@ -285,22 +285,38 @@ export const deletevideo = async (videoId, callback) => {
 
 export const approvevideo = async (videoId, callback) => {
   const tokenUser = localStorage.getItem('token');
+  console.log('approvevideo được gọi với:', { videoId, tokenUser: tokenUser ? 'có token' : 'không có token' });
   
   try {
-    const res = await axios.put(`${BaseUrl}/admin-video-farm/${videoId}`, 
-      { status: 'uploaded' }, 
-      { headers: { Authorization: `Bearer ${tokenUser}` } }
-    );
+    const url = `${BaseUrl}/admin-video-farm/upload-s3/${videoId}`;
+    const payload = { status: 'uploaded' };
+    const headers = { Authorization: `Bearer ${tokenUser}` };
+    
+    console.log('Gửi POST request:', { url, payload, headers });
+    
+    const res = await axios.post(url, payload, { headers });
+    
+    console.log('Response từ API:', { status: res.status, data: res.data });
     
     if (res.status === 200) {
       if (callback && typeof callback === 'function') {
+        console.log('Gọi callback function');
         await callback();
       }
       return { success: true, message: "Duyệt video thành công" };
+    } else {
+      console.log('API response không thành công:', res.status);
+      return { success: false, message: `API trả về status: ${res.status}` };
     }
   } catch (error) {
     console.log("Lỗi khi duyệt video:", error);
-    return { success: false, message: "Lỗi khi duyệt video", error };
+    console.log("Error details:", {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    });
+    return { success: false, message: `Lỗi khi duyệt video: ${error.response?.data?.message || error.message}`, error };
   }
 };
 

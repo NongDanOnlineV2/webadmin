@@ -19,6 +19,7 @@ export const CommentPost = () => {
   const limit = 10;
   const [comment,setComment]=useState([])
   const [post,setPost]=useState([])
+  const [nonExistentPostIds, setNonExistentPostIds] = useState(new Set()); // Cache cho post không tồn tại
 const gotoCommentId=(id)=>{
 navigate(`/dashboard/CommentPostbyId/${id}`)
 }
@@ -127,7 +128,20 @@ const getPost = async () => {
     const uniqueIds = [...new Set([...currentPageIds, ...allCommentsIds])]; 
     
     if (uniqueIds.length === 0) return;
-    const res = await axios.get(`${BaseUrl}/admin-post-feed?ids=${uniqueIds.join(',')}`, {
+
+    // Lọc bỏ những ID đã biết không tồn tại để tránh spam API
+    const validIds = uniqueIds.filter(id => 
+      id && 
+      String(id).trim() && 
+      !nonExistentPostIds.has(String(id).trim())
+    );
+    
+    if (validIds.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    const res = await axios.get(`${BaseUrl}/admin-post-feed?ids=${validIds.join(',')}`, {
       headers: { Authorization: `Bearer ${tokenUser}` }
     });
 
@@ -136,7 +150,7 @@ const getPost = async () => {
       posts = res.data.data;
       
       const foundIds = posts.map(p => String(p.id || p._id));
-      const missingIds = uniqueIds.filter(id => !foundIds.includes(String(id)));
+      const missingIds = validIds.filter(id => !foundIds.includes(String(id)));
       
       if (missingIds.length > 0) {
         const individualPromises = missingIds.map(async (postId) => {
@@ -148,22 +162,39 @@ const getPost = async () => {
                 headers: { Authorization: `Bearer ${tokenUser}` }
               });
             } catch (e1) {
-              try {
-                individualRes = await axios.get(`${BaseUrl}/admin-post/${postId}`, {
-                  headers: { Authorization: `Bearer ${tokenUser}` }
-                });
-              } catch (e2) {
-                individualRes = await axios.get(`${BaseUrl}/post/${postId}`, {
-                  headers: { Authorization: `Bearer ${tokenUser}` }
-                });
+              if (e1.response?.status === 404) {
+                try {
+                  individualRes = await axios.get(`${BaseUrl}/admin-post/${postId}`, {
+                    headers: { Authorization: `Bearer ${tokenUser}` }
+                  });
+                } catch (e2) {
+                  if (e2.response?.status === 404) {
+                    try {
+                      individualRes = await axios.get(`${BaseUrl}/post/${postId}`, {
+                        headers: { Authorization: `Bearer ${tokenUser}` }
+                      });
+                    } catch (e3) {
+                      // Bài viết không tồn tại, return null thay vì log error
+                      return null;
+                    }
+                  } else {
+                    throw e2;
+                  }
+                }
+              } else {
+                throw e1;
               }
             }
             
-            if (individualRes.status === 200) {
+            if (individualRes?.status === 200) {
               return individualRes.data;
             }
+            return null;
           } catch (error) {
-            // console.log('Individual post not found:', postId, error.response?.status);
+            // Chỉ log error nếu không phải 404
+            if (error.response?.status !== 404) {
+              console.warn('Error fetching post:', postId, error.response?.status);
+            }
             return null;
           }
         });
