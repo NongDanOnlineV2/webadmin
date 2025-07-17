@@ -43,8 +43,7 @@ function App() {
         <Route path="CommentPostbyId/:id" element={<CommentPostbyId />} />
         <Route path="CommentPostbyIdPost/:postId" element={<CommentPostbyIdPost />} />
         <Route path="VideoFarms/VideoById/:id" element={<VideoById />} />
-        <Route path="dashboard/users/:id" element={<UserDetail />} />
-        {/* <Route path="/dashboard/users/:id" element={<UserDetail />} /> */}
+     <Route path="users/:id" element={<UserDetail />} />
       </Route>
       <Route path="/auth/*" element={<Auth />} />
       <Route path="/admin/Farms" element={<Farms />} />
