@@ -147,17 +147,23 @@ export function AnswersTable() {
     setEditData(null);
   };
 
-  const openEditForm = (data) => {
-    setForm({
-      farmId: data.farmId || "",
-      questionId: data.questionId || "",
-      selectedOptions: data.selectedOptions || [],
-      otherText: data.otherText || "",
-      uploadedFiles: data.uploadedFiles || [],
-    });
-    setEditData(data);
-    setFormType("edit");
-  };
+const openEditForm = (data) => {
+  setForm({
+    farmId: data.farmId || "",
+    farmName: data.farm?.name || "",
+    farmOwner: data.farm?.ownerName || "",
+    questionId: data.questionId || "",
+    questionText: data.question?.text || "",
+    createdAt: data.createdAt ? new Date(data.createdAt).toISOString().split("T")[0] : "",
+    selectedOptions: data.selectedOptions || [],
+    otherText: data.otherText || "",
+    uploadedFiles: data.uploadedFiles || [],
+  });
+  setEditData(data);
+  setFormType("edit");
+};
+
+
 
   const handleUploadImage = async (e) => {
     const file = e.target.files[0];
@@ -419,11 +425,8 @@ export function AnswersTable() {
             open
             setOpen={() => setFormType(null)}
             form={form}
-            setForm={setForm}
-            uploading={uploading}
-            handleUploadImage={handleUploadImage}
-            handleSubmit={handleSubmit}
           />
+
         ) : null}
       </Dialog>
 
