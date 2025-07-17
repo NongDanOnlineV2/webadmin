@@ -7,7 +7,8 @@ import {
   RectangleStackIcon,
   NewspaperIcon,
   ReceiptPercentIcon,
-  ChatBubbleLeftEllipsisIcon
+  ChatBubbleLeftEllipsisIcon,
+  ShieldCheckIcon
 } from "@heroicons/react/24/solid";
 
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
