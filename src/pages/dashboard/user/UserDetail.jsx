@@ -741,7 +741,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             ▼
           </Typography>
         </div>
-
         <Collapse open={openPosts}>
           {openPosts && (
             <div className="overflow-hidden transition-all duration-300">

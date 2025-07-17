@@ -1,6 +1,11 @@
 import React, { useRef, useState } from "react";
 import {
-  Card, Input, Checkbox, Button, Typography, Radio
+  Card,
+  Input,
+  Checkbox,
+  Button,
+  Typography,
+  Radio,
 } from "@material-tailwind/react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMaterialTailwindController, setAuthStatus } from "@/context";
@@ -10,12 +15,12 @@ export function SignIn() {
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [env, setEnv] = useState("dev");
+  const [env, setEnv] = useState("default");
+  const [customApiUrl, setCustomApiUrl] = useState("");
   const navigate = useNavigate();
   const [, dispatch] = useMaterialTailwindController();
   const emailRef = useRef();
   const passwordRef = useRef();
-
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -35,11 +40,20 @@ export function SignIn() {
       return;
     }
 
-    try {
-      const BASE_URL = env === "dev"? "https://api-ndolv2.nongdanonline.cc" : "https://api-ndol-v2-prod.nongdanonline.cc/";
-      localStorage.setItem("apiBaseUrl", BASE_URL);
+    const BASE_URL =
+      env === "default"
+        ? "https://api-ndolv2.nongdanonline.cc"
+        : customApiUrl.trim();
 
-      const res = await fetch("https://api-ndolv2.nongdanonline.cc/auth/login", {
+    if (env === "custom" && !customApiUrl.trim()) {
+      alert("Vui lòng nhập URL API tuỳ chỉnh");
+      return;
+    }
+
+    localStorage.setItem("apiBaseUrl", BASE_URL);
+
+    try {
+      const res = await fetch(`${BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -61,19 +75,31 @@ export function SignIn() {
     }
   };
 
-
   return (
     <section className="m-8 flex gap-4">
       <div className="w-full lg:w-3/5 mt-24">
         <div className="text-center">
-          <Typography variant="h2" className="font-bold mb-4">Sign In</Typography>
-          <Typography variant="paragraph" color="blue-gray" className="text-lg font-normal">
+          <Typography variant="h2" className="font-bold mb-4">
+            Sign In
+          </Typography>
+          <Typography
+            variant="paragraph"
+            color="blue-gray"
+            className="text-lg font-normal"
+          >
             Enter your email and password to Sign In.
           </Typography>
         </div>
-        <form className="mt-8 mb-2 mx-auto w-80 max-w-screen-lg lg:w-1/2" onSubmit={handleLogin}>
+        <form
+          className="mt-8 mb-2 mx-auto w-80 max-w-screen-lg lg:w-1/2"
+          onSubmit={handleLogin}
+        >
           <div className="mb-1 flex flex-col gap-6">
-            <Typography variant="small" color="blue-gray" className="-mb-3 font-medium">
+            <Typography
+              variant="small"
+              color="blue-gray"
+              className="-mb-3 font-medium"
+            >
               Your email
             </Typography>
             <Input
@@ -86,9 +112,16 @@ export function SignIn() {
               inputRef={emailRef}
             />
             {emailError && (
-              <Typography variant="small" className="text-red-500 -mt-4">{emailError}</Typography>
+              <Typography variant="small" className="text-red-500 -mt-4">
+                {emailError}
+              </Typography>
             )}
-            <Typography variant="small" color="blue-gray" className="-mb-3 font-medium">
+
+            <Typography
+              variant="small"
+              color="blue-gray"
+              className="-mb-3 font-medium"
+            >
               Password
             </Typography>
             <Input
@@ -102,41 +135,68 @@ export function SignIn() {
               inputRef={passwordRef}
             />
             {passwordError && (
-              <Typography variant="small" className="text-red-500 -mt-4">{passwordError}</Typography>
+              <Typography variant="small" className="text-red-500 -mt-4">
+                {passwordError}
+              </Typography>
             )}
           </div>
 
-          <div className="mt-4">
+          {/* Môi trường API */}
+          <div className="mt-6">
             <Typography variant="small" className="font-medium mb-2">
               Chọn môi trường API:
             </Typography>
-            <div className="flex gap-4">
+
+            <div className="flex gap-4 mb-2">
               <Radio
-                id="env-dev"
+                id="env-default"
                 name="environment"
-                label="Dev (Mặc định)"
-                value="dev"
-                checked={env === "dev"}
-                onChange={() => setEnv("dev")}
+                label="Mặc định"
+                value="default"
+                checked={env === "default"}
+                onChange={() => setEnv("default")}
               />
               <Radio
-                id="env-prod"
+                id="env-custom"
                 name="environment"
-                label="Production"
-                value="prod"
-                checked={env === "prod"}
-                onChange={() => setEnv("prod")}
+                label="Tuỳ chỉnh"
+                value="custom"
+                checked={env === "custom"}
+                onChange={() => setEnv("custom")}
               />
             </div>
+
+            {env === "custom" && (
+              <div className="flex flex-col gap-2">
+  <Typography
+    variant="small"
+    color="blue-gray"
+    className="font-medium"
+  >
+    Nhập URL API:
+  </Typography>
+  <Input
+    size="lg"
+    placeholder="https://your-custom-api.com"
+    value={customApiUrl}
+    onChange={(e) => setCustomApiUrl(e.target.value)}
+  />
+</div>
+            )}
           </div>
 
-
-          <Button className="mt-6" type="submit" fullWidth>Sign In</Button>
+          <Button className="mt-6" type="submit" fullWidth>
+            Sign In
+          </Button>
 
           <div className="flex items-center justify-between gap-2 mt-6">
             <Checkbox
               label={
-                <Typography variant="small" color="gray" className="flex items-center justify-start font-medium">
+                <Typography
+                  variant="small"
+                  color="gray"
+                  className="flex items-center justify-start font-medium"
+                >
                   Subscribe me to newsletter
                 </Typography>
               }
@@ -148,8 +208,13 @@ export function SignIn() {
           </div>
         </form>
       </div>
+
       <div className="w-2/5 h-full hidden lg:block">
-        <img src="/img/pattern.png" className="h-full w-full object-cover rounded-3xl" />
+        <img
+          src="/img/pattern.png"
+          className="h-full w-full object-cover rounded-3xl"
+          alt="pattern"
+        />
       </div>
     </section>
   );
