@@ -42,7 +42,7 @@ export const ListVideo = () => {
   const [videoStats, setVideoStats] = useState({});
   const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', video: null });
   const [isProcessing, setIsProcessing] = useState(false);
-  const limit = 10;
+  const limit = 9;
 
   const getStatusInVietnamese = (status) => {
     switch (status) {
@@ -103,7 +103,6 @@ const handleOpenCommentDialog = (video) => {
 const handleCloseCommentDialog = () => {
   setOpenCommentDialog(false);
   setSelectedVideoForComment(null);
-  // Refresh stats after closing comment dialog
   if (paginatedVideos.length > 0) {
     const videoIds = paginatedVideos.map(v => v._id);
     fetchVideoStats(videoIds);
@@ -178,46 +177,8 @@ const fetchVideoStats = async (videoIds) => {
         }
         
         let commentCount = 0;
-        
-        const commentEndpoints = [
-          { url: `${BaseUrl}/admin-video-comment/${videoId}`, name: 'admin-video-comment' },
-          { url: `${BaseUrl}/video-comment/${videoId}`, name: 'video-comment' },
-          { url: `${BaseUrl}/video-comment/${videoId}/comments`, name: 'video-comment-list' },
-          { url: `${BaseUrl}/admin-video-comment/${videoId}/comments`, name: 'admin-video-comment-list' },
-        ];
-        
-        for (const { url, name } of commentEndpoints) {
-          try {
-            const commentRes = await axios.get(url, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            
-            const data = commentRes.data;
-            
-            if (data !== null && data !== undefined) {
-              if (Array.isArray(data)) {
-                commentCount = data.reduce((total, comment) => {
-                  const repliesCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
-                  return total + 1 + repliesCount;
-                }, 0);
-                break;
-              } else if (data.data && Array.isArray(data.data)) {
-                commentCount = data.data.reduce((total, comment) => {
-                  const repliesCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
-                  return total + 1 + repliesCount;
-                }, 0);
-                break;
-              } else if (typeof data === 'object' && data.count !== undefined) {
-                commentCount = data.count;
-                break;
-              }
-            }
-          } catch (error) {
-            const status = error.response?.status;
-            const statusText = error.response?.statusText;
-            continue;
-          }
-        }
+        // Tạm thời bỏ qua việc đếm comment để tránh lỗi 404
+        // commentCount = 0;
         
         stats[videoId] = { likeCount, commentCount };
         
@@ -448,7 +409,8 @@ const handleOpenStatusFilter = async () => {
                     <span className="font-medium">Người đăng:</span> {item.uploadedBy?.fullName}
                   </div>
                   <div>
-                    <span className="font-medium">Email:</span> {item.uploadedBy?.email}
+                    <span className="font-medium">Email:</span>
+                    <div className="break-all text-gray-700 mt-1">{item.uploadedBy?.email}</div>
                   </div>
                   <div>
                     <span className="font-medium">Trạng thái:</span> 
@@ -592,27 +554,28 @@ const handleOpenStatusFilter = async () => {
                 disabled={isProcessing}
                 onClick={async () => {
                   if (isProcessing) return;
+                                    setIsProcessing(true);
                   
-                  setIsProcessing(true);
                   try {
                     if (confirmDialog.type === 'approve') {
-                      const result = await approvevideo(confirmDialog.video._id, () => {
-                        fetchAllVideos().then(setAllVideos);
+                      const result = await approvevideo(confirmDialog.video._id, async () => {
+                        const updatedVideos = await fetchAllVideos();
+                        setAllVideos(updatedVideos);
                       });
                       
-                      alert(result?.success ? result.message : "Có lỗi xảy ra khi duyệt video");
+                      alert(result?.success ? result.message : `Có lỗi xảy ra khi duyệt video: ${result?.message || 'Unknown error'}`);
                       if (result?.success) setConfirmDialog({ open: false, type: '', video: null });
                     } else {
-                      const result = await deletevideo(confirmDialog.video._id, () => {
-                        fetchAllVideos().then(setAllVideos);
+                      const result = await deletevideo(confirmDialog.video._id, async () => {
+                        const updatedVideos = await fetchAllVideos();
+                        setAllVideos(updatedVideos);
                       });
                       
-                      alert(result?.success ? result.message : "Có lỗi xảy ra khi xóa video");
+                      alert(result?.success ? result.message : `Có lỗi xảy ra khi xóa video: ${result?.message || 'Unknown error'}`);
                       if (result?.success) setConfirmDialog({ open: false, type: '', video: null });
                     }
                   } catch (error) {
-                    console.error('Lỗi:', error);
-                    alert('Có lỗi xảy ra, vui lòng thử lại');
+                    alert(`Có lỗi xảy ra: ${error.message || error}`);
                   } finally {
                     setIsProcessing(false);
                   }
