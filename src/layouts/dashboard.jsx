@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Outlet } from "react-router-dom";
 import { useState } from "react";
 import { Cog6ToothIcon } from "@heroicons/react/24/solid";
 import { IconButton } from "@material-tailwind/react";
@@ -16,13 +16,17 @@ import { useMaterialTailwindController, setOpenConfigurator } from "@/context";
 export function Dashboard() {
   const [controller, dispatch] = useMaterialTailwindController();
   const { sidenavType } = controller;
-
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className="min-h-screen bg-blue-gray-50/50 flex">
       <Sidenav
         routes={routes}
+        brandImg={
+          sidenavType === "dark"
+            ? "/img/logo.png"
+            : "/img/logo.png"
+        }
         onCollapse={(value) => setCollapsed(value)}
       />
       <div
@@ -62,6 +66,9 @@ export function Dashboard() {
           )}
         </Routes>
 
+        {/* This renders nested routes like /users/:id */}
+        <Outlet />
+
         <div className="text-blue-gray-600">
           <Footer />
         </div>
@@ -71,5 +78,4 @@ export function Dashboard() {
 }
 
 Dashboard.displayName = "/src/layouts/dashboard.jsx";
-
 export default Dashboard;

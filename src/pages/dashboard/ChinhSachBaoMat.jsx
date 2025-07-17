@@ -9,9 +9,78 @@ export default function ChinhSachBaoMat() {
       </div>
     </header>
 
-    <!-- Nội dung bạn đã copy ở trên... -->
-    <!-- Bạn có thể giữ nguyên nội dung chính sách thu thập thông tin tại đây -->
+    <!-- Main content -->
+  <main class="max-w-4xl mx-auto p-6 space-y-8">
+    <section>
+      <h2 class="text-xl font-semibold mb-2">1. Thu thập và sử dụng thông tin</h2>
+      <p>Ứng dụng có thể thu thập thông tin khi bạn tải về và sử dụng, bao gồm:</p>
+      <ul class="list-disc list-inside ml-4 mt-2">
+        <li>Địa chỉ IP của thiết bị</li>
+        <li>Lịch sử truy cập, thời gian, ngày dùng</li>
+        <li>Hệ điều hành trên thiết bị</li>
+      </ul>
+      <p class="mt-2">Không thu thập vị trí chính xác. Thông tin có thể dùng để liên hệ, thông báo hoặc khuyến mãi.</p>
+      <p>Thông tin cá nhân (email, họ tên, ảnh, v.v.) được thu thập đúng chính sách bảo mật.</p>
+    </section>
 
+    <section>
+      <h2 class="text-xl font-semibold mb-2">2. Truy cập từ thiết bị</h2>
+      <p>Ứng dụng có thể yêu cầu truy cập:</p>
+      <ul class="list-disc list-inside ml-4 mt-2">
+        <li>Bộ nhớ ảnh và tệp</li>
+        <li>Máy ảnh và micro</li>
+        <li>Truy cập mạng, gửi thông báo</li>
+      </ul>
+      <p>Việc cấp quyền là tùy chọn và minh bạch.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-2">3. Nội dung do người dùng tạo</h2>
+      <p>Bạn chịu trách nhiệm với nội dung chia sẻ. Nội dung vi phạm sẽ bị gỡ, ẩn hoặc khóa tài khoản nếu cần.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-2">4. Truy cập từ bên thứ ba</h2>
+      <p>Ứng dụng sử dụng dịch vụ bên thứ ba như Google Play, Apple Store,...</p>
+      <p>Thông tin có thể được chia sẻ trong các trường hợp:</p>
+      <ul class="list-disc list-inside ml-4 mt-2">
+        <li>Theo yêu cầu pháp lý</li>
+        <li>Bảo vệ an toàn hoặc điều tra gian lận</li>
+        <li>Với bên cung cấp dịch vụ đáng tin cậy</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-2">5. Quyền từ chối (Opt-Out)</h2>
+      <p>Bạn có thể từ chối cung cấp thông tin không bắt buộc hoặc xóa ứng dụng để ngừng thu thập dữ liệu.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-2">6. Chính sách lưu trữ dữ liệu</h2>
+      <p>Dữ liệu được lưu trong thời gian bạn sử dụng và một thời gian hợp lý sau đó.</p>
+      <p>Nếu cần xóa, liên hệ: <a href="mailto:farmtalk.help@gmail.com" class="text-blue-600 underline">farmtalk.help@gmail.com</a></p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-2">7. Trẻ em</h2>
+      <p>Ứng dụng không dành cho trẻ dưới 13 tuổi. Nếu phát hiện, chúng tôi sẽ xóa dữ liệu và khóa tài khoản.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-2">8. Bảo mật thông tin</h2>
+      <p>Chúng tôi bảo vệ thông tin bằng biện pháp kỹ thuật và quy trình nội bộ nghiêm ngặt.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-2">9. Thay đổi chính sách</h2>
+      <p>Chính sách có thể thay đổi định kỳ và được thông báo công khai. Việc tiếp tục sử dụng nghĩa là bạn đồng ý với các thay đổi đó.</p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-2">10. Liên hệ</h2>
+      <p>Mọi thắc mắc xin liên hệ: <a href="mailto:farmtalk.help@gmail.com" class="text-blue-600 underline">farmtalk.help@gmail.com</a></p>
+    </section>
+  </main>
     <!-- Footer -->
     <footer class="bg-green-100 text-center py-4 mt-10 border-t border-green-300">
       <p class="text-sm">© 2025 Farm Talk | Chính sách hiệu lực từ 15/07/2025</p>
