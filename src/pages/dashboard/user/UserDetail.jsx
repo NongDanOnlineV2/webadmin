@@ -320,7 +320,9 @@ const fetchVideos = async () => {
 };
 
 const handleOpenVideos = async () => {
-  if (!openVideos) await fetchVideos(); 
+  if (!openVideos) {
+    await fetchVideos();
+  }
   setOpenVideos(!openVideos);
 };
 
@@ -1182,7 +1184,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   <div className="flex flex-wrap gap-1 mb-2">
                     {post.tags?.map((tag, idx) => (
                       <span
-                        key={idx}
+                        key={`${tag}-${idx}`}
                         className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded-full"
                       >
                         #{tag}
@@ -1193,11 +1195,11 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   {/* Hình ảnh */}
                   {post.images?.length > 0 && (
                     <div className="grid grid-cols-2 gap-2 mb-2">
-                      {post.images.slice(0, 2).map((img, idx) => (
+                      {post.images.slice(0, 2).map((img) => (
                         <img
-                          key={idx}
+                          key={img}
                           src={`https://api-ndolv2.nongdanonline.cc${img}`}
-                          alt={`img-${idx}`}
+                          alt={`img-${img}`}
                           className="w-full h-24 object-cover rounded-lg border border-gray-200 shadow-sm"
                         />
                       ))}
