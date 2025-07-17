@@ -11,8 +11,9 @@ import {
 } from "@heroicons/react/24/solid";
 
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
-import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost, ChinhSach  } from "@/pages/dashboard";
+import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost  } from "@/pages/dashboard";
 import { SignIn, SignUp } from "@/pages/auth";
+import ChinhSach from "@/pages/dashboard/ChinhSach";
 
 import { ViewfinderCircleIcon,VideoCameraIcon,ChatBubbleOvalLeftEllipsisIcon  } from "@heroicons/react/24/outline";
 import { Comment } from "react-loader-spinner";
@@ -82,13 +83,27 @@ export const routes = [
          element: <CommentPost />,
 
       }, 
-      {
+{
   icon: <ReceiptPercentIcon {...icon} />,
   name: "Chính Sách",
-  path: "/chinhSach",
-  element: <ChinhSach />,
-},
-
+  collapse: [
+    {
+      name: "Chính sách bảo mật",
+      path: "/ChinhSach/baoMat",
+      element: <ChinhSach type="baoMat" />,
+    },
+    {
+      name: "Chính sách cookie",
+      path: "/ChinhSach/cookie",
+      element: <ChinhSach type="cookie" />,
+    },
+    {
+      name: "Điều khoản & điều kiện",
+      path: "/ChinhSach/dieuKhoan",
+      element: <ChinhSach type="dieuKhoan" />,
+    },
+  ],
+}
       
     ],
   },
