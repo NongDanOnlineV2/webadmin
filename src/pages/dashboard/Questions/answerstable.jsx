@@ -16,6 +16,7 @@ import axios from "axios";
 import AnswersTableDetail from "./answerstabledetail";
 import AnswerAddForm from "./AnswerAddForm";
 import AnswerEditForm from "./AnswerEditForm";
+import { toast } from "react-toastify";
 
 const API_URL = "https://api-ndolv2.nongdanonline.cc/answers";
 const FILE_BASE_URL = "https://api-ndolv2.nongdanonline.cc";
@@ -80,6 +81,7 @@ export function AnswersTable() {
   const [uploading, setUploading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchAnswers = async () => {
     try {
@@ -147,23 +149,17 @@ export function AnswersTable() {
     setEditData(null);
   };
 
-const openEditForm = (data) => {
-  setForm({
-    farmId: data.farmId || "",
-    farmName: data.farm?.name || "",
-    farmOwner: data.farm?.ownerName || "",
-    questionId: data.questionId || "",
-    questionText: data.question?.text || "",
-    createdAt: data.createdAt ? new Date(data.createdAt).toISOString().split("T")[0] : "",
-    selectedOptions: data.selectedOptions || [],
-    otherText: data.otherText || "",
-    uploadedFiles: data.uploadedFiles || [],
-  });
-  setEditData(data);
-  setFormType("edit");
-};
-
-
+  const openEditForm = (data) => {
+    setForm({
+      farmId: data.farmId || "",
+      questionId: data.questionId || "",
+      selectedOptions: data.selectedOptions || [],
+      otherText: data.otherText || "",
+      uploadedFiles: data.uploadedFiles || [],
+    });
+    setEditData(data);
+    setFormType("edit");
+  };
 
   const handleUploadImage = async (e) => {
     const file = e.target.files[0];
@@ -194,32 +190,34 @@ const openEditForm = (data) => {
   };
 
   const handleSubmit = async () => {
-    if (!form.farmId || !form.questionId) {
-      alert("Vui lòng nhập đầy đủ Farm ID và Question ID");
-      return;
-    }
+    setIsSubmitting(true);
+    const payload =
+      formType === "edit"
+        ? {
+            farmId: form.farmId,
+            questionId: form.questionId,
+            selectedOptions: form.selectedOptions,
+            otherText: form.otherText,
+            uploadedFiles: form.uploadedFiles,
+          }
+        : {
+            farmId: form.farmId,
+            answers: [
+              {
+                questionId: form.questionId,
+                selectedOptions: form.selectedOptions,
+                otherText: form.otherText,
+                uploadedFiles: form.uploadedFiles,
+              },
+            ],
+          };
 
     try {
-      const method = formType === "edit" ? "PUT" : "POST";
       const url =
         formType === "edit"
-          ? `${API_URL}/${editData._id}`
-          : `${API_URL}/batch`;
-
-      const payload =
-        formType === "edit"
-          ? form
-          : {
-              farmId: form.farmId,
-              answers: [
-                {
-                  questionId: form.questionId,
-                  selectedOptions: form.selectedOptions,
-                  otherText: form.otherText,
-                  uploadedFiles: form.uploadedFiles,
-                },
-              ],
-            };
+          ? `${API_URL}/${editData?._id}`
+          : API_URL;
+      const method = formType === "edit" ? "PUT" : "POST";
 
       const res = await fetchWithAuth(url, {
         method,
@@ -227,12 +225,34 @@ const openEditForm = (data) => {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Không thể lưu dữ liệu");
+      const result = await res.json();
+
+      if (!res.ok) {
+        console.error("Lỗi từ API:", result);
+        throw new Error(result.message || "Không thể lưu dữ liệu");
+      }
+
+      toast.success(
+        formType === "edit"
+          ? "Cập nhật câu trả lời thành công!"
+          : "Thêm câu trả lời thành công!"
+      );
+
+      setForm({
+        farmId: "",
+        questionId: "",
+        selectedOptions: [],
+        uploadedFiles: [],
+        otherText: "",
+      });
 
       setFormType(null);
       fetchAnswers();
-    } catch (err) {
-      alert(err.message);
+    } catch (error) {
+      console.error("Lỗi submit:", error);
+      toast.error(error.message || "Không thể lưu dữ liệu");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -300,15 +320,13 @@ const openEditForm = (data) => {
           Lọc theo đáp án
         </label>
         <select
-  value={filterOption}
-  onChange={(e) => {
-    setFilterOption(e.target.value);
-    setCurrentPage(1);
-  }}
-  className="border rounded px-2 py-1 text-sm w-full max-w-xs"
->
-
-
+          value={filterOption}
+          onChange={(e) => {
+            setFilterOption(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="border rounded px-2 py-1 text-sm w-full max-w-xs"
+        >
           <option value="">Tất cả</option>
           {[...new Set(questionAnFarmId.flatMap((item) => item.selectedOptions || []))].map((opt, idx) => (
             <option key={idx} value={opt}>
@@ -425,8 +443,11 @@ const openEditForm = (data) => {
             open
             setOpen={() => setFormType(null)}
             form={form}
+            setForm={setForm}
+            uploading={uploading}
+            handleUploadImage={handleUploadImage}
+            handleSubmit={handleSubmit}
           />
-
         ) : null}
       </Dialog>
 
