@@ -112,7 +112,6 @@ export default function CommentVideo({ open, onClose, videoId }) {
       <DialogHeader>Bình luận video</DialogHeader>
 
       <DialogBody className="h-[70vh] overflow-y-auto">
-        {/* Form nhập bình luận */}
         <Card shadow={false} className="p-4 bg-gray-50">
           <form onSubmit={handleAdd} className="flex gap-2">
             <Input

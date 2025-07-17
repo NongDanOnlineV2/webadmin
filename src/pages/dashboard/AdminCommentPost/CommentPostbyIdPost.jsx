@@ -28,7 +28,7 @@ try {
   }
 
 } catch (error) {
-    console.log("Lỗi nè",error)
+    // console.log("Lỗi nè",error)
     setLoading(false)
 }
     }
@@ -43,7 +43,7 @@ try {
   }
 
 } catch (error) {
-    console.log("Lỗi nè",error)
+    // console.log("Lỗi nè",error)
     setLoading(false)
 }
     }
@@ -66,7 +66,7 @@ setIdUser(res.data.authorId)
  setLoading(false) 
 }
 } catch (error) {
-    console.log("Lỗi nè",error)
+    // console.log("Lỗi nè",error)
     setLoading(false)
 }
 
@@ -112,8 +112,6 @@ const handleDeleteComment = async (comment, index, postId) => {
 };
 
 
-// console.log("data nè",CommentByIdPost.comments.length)
-console.log(post)
     useEffect(()=>{
 getCommentById(CommentsDialog.postId)
 callPost(CommentsDialog.postId)
@@ -122,8 +120,8 @@ getUsertByComment()
 
     },[])
   return (
-  <div className="max-w-2xl mx-auto p-4">
-     <Typography variant="h5" color="blue-gray" className="font-semibold mb-4">
+  <div className="w-full max-w-4xl mx-auto p-4 min-h-screen bg-gray-50">
+     <Typography variant="h5" color="blue-gray" className="font-semibold mb-6">
             Quản lý Bình luận
           </Typography>
     {loading ? (
@@ -190,115 +188,152 @@ getUsertByComment()
           )}
         </div>
 {editComment && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-    <div className="bg-white p-6 rounded shadow-lg max-w-md w-full">
-      <h2 className="font-bold mb-2">Sửa bình luận</h2>
-      <div className="flex items-center gap-3 mb-2">
-        <img
-          src={
-            editComment.userId?.avatar?.startsWith('http')
-              ? editComment.userId.avatar
-              : `${BaseUrl}${editComment.userId?.avatar || ''}`
-          }
-          alt=""
-          className="w-8 h-8 rounded-full border"
-        />
-        <span className="font-semibold text-gray-800">{editComment.userId?.fullName}</span>
-        <span className="text-xs text-gray-500 ml-2">
-          {editComment.createdAt ? new Date(editComment.createdAt).toLocaleString() : ""}
-        </span>
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-0">
+    <div className="bg-white rounded-lg shadow-xl w-full max-w-full mx-0 h-full overflow-y-auto">
+
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h2 className="text-xl font-bold text-gray-800">Sửa bình luận</h2>
       </div>
-      <textarea
-        className="w-full border rounded p-2 mb-4"
-        value={editContent}
-        onChange={e => setEditContent(e.target.value)}
-      />
-      <div className="flex gap-2 justify-end">
+ 
+
+      <div className="p-6">
+
+        <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
+          <img
+            src={
+              editComment.userId?.avatar?.startsWith('http')
+                ? editComment.userId.avatar
+                : `${BaseUrl}${editComment.userId?.avatar || ''}`
+            }
+            alt="Avatar"
+            className="w-10 h-10 rounded-full border-2 border-gray-300 object-cover"
+          />
+          <div className="flex-1">
+            <span className="font-semibold text-gray-800 block">{editComment.userId?.fullName}</span>
+            <span className="text-sm text-gray-500">
+              {editComment.createdAt ? new Date(editComment.createdAt).toLocaleString() : ""}
+            </span>
+          </div>
+        </div>
+        
+        {/* Textarea */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Nội dung bình luận:
+          </label>
+          <textarea
+            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            rows="4"
+            value={editContent}
+            onChange={e => setEditContent(e.target.value)}
+            placeholder="Nhập nội dung bình luận..."
+          />
+        </div>
+      </div>
+      
+      {/* Footer */}
+      <div className="px-6 py-4 border-t border-gray-200 flex gap-3 justify-end">
         <button
-          className="px-3 py-1 bg-gray-300 rounded"
+          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
           onClick={() => setEditComment(null)}
         >
           Hủy
         </button>
         <button
-          className="px-3 py-1 bg-blue-500 text-white rounded"
+          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
           onClick={() => handleUpdateComment(CommentsDialog.postId)}
         >
-          Lưu
+          Lưu thay đổi
         </button>
       </div>
     </div>
   </div>
 )}
         {CommentByIdPost && Array.isArray(CommentByIdPost.comments) && CommentByIdPost.comments.length > 0 ? (
-          CommentByIdPost.comments.map((item,index) =>  {
-            return(
-<div
-              key={index}
-              className="border rounded-lg bg-gray-50 p-4 mb-4 shadow-sm"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <img
-                  src={
-                    item.userId.avatar?.startsWith('http')
-                      ? item.userId.avatar
-                      : `${BaseUrl}${item.userId.avatar}`
-                  }
-                  alt=""
-                  className="w-8 h-8 rounded-full border"
-                />
-                <span className="font-semibold text-gray-800">{item.userId?.fullName}</span>
-                <span className="text-xs text-gray-500 ml-2">
-                  {item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}
-                </span>
-              </div>
-     <div className="ml-auto flex gap-2">
-      <button
-        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs shadow transition"
-        onClick={() => handleEditComment(item, index, CommentsDialog.postId)}
-      >
-        Sửa
-      </button>
-      <button
-        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs shadow transition"
-        onClick={() => handleDeleteComment(item, index, CommentsDialog.postId)}
-      >
-        Xóa
-      </button>
-    </div>
-              <div className="ml-11 break-all text-gray-700 mb-2">{item.comment}</div>
-              
-              {item.replies && item.replies.length > 0 && (
-                <div className="ml-11 mt-2 border-l-2 border-blue-200 pl-4">
-                  {item.replies.map((rep) => (
-                    <div
-                      key={rep._id}
-                      className="flex items-start gap-2 text-sm text-gray-700 mb-2"
-                    >
+          <div className="space-y-4">
+            {CommentByIdPost.comments.map((item,index) =>  {
+              return(
+                <div
+                  key={index}
+                  className="border rounded-lg bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3 flex-1">
                       <img
                         src={
-                          rep.userId?.avatar?.startsWith('http')
-                            ? rep.userId.avatar
-                            : `${BaseUrl}${rep.userId?.avatar || ''}`
+                          item.userId.avatar?.startsWith('http')
+                            ? item.userId.avatar
+                            : `${BaseUrl}${item.userId.avatar}`
                         }
-                        alt=""
-                        className="w-6 h-6 rounded-full border"
+                        alt="Avatar"
+                        className="w-10 h-10 rounded-full border-2 border-gray-200 object-cover flex-shrink-0"
                       />
-                      <div>
-                        <span className="font-semibold text-gray-700">{rep.userId?.fullName}:</span>
-                        <span className="ml-1 break-all" >{rep.comment}</span>
-                        <span className="ml-2 text-xs text-gray-400">
-                          {rep.createdAt ? new Date(rep.createdAt).toLocaleString() : ""}
+                      <div className="flex-1">
+                        <span className="font-semibold text-gray-800 block">{item.userId?.fullName}</span>
+                        <span className="text-xs text-gray-500">
+                          {item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}
                         </span>
                       </div>
                     </div>
-                  ))}
+                    
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+                        onClick={() => handleEditComment(item, index, CommentsDialog.postId)}
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+                        onClick={() => handleDeleteComment(item, index, CommentsDialog.postId)}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="ml-13 text-gray-700 mb-3 leading-relaxed break-words">
+                    {item.comment}
+                  </div>
+                  
+                  {item.replies && item.replies.length > 0 && (
+                    <div className="ml-13 mt-3 border-l-3 border-blue-200 pl-4 bg-gray-50 rounded-r-lg p-3">
+                      <div className="text-sm font-medium text-gray-600 mb-2">
+                        Phản hồi ({item.replies.length}):
+                      </div>
+                      <div className="space-y-2">
+                        {item.replies.map((rep) => (
+                          <div
+                            key={rep._id}
+                            className="flex items-start gap-2 bg-white p-2 rounded-lg"
+                          >
+                            <img
+                              src={
+                                rep.userId?.avatar?.startsWith('http')
+                                  ? rep.userId.avatar
+                                  : `${BaseUrl}${rep.userId?.avatar || ''}`
+                              }
+                              alt="Avatar"
+                              className="w-6 h-6 rounded-full border object-cover flex-shrink-0"
+                            />
+                            <div className="flex-1">
+                              <div className="text-sm">
+                                <span className="font-semibold text-gray-700">{rep.userId?.fullName}:</span>
+                                <span className="ml-2 text-gray-600 break-words">{rep.comment}</span>
+                              </div>
+                              <span className="text-xs text-gray-400 mt-1 block">
+                                {rep.createdAt ? new Date(rep.createdAt).toLocaleString() : ""}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-
-            )
-})
+              )
+            })}
+          </div>
         ) : (
           <div className="text-center text-gray-500">Không có dữ liệu</div>
         )}

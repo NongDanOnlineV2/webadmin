@@ -11,12 +11,42 @@ export default function VideoLikeList({ openLike, handleCloseLike, videoId }) {
   const getLikes = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${BaseUrl}/video-like/${videoId}/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setLikes(res.data?.users || []);
+            const likeEndpoints = [
+        `${BaseUrl}/video-like/${videoId}/users`,
+        `${BaseUrl}/admin-video-like/${videoId}/users`,
+        `${BaseUrl}/video/${videoId}/likes`,
+        `${BaseUrl}/like/${videoId}/users`,
+      ];
+      
+      let foundLikes = [];
+      
+      for (const endpoint of likeEndpoints) {
+        try {
+          const res = await axios.get(endpoint, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          if (res.data) {
+            if (Array.isArray(res.data)) {
+              foundLikes = res.data;
+              break;
+            } else if (res.data.users && Array.isArray(res.data.users)) {
+              foundLikes = res.data.users;
+              break;
+            } else if (res.data.data && Array.isArray(res.data.data)) {
+              foundLikes = res.data.data;
+              break;
+            }
+          }
+        } catch (error) {
+          console.log(`Endpoint ${endpoint} failed:`, error.response?.status, error.response?.statusText);
+          continue;
+        }
+      }
+      
+      setLikes(foundLikes);
     } catch (error) {
-      console.error('Lỗi lấy danh sách Like:', error);
+      console.log('Lỗi lấy danh sách Like:', error);
     } finally {
       setLoading(false);
     }

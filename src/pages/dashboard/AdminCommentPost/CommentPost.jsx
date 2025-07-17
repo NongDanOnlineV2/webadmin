@@ -15,7 +15,6 @@ export const CommentPost = () => {
   const [CommentsDialog, setCommentsDialog] = useState(null);
   const [searchTitle, setSearchTitle] = useState('')
   const [allComments, setAllComments] = useState([]) 
-console.log("comment dialog nè:",CommentsDialog)
   const [totalPages, setTotalPages] = useState(1);
     const limit = 10;
 const [comment,setComment]=useState([])
@@ -61,13 +60,11 @@ setTotalPages(res.data.totalPages)
  setLoading(false) 
 }
 } catch (error) {
-    console.log("Lỗi nè",error)
+    // console.log("Lỗi nè",error)
     setLoading(false)
 }
 
 }
-
-
 const loadAllComments = async () => {
   try {
     const allCommentsData = [];
@@ -100,11 +97,10 @@ const loadAllComments = async () => {
       setAllComments(allCommentsData);
     }
   } catch (error) {
-    console.error("Lỗi load all comments:", error);
+    // console.error("Lỗi load all comments:", error);
+    return false
   }
 }
-// console.log(comment)
-
 useEffect(()=>{
   setLoading(true)
   callApiCommentPost()
@@ -131,9 +127,6 @@ const getPost = async () => {
     const uniqueIds = [...new Set([...currentPageIds, ...allCommentsIds])]; 
     
     if (uniqueIds.length === 0) return;
-
-    console.log('Requesting posts for IDs:', uniqueIds);
-
     const res = await axios.get(`${BaseUrl}/admin-post-feed?ids=${uniqueIds.join(',')}`, {
       headers: { Authorization: `Bearer ${tokenUser}` }
     });
@@ -144,10 +137,8 @@ const getPost = async () => {
       
       const foundIds = posts.map(p => String(p.id || p._id));
       const missingIds = uniqueIds.filter(id => !foundIds.includes(String(id)));
-      console.log('Missing post IDs:', missingIds);
       
       if (missingIds.length > 0) {
-        console.log('Attempting to fetch missing posts individually...');
         const individualPromises = missingIds.map(async (postId) => {
           try {
             let individualRes;
@@ -169,11 +160,10 @@ const getPost = async () => {
             }
             
             if (individualRes.status === 200) {
-              console.log('Found individual post:', postId, individualRes.data);
               return individualRes.data;
             }
           } catch (error) {
-            console.log('Individual post not found:', postId, error.response?.status);
+            // console.log('Individual post not found:', postId, error.response?.status);
             return null;
           }
         });
@@ -181,7 +171,6 @@ const getPost = async () => {
         const individualResults = await Promise.all(individualPromises);
         const foundIndividualPosts = individualResults.filter(p => p !== null);
         posts = [...posts, ...foundIndividualPosts];
-        console.log('Total posts after individual fetch:', posts.length);
       }
     }
 
@@ -189,7 +178,7 @@ const getPost = async () => {
     setLoading(false);
   } catch (error) {
     setLoading(false);
-    console.error("Lỗi getPost:", error);
+    // console.error("Lỗi getPost:", error);
   }
 };
 
@@ -249,7 +238,7 @@ const filteredComments = React.useMemo(() => {
       </div>
 
 {loading?
-(<div>
+(<div className="flex justify-center items-center w-full h-40">
      <Audio
              height="80"
                 width="80"
@@ -266,76 +255,109 @@ filteredComments.length === 0 ? (
     </p>
   </div>
 ) : (
-filteredComments.map((item) => {
- const postInfo = postMap[String(item.postId).trim()];
- 
- const title = postInfo?.title?.trim() 
-   ? postInfo.title
-   : `Bài viết không tìm thấy (ID: ${String(item.postId).slice(-8)})`;
-   
-  return (
-    <div onClick={() => handleOpenDialogComments(item)} key={item.postId} className="mb-4 p-4 border rounded bg-white">
-      <div className="cursor-pointer font-bold mb-2 w-full flex flex-col">
-        <div className="flex items-center gap-2">
-          <span>Tiêu đề bài viết: {title}</span>
-          {!postInfo && (
-            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-              Bài viết đã bị xóa
-            </span>
-          )}
-        </div>
+  <div className="overflow-x-auto">
+    <table className="min-w-full bg-white border border-gray-200">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            Tiêu đề bài viết
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            Ngày đăng
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            Số bình luận
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            Bình luận mới nhất
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            Trạng thái
+          </th>
+        
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200">
+        {filteredComments.map((item) => {
+          const postInfo = postMap[String(item.postId).trim()];
+          const title = postInfo?.title?.trim() 
+            ? postInfo.title
+            : `Bài viết không tìm thấy (ID: ${String(item.postId).slice(-8)})`;
+          
+          const sortedComments = item.comments
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          
+          const latestComment = sortedComments[0];
+          const totalComments = item.comments.length + 
+            item.comments.reduce((sum, cmt) => sum + (cmt.replies?.length || 0), 0);
 
-        <span>
-          Ngày đăng: {item.createdAt ? new Date(item.createdAt).toLocaleString() : "Chưa cập nhật"}
-        </span>
-        {item.comments
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) 
-          .map((cmt, index) => (
-          <div key={index} className="mb-2 pl-2 border-l">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2 min-w-0">
-                <img
-                  src={
-                    cmt.userId.avatar?.startsWith('http')
-                      ? cmt.userId.avatar
-                      : `${BaseUrl}${cmt.userId.avatar}`
-                  }
-                  alt=""
-                  className="w-6 h-6 rounded-full"
-                />
-                <span className="font-medium truncate">{cmt.userId.fullName}</span>
-              </div>
-              <span className="text-xs text-gray-500 whitespace-nowrap text-right block min-w-[90px]">{new Date(cmt.createdAt).toLocaleString()}</span>
-            </div>
-            <div className="ml-8 text-sm mt-1 overflow-hidden">
-              <div className="break-all">{cmt.comment}</div>
-            </div>
-            {cmt.replies && cmt.replies.length > 0 && (
-              <div className="ml-12 mt-1">
-                {cmt.replies
-                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) 
-                  .map((rep, ridx) => (
-                  <div key={ridx} className="mb-1 text-sm text-gray-700">
-                    <div className="flex items-center gap-2 justify-between mb-1">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <img alt="" className="w-5 h-5 rounded-full" />
-                        <span className="font-medium truncate">{rep.userId.fullName}</span>
-                      </div>
-                      <span className="text-xs text-gray-500 whitespace-nowrap text-right block min-w-[90px]">{new Date(rep.createdAt).toLocaleString()}</span>
+          return (
+            <tr key={item.postId} className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleOpenDialogComments(item)}>
+              <td className="px-4 py-4 border-b">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-900 break-words">
+                    {title}
+                  </span>
+                  {!postInfo && (
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded mt-1 inline-block w-fit">
+                      Bài viết đã bị xóa
+                    </span>
+                  )}
+                </div>
+              </td>
+              <td className="px-4 py-4 text-sm text-gray-500 border-b">
+                {item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : "Chưa cập nhật"}
+              </td>
+              <td className="px-4 py-4 text-sm text-gray-900 border-b">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {totalComments} bình luận
+                </span>
+              </td>
+              <td className="px-4 py-4 border-b">
+                {latestComment && (
+                  <div className="text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <img
+                        src={
+                          latestComment.userId.avatar?.startsWith('http')
+                            ? latestComment.userId.avatar
+                            : `${BaseUrl}${latestComment.userId.avatar}`
+                        }
+                        alt=""
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <span className="font-medium text-gray-900">
+                        {latestComment.userId.fullName}
+                      </span>
                     </div>
-                    <div className="ml-7 text-sm mt-1 max-w-full overflow-hidden">
-                      <div className="break-all">{rep.comment}</div>
-                    </div>
+                    <p className="text-gray-600 text-xs break-all line-clamp-2">
+                      {latestComment.comment}
+                    </p>
+                    <span className="text-xs text-gray-400 mt-1">
+                      {new Date(latestComment.createdAt).toLocaleString('vi-VN')}
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-})
+                )}
+              </td>
+              <td className="px-4 py-4 text-sm border-b">
+                {postInfo ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Hoạt động
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    Đã xóa
+                  </span>
+                )}
+              </td>
+           
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
 )
         )
         
