@@ -9,7 +9,7 @@ import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import CreatableSelect from 'react-select/creatable';
 
-export default function Users() {
+export function Users() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [counts, setCounts] = useState({});
@@ -411,3 +411,4 @@ setRoles(uniqueRoles);
     </div>
   );
 }
+export default Users;
