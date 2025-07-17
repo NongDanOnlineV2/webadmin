@@ -33,43 +33,98 @@ const AnswerEditForm = ({
   }
 
   return (
-    <Dialog open={open} handler={() => setOpen(false)}>
+    <Dialog open={open} handler={() => setOpen(false)} size="md">
       <DialogHeader>Chỉnh sửa câu trả lời</DialogHeader>
-      <DialogBody className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          label="Tên Farm"
-          value={form.farmId}
-          onChange={(e) => setForm({ ...form, farmId: e.target.value })}
-          crossOrigin=""
-        />
-        <Input
-          label="Nội dung Câu hỏi"
-          value={form.questionId}
-          onChange={(e) => setForm({ ...form, questionId: e.target.value })}
-          crossOrigin=""
-        />
-        <Input
-          label="Đáp án chọn (ngăn cách bằng dấu phẩy)"
-          value={form.selectedOptions.join(", ")}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              selectedOptions: e.target.value
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean),
-            })
-          }
-        />
-        <Input
-          label="Câu trả lời (khác)"
-          value={form.otherText}
-          onChange={(e) => setForm({ ...form, otherText: e.target.value })}
-        />
-        <Input type="file" onChange={handleUploadImage} />
-        {uploading && (
-          <span className="text-sm text-gray-500">Đang tải lên...</span>
-        )}
+      <DialogBody>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
+          <div>
+            <Typography variant="small" className="mb-1 font-medium">Tên Farm</Typography>
+            <Input
+              value={form.farmName}
+              onChange={(e) => setForm({ ...form, farmName: e.target.value })}
+              crossOrigin=""
+            />
+          </div>
+
+          <div>
+            <Typography variant="small" className="mb-1 font-medium">Chủ sở hữu</Typography>
+            <Input
+              value={form.farmOwner}
+              onChange={(e) => setForm({ ...form, farmOwner: e.target.value })}
+              crossOrigin=""
+            />
+          </div>
+
+          <div>
+            <Typography variant="small" className="mb-1 font-medium">Tên Câu hỏi</Typography>
+            <Input
+              value={form.questionText}
+              onChange={(e) =>
+                setForm({ ...form, questionText: e.target.value })
+              }
+              crossOrigin=""
+            />
+          </div>
+
+          <div>
+            <Typography variant="small" className="mb-1 font-medium">Ngày tạo</Typography>
+            <Input
+              value={form.createdAt || ""}
+              onChange={(e) => setForm({ ...form, createdAt: e.target.value })}
+              crossOrigin=""
+            />
+          </div>
+
+          <div>
+            <Typography variant="small" className="mb-1 font-medium">Đáp án đã chọn</Typography>
+            <Input
+              value={form.selectedOptions.join(", ")}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  selectedOptions: e.target.value
+                    .split(",")
+                    .map((opt) => opt.trim())
+                    .filter(Boolean),
+                })
+              }
+              crossOrigin=""
+            />
+          </div>
+
+          <div>
+            <Typography variant="small" className="mb-1 font-medium">Khác</Typography>
+            <Input
+              value={form.otherText}
+              onChange={(e) =>
+                setForm({ ...form, otherText: e.target.value })
+              }
+              crossOrigin=""
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <Typography variant="small" className="mb-1 font-medium">Tệp đính kèm</Typography>
+            <Input type="file" onChange={handleUploadImage} />
+            {uploading && (
+              <Typography className="text-sm text-gray-500 mt-1">
+                Đang tải lên...
+              </Typography>
+            )}
+            {form.uploadedFiles?.length > 0 &&
+              form.uploadedFiles.map((file, i) => (
+                <a
+                  key={i}
+                  href={file}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 text-sm underline block mt-1"
+                >
+                  File {i + 1}
+                </a>
+              ))}
+          </div>
+        </div>
       </DialogBody>
       <DialogFooter>
         <Button variant="outlined" onClick={() => setOpen(false)}>
