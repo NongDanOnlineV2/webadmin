@@ -99,7 +99,6 @@ export function PostList() {
       limit: postsPerPage,
     });
 
-
     if (filterUserId) queryParams.append("userId", filterUserId);
     if (filterTitle) queryParams.append("title", filterTitle);
     if (filterStatus === "true") queryParams.append("status", true);
@@ -125,21 +124,25 @@ export function PostList() {
         fetchPosts.map(async (post) => {
           try {
             const commentRes = await fetch(
-              `${BASE_URL}/admin-comment-post/post/${post.id}`,
+              `${BASE_URL}/admin-comment-post/post/${post._id}`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
             );
-            const commentJson = await commentRes.json();
-            if (commentRes.ok) {
-              const comments = commentJson.comments || [];
-              let totalReplies = 0;
-              comments.forEach((c) => {
-                totalReplies += c.replies?.length || 0;
-              });
+            console.log("Đang gọi API:", `${BASE_URL}/admin-comment-post/post/${post._id}`);
+            const commentJson  = await commentRes.json();
+            console.log("commentJson:", commentJson);
+            const commentsArray = commentJson?.comments || [];
+
+            if (commentRes.ok && Array.isArray(commentsArray)) {
+              const totalComments = commentsArray.length;
+              const totalReplies = commentsArray.reduce(
+                (acc, comment) => acc + (comment.replies?.length || 0),
+                0
+              );
               return {
                 ...post,
-                commentCount: comments.length + totalReplies,
+                commentCount: totalComments + totalReplies,
               };
             } else {
               console.warn("Không lấy được comment cho post:", post.id);
@@ -368,7 +371,6 @@ export function PostList() {
         <tbody>
           {posts.map((post) => {
             console.log("post nè",posts)
-            const author = findUser(post.authorId);
             return (
               <tr
                 key={post.id}
@@ -404,9 +406,23 @@ export function PostList() {
                 </td>
                 <td className="p-3 border">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{author?.fullName?.length > 20? author?.fullName.slice(0, 15) + "..." : author?.fullName || "Không rõ"}</span>
+                    {post.authorId ? (
+                      <>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {post.authorId.fullName?.length > 20
+                              ? post.authorId.fullName.slice(0, 15) + "..."
+                              : post.authorId.fullName}
+                          </span>
+                          
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-gray-400 italic">Không rõ</span>
+                    )}
                   </div>
                 </td>
+
                 <td className="p-3 border text-center">{post.like}</td>
                 <td className="p-3 border text-center">{post.commentCount ?? 0}</td>
                 <td className="p-3 border text-center">

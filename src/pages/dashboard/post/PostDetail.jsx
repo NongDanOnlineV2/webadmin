@@ -165,18 +165,26 @@
         {/* Tác giả và ngày */}
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
-            <Avatar
-              src={
-                findUser(post.authorId)?.avatar?.startsWith("http")
-                  ? findUser(post.authorId).avatar
-                  : `${BASE_URL}${findUser(post.authorId)?.avatar || ""}`
-              }
-              alt={findUser(post.authorId)?.fullName}
-              size="md"
-            />
-            <Typography className="font-semibold text-gray-800">
-              {findUser(post.authorId)?.fullName || "Không rõ"}
-            </Typography>
+            {post.authorId ? (
+              <>
+                <Avatar
+                  src={post.authorId.avatar ? `${BASE_URL}${post.authorId.avatar}` : "/default-avatar.png"}
+                  size="sm"
+                />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">
+                    {post.authorId.fullName?.length > 20
+                      ? post.authorId.fullName.slice(0, 15) + "..."
+                      : post.authorId.fullName}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {post.authorId.role?.[0] || "Unknown"}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <span className="text-gray-400 italic">Không rõ</span>
+            )}
           </div>
           <div className="text-sm text-gray-500 text-right">
             <p><b>Ngày tạo:</b> {formatDateTime(post.createdAt)}</p>
