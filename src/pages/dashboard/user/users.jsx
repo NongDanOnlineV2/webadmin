@@ -158,7 +158,6 @@ setRoles(uniqueRoles);
 
     setEditOpen(true);
   };
-  console.log(users)
   
 // CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
  const handleUpdate = async () => {
