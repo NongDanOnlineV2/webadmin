@@ -18,6 +18,8 @@ export const CommentPostbyIdPost = ({CommentsDialog}) => {
     const [IdUser, setIdUser] = useState(null);
     const [post, setPost] = useState("");
     const [users, setUsers] = useState([]);
+    const [openMenuIndex, setOpenMenuIndex] = useState(null);
+    const [showAllImages, setShowAllImages] = useState(false);
     const limit = 10;
     const [page, setPage] = useState(1)
 
@@ -158,8 +160,19 @@ getUsertByComment()
     setLoading(false)
 
     },[])
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (openMenuIndex !== null) {
+          setOpenMenuIndex(null);
+        }
+      };
+      
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }, [openMenuIndex]);
   return (
-  <div className="w-full max-w-4xl mx-auto p-4 min-h-screen bg-gray-50">
+  <div className="   p-4 bg-gray-50">
      <Typography variant="h5" color="blue-gray" className="font-semibold mb-6">
             Quản lý Bình luận
           </Typography>
@@ -176,101 +189,158 @@ getUsertByComment()
     ) : (
       <div>
         <div className="border bg-white rounded-lg shadow p-4 mb-6">
-          <div className="mb-2 text-gray-700 font-semibold">
-            Bài viết: <span className="font-normal">{post.title}</span>
-          </div>
-          
-          {post.images && Array.isArray(post.images) && post.images.length > 0 && (
-            <div className="mb-4">
-              <div className="text-sm text-gray-600 mb-2">Hình ảnh bài viết:</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {post.images.map((image, index) => (
-                  <img 
-                    key={index}
-                    src={
-                      image?.startsWith('http')
-                        ? image
-                        : `${BaseUrl}${image}`
-                    }
-                    alt={`Post image ${index + 1}`}
-                    className="w-full max-w-md h-auto rounded-lg shadow-sm border object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                ))}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Cột hình ảnh bên trái */}
+            <div className="flex-shrink-0 lg:w-2/5 w-full">
+              {post.images && Array.isArray(post.images) && post.images.length > 0 ? (
+                <div>
+                  <div className="text-sm text-gray-600 mb-3 font-semibold">Hình ảnh bài viết ({post.images.length}):</div>
+                  <div className={`gap-2 ${
+                    post.images.length === 1 ? 'grid grid-cols-1' :
+                    post.images.length === 2 ? 'grid grid-cols-2' :
+                    post.images.length === 3 ? 'grid grid-cols-2' :
+                    post.images.length === 4 ? 'grid grid-cols-2' :
+                    'grid grid-cols-3'
+                  }`}>
+                    {post.images.slice(0, showAllImages ? post.images.length : Math.min(4, post.images.length)).map((image, index) => (
+                      <div 
+                        key={index}
+                        className={`
+                          ${post.images.length === 3 && index === 0 ? 'col-span-2' : ''}
+                          ${!showAllImages && post.images.length > 4 && index === 3 ? 'relative' : ''}
+                          relative group
+                        `}
+                      >
+                        <img 
+                          src={
+                            image?.startsWith('http')
+                              ? image
+                              : `${BaseUrl}${image}`
+                          }
+                          alt={`Post image ${index + 1}`}
+                          className="w-full h-48 max-h-80 object-cover rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                          onClick={() => {
+                            window.open(image?.startsWith('http') ? image : `${BaseUrl}${image}`, '_blank');
+                          }}
+                        />
+                        {!showAllImages && post.images.length > 4 && index === 3 && (
+                          <div 
+                            className="absolute inset-0 bg-black bg-opacity-60 rounded-lg flex items-center justify-center text-white font-semibold cursor-pointer hover:bg-opacity-70 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowAllImages(true);
+                            }}
+                          >
+                            <div className="text-center">
+                              <div className="text-lg">+{post.images.length - 4}</div>
+                              <div className="text-xs">ảnh khác</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {showAllImages && post.images.length > 4 && (
+                    <div className="mt-3 flex justify-center">
+                      <button
+                        onClick={() => setShowAllImages(false)}
+                        className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Thu gọn ảnh
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
+                  <div className="text-center">
+                    <svg className="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Không có hình ảnh
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Cột nội dung bên phải */}
+            <div className="flex-1 lg:w-3/5 w-full min-w-0">
+              <div className="mb-4">
+                <h3 className="text-xl font-bold text-gray-800 mb-2 break-words">{post.title || "Tiêu đề bài viết"}</h3>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="text-gray-700">
+                  <span className="font-semibold text-gray-600">Miêu tả:</span> 
+                  <p className="mt-1 text-gray-800 leading-relaxed break-words">{post.description || "Không có miêu tả"}</p>
+                </div>
+                
+                <div className="flex flex-wrap gap-3">
+                  <div className="text-gray-700">
+                    <span className="font-semibold text-gray-600">Kiểu:</span> 
+                    <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs whitespace-nowrap">
+                      {post.type || "Không xác định"}
+                    </span>
+                  </div>
+                  
+                  <div className="text-gray-700">
+                    <span className="font-semibold text-gray-600">Thẻ:</span> 
+                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs whitespace-nowrap">
+                      {post.tags || "Không có thẻ"}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-3 text-sm">
+                  <div className="text-gray-700">
+                    <span className="font-semibold text-gray-600">Ngày đăng:</span> 
+                    <div className="mt-1 break-words">{post.createdAt ? new Date(post.createdAt).toLocaleString() : "Không xác định"}</div>
+                  </div>
+                  
+                  <div className="text-gray-700">
+                    <span className="font-semibold text-gray-600">Chỉnh sửa:</span> 
+                    <div className="mt-1 break-words">{post.updatedAt ? new Date(post.updatedAt).toLocaleString() : "Chưa chỉnh sửa"}</div>
+                  </div>
+                </div>
+                
+                {post.content && (
+                  <div className="pt-3 border-t">
+                    <span className="font-semibold text-gray-600 block mb-2">Nội dung bài viết:</span>
+                    <div className="bg-gray-50 p-3 rounded-lg text-gray-800 leading-relaxed max-h-32 overflow-y-auto break-words">
+                      {post.content}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-          <div className="mb-2 text-gray-700">
-            Miêu tả: <span className=" break-all font-medium"> {post.description|| ""}</span>
           </div>
-           {/* <div className="mb-2 text-gray-700">
-            Người đăng: <span className=" break-all font-medium"> {post.authorId|| ""}</span>
-          </div> */}
-          <div className="mb-2 text-gray-700">
-            Kiểu: <span className="font-medium"> {post.type || ""}</span>
-          </div>
-          <div className="mb-2 text-gray-700">
-            Thẻ: <span className="font-medium"> {post.tags || ""}</span>
-          </div>
-          <div className="mb-2 text-gray-700">
-            Ngày đăng: <span className="font-medium">{post.createdAt ? new Date(CommentByIdPost.createdAt).toLocaleString() : ""}</span>
-          </div>
-          <div className="mb-2 text-gray-700">
-            Chỉnh sửa: <span className="font-medium"> {post.updatedAt ? new Date(CommentByIdPost.updatedAt).toLocaleString() : ""}</span>
-          </div>
-          {CommentByIdPost.content && (
-            <div className="mt-2 text-base truncate text-gray-800 border-t pt-2">
-              {CommentByIdPost.content}
-            </div>
-          )}
         </div>
 {editComment && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-0">
-    <div className="bg-white rounded-lg shadow-xl w-full max-w-full mx-0 h-full overflow-y-auto">
-
+  <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-200">
         <h2 className="text-xl font-bold text-gray-800">Sửa bình luận</h2>
       </div>
- 
 
       <div className="p-6">
-
-        <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
-          <img
-            src={
-              editComment.userId?.avatar?.startsWith('http')
-                ? editComment.userId.avatar
-                : `${BaseUrl}${editComment.userId?.avatar || ''}`
-            }
-            alt="Avatar"
-            className="w-10 h-10 rounded-full border-2 border-gray-300 object-cover"
-          />
-          <div className="flex-1">
-            <span className="font-semibold text-gray-800 block">{editComment.userId?.fullName}</span>
-            <span className="text-sm text-gray-500">
-              {editComment.createdAt ? new Date(editComment.createdAt).toLocaleString() : ""}
-            </span>
-          </div>
-        </div>
-        
-        {/* Textarea */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Nội dung bình luận:
           </label>
           <textarea
-            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-            rows="4"
             value={editContent}
-            onChange={e => setEditContent(e.target.value)}
+            onChange={(e) => setEditContent(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+            rows="6"
             placeholder="Nhập nội dung bình luận..."
           />
         </div>
       </div>
-      
-      {/* Footer */}
+
       <div className="px-6 py-4 border-t border-gray-200 flex gap-3 justify-end">
         <button
           className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
@@ -288,6 +358,7 @@ getUsertByComment()
     </div>
   </div>
 )}
+
         {CommentByIdPost && Array.isArray(CommentByIdPost.comments) && CommentByIdPost.comments.length > 0 ? (
           <div className="space-y-4">
             {CommentByIdPost.comments.map((item,index) =>  {
@@ -315,19 +386,51 @@ getUsertByComment()
                       </div>
                     </div>
                     
-                    <div className="flex gap-2 flex-shrink-0">
+                    {/* Menu 3 chấm */}
+                    <div className="relative">
                       <button
-                        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm font-medium shadow-sm transition-colors"
-                        onClick={() => handleEditComment(item, index, CommentsDialog.postId)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuIndex(openMenuIndex === index ? null : index);
+                        }}
+                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
                       >
-                        Sửa
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
                       </button>
-                      <button
-                        className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm font-medium shadow-sm transition-colors"
-                        onClick={() => handleDeleteComment(item, index, CommentsDialog.postId)}
-                      >
-                        Xóa
-                      </button>
+                      
+                      {openMenuIndex === index && (
+                        <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                          <button
+                            onClick={() => {
+                              handleEditComment(item, index, CommentsDialog.postId);
+                              setOpenMenuIndex(null);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-blue-600 hover:bg-blue-50 transition-colors first:rounded-t-lg"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Sửa bình luận
+                          </button>
+                          <hr className="border-gray-100" />
+                          <button
+                            onClick={() => {
+                              if(confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
+                                handleDeleteComment(item, index, CommentsDialog.postId);
+                              }
+                              setOpenMenuIndex(null);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 transition-colors last:rounded-b-lg"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Xóa bình luận
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -348,16 +451,16 @@ getUsertByComment()
                           >
                             <img
                               src={
-                                rep.userId?.avatar?.startsWith('http')
-                                  ? rep.userId.avatar
-                                  : `${BaseUrl}${rep.userId?.avatar || ''}`
+                                getAvatarById(rep.userId)?.startsWith('http')
+                                  ? getAvatarById(rep.userId)
+                                  : `${BaseUrl}${getAvatarById(rep.userId) || ''}`
                               }
                               alt="Avatar"
                               className="w-6 h-6 rounded-full border object-cover flex-shrink-0"
                             />
                             <div className="flex-1">
                               <div className="text-sm">
-                                <span className="font-semibold text-gray-700">{rep.userId?.fullName}:</span>
+                                <span className="font-semibold text-gray-700">{getFullNameById(rep.userId)}:</span>
                                 <span className="ml-2 text-gray-600 break-words">{rep.comment}</span>
                               </div>
                               <span className="text-xs text-gray-400 mt-1 block">
