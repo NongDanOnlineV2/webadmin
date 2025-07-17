@@ -143,7 +143,7 @@ export function PostList() {
             const commentJson = await commentRes.json();
             console.log("commentJson:", commentJson);
 
-            const commentsArray = Array.isArray(commentJson?.comments) ? commentJson.comments : [];
+            const commentsArray = Array.isArray(commentJson?.data) ? commentJson.data : [];
 
             const totalComments = commentsArray.length;
             const totalReplies = commentsArray.reduce(
