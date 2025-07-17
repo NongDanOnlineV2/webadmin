@@ -24,8 +24,8 @@ export function Dashboard() {
         routes={routes}
         brandImg={
           sidenavType === "dark"
-            ? "/img/logo.png"
-            : "/img/logo.png"
+            ? "/img/logo-ct.png"
+            : "/img/logo-ct-dark.png"
         }
         onCollapse={(value) => setCollapsed(value)}
       />
