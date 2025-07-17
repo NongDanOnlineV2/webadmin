@@ -50,20 +50,30 @@
     
 
     const fetchComments = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/admin-comment-post/post/${postId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (res.ok) {
-          setComments(Array.isArray(json.comments) ? json.comments : []);
-        }
-      } catch (err) {
-        console.error("Fetch comments error:", err);
-      } finally {
-        setCommentLoading(false);
-      }
-    };
+  try {
+    const res = await fetch(`${BASE_URL}/admin-comment-post/post/${postId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (res.ok) {
+      // ✅ Fix: dùng json.data thay vì json.comments
+      const commentsArray = Array.isArray(json?.data) ? json.data : [];
+
+      console.log("✅ Comments loaded:", commentsArray);
+
+      setComments(commentsArray);
+    } else {
+      console.warn("⚠️ Lỗi khi fetch comments:", json);
+      setComments([]);
+    }
+  } catch (err) {
+    console.error("❌ Fetch comments error:", err);
+    setComments([]);
+  } finally {
+    setCommentLoading(false);
+  }
+};
+
 
     const fetchUsers = async () => {
       try {
@@ -263,7 +273,7 @@
             onClick={() => setShowComments(!showComments)}
           >
             <Typography variant="h5" className="text-blue-800">
-              Bình luận ({comments.length + comments.reduce((total, cmt) => total + (cmt.replies?.length || 0), 0)})
+              Bình luận ({comments.reduce((acc, cmt) => acc + 1 + (cmt.replies?.length || 0), 0)})
             </Typography>
           </div>
 
