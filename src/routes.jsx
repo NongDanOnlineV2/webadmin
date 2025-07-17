@@ -66,28 +66,7 @@ export const routes = [
         name: "PostList",
         path: "/PostList",
         element: <PostList />,
-      },
-      {
-      icon: <NewspaperIcon className="h-5 w-5" />,
-      name: "chinhsach",
-      path: "/chinhsach",
-      children: [
-        {
-          name: "Bảo mật",
-          path: "/chinh_sach_bao-mat",
-        },
-        {
-          name: "Cookie",
-          path: "/chinh_sach_cookie",
-        },
-        {
-          name: "Điều khoản",
-          path: "/chinh_sach_dieu_khoan",
-        },
-      ],
-    }
-    ,
-      
+      },         
     {
         icon: <ChatBubbleOvalLeftEllipsisIcon {...icon} />,
         name: "CommentPost",

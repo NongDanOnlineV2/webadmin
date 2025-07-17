@@ -74,7 +74,8 @@ const fetchFarms = async () => {
       })
     );
 
-    setAllFarms(farmWithVideoCount);
+    const sortedFarms = farmWithVideoCount.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+setAllFarms(sortedFarms);
   } catch (err) {
     setError(err.response?.data?.message || err.message);
   } finally {
@@ -202,7 +203,7 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
               <thead>
                 <tr className="bg-blue-gray-50 text-blue-gray-700 text-sm">
                   <th className="px-2 py-2 font-semibold uppercase">Tên</th>
-                  <th className="px-2 py-2 font-semibold uppercase">Tags</th>
+                  <th className="px-2 py-2 font-semibold uppercase">Ngày tạo</th>
                   <th className="px-2 py-2 font-semibold uppercase">Mã</th>
                   <th className="px-2 py-2 font-semibold uppercase">Chủ sở hữu</th>
                   <th className="px-2 py-2 font-semibold uppercase">SĐT</th>
@@ -222,30 +223,13 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
                   >
                     <td className="px-2 py-2">{farm.name}</td>
                     <td className="px-2 py-2">
-                          {Array.isArray(farm.tags) && farm.tags.length > 0 ? (
-                            <div className="flex items-center gap-2">
-                              <Chip
-                                size="sm"
-                                value={
-                                  farm.tags[0].length > 10
-                                    ? farm.tags[0].slice(0, 10) + "..."
-                                    : farm.tags[0]
-                                }
-                                className="bg-gray-200 text-gray-800"
-                              />
-                              {farm.tags.length > 1 && (
-                                <span className="text-sm text-gray-600 font-medium">+{farm.tags.length - 1}</span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                      </td>
+                      {new Date(farm.createdAt).toLocaleDateString("vi-VN")}
+                    </td>
                     <td className="px-2 py-2">{farm.code}</td>
                     <td className="px-2 py-2">{farm.ownerInfo?.name || "—"}</td>
                     <td className="px-2 py-2">{farm.phone || "—"}</td>
                     <td className="px-2 py-2">
-{farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
+                      {farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
                     </td>
                     <td className="px-2 py-2">{farm.area} m²</td>
                     <td className="px-2 py-2">{farm.videoCount ?? 0}</td>
