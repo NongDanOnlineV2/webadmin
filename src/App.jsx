@@ -6,7 +6,6 @@ import VideoLikeList from "./pages/dashboard/VideoFarms/VideoLikeList";
 import PostDetail from "./pages/dashboard/post/PostDetail";
 import CommentPostbyId from "./pages/dashboard/AdminCommentPost/CommentPostbyId";
 import CommentPostbyIdPost from "./pages/dashboard/AdminCommentPost/CommentPostbyIdPost";
-import CommentPostByIdUser from "./pages/dashboard/AdminCommentPost/CommentPostByIdUser";
 import FarmDetail from "./pages/dashboard/farm/FarmDetail";
 import { Farms } from "./pages/dashboard/farm/farms";
 import UserDetail from "./pages/dashboard/user/UserDetail";
@@ -43,7 +42,6 @@ function App() {
         <Route path="post/:id" element={<PostDetail />} />
         <Route path="CommentPostbyId/:id" element={<CommentPostbyId />} />
         <Route path="CommentPostbyIdPost/:postId" element={<CommentPostbyIdPost />} />
-        <Route path="CommentPostByIdUser/:id" element={<CommentPostByIdUser />} />
         <Route path="VideoFarms/VideoById/:id" element={<VideoById />} />
         <Route path="users/:id" element={<UserDetail />} />
         {/* <Route path="/dashboard/users/:id" element={<UserDetail />} /> */}
