@@ -18,7 +18,6 @@ function App() {
     if (!token) {
       navigate("/auth/sign-in");
     }
-
     const handleUnload = () => {
       if (performance.getEntriesByType("navigation")[0].type !== "reload") {
       localStorage.removeItem("token");
@@ -38,6 +37,7 @@ function App() {
   return (
  <Routes>
       <Route path="/dashboard/*" element={<Dashboard />}>
+      
         <Route path="VideoFarmById/:farmId" element={<VideoFarmById />} />
         <Route path="video-like/:videoId" element={<VideoLikeList />} />
         <Route path="post/:id" element={<PostDetail />} />
@@ -48,10 +48,11 @@ function App() {
         <Route path="users/:id" element={<UserDetail />} />
         {/* <Route path="/dashboard/users/:id" element={<UserDetail />} /> */}
       </Route>
+      <Route path="*" element={<Navigate to="/dashboard/home" replace />} />
       <Route path="/auth/*" element={<Auth />} />
       <Route path="/admin/Farms" element={<Farms />} />
       <Route path="/admin/farms/:id" element={<FarmDetail />} />
-      <Route path="*" element={<Navigate to="/dashboard/home" replace />} />
+      
 
     </Routes>
   );

@@ -9,11 +9,9 @@ import {
   ReceiptPercentIcon,
   ChatBubbleLeftEllipsisIcon
 } from "@heroicons/react/24/solid";
-
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
 import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost  } from "@/pages/dashboard";
 import { SignIn, SignUp } from "@/pages/auth";
-
 import { ViewfinderCircleIcon,VideoCameraIcon,ChatBubbleOvalLeftEllipsisIcon  } from "@heroicons/react/24/outline";
 import { Comment } from "react-loader-spinner";
 import FarmDetail from "@/pages/dashboard/farm/FarmDetail";
@@ -69,12 +67,27 @@ export const routes = [
         path: "/PostList",
         element: <PostList />,
       },
-      // {
-      //   icon: <ReceiptPercentIcon {...icon} />,
-      //   name: "AdminReports",
-      //   path: "/AdminReports",
-      //   element: <AdminReports />,
-      // },
+      {
+      icon: <NewspaperIcon className="h-5 w-5" />,
+      name: "chinhsach",
+      path: "/chinhsach",
+      children: [
+        {
+          name: "Bảo mật",
+          path: "/chinh_sach_bao-mat",
+        },
+        {
+          name: "Cookie",
+          path: "/chinh_sach_cookie",
+        },
+        {
+          name: "Điều khoản",
+          path: "/chinh_sach_dieu_khoan",
+        },
+      ],
+    }
+    ,
+      
     {
         icon: <ChatBubbleOvalLeftEllipsisIcon {...icon} />,
         name: "CommentPost",
