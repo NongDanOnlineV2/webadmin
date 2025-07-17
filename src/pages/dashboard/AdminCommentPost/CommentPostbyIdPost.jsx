@@ -91,7 +91,7 @@ const getAllUsers = async () => {
       }
       setUsers(allUsers)
     } catch (error) {
-      console.error("Lỗi khi lấy danh sách user:", error)
+      // Error handling
     }
   }
 
@@ -270,9 +270,19 @@ useEffect(() => {
       );
     }
 
+   
+    const sortedComments = [...comments].sort((a, b) => {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+      return dateB - dateA; 
+    });
+
     return (
       <div className="space-y-6">
-        {comments.map((comment, index) => {
+        {sortedComments.map((comment, index) => {
+         
+          const originalIndex = comments.findIndex(c => c._id === comment._id);
+          
           return (
             <div key={comment._id || index} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 group">
               {/* Comment Header */}
@@ -303,7 +313,7 @@ useEffect(() => {
                 </div>
                 {/* Always visible 3-dot menu */}
                 <div className="flex-shrink-0">
-                  {renderCommentActions(comment, index)}
+                  {renderCommentActions(comment, originalIndex)}
                 </div>
               </div>
 
@@ -324,9 +334,6 @@ useEffect(() => {
                     <span className="font-medium">{comment.replies?.length || 0} phản hồi</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">ID: {comment._id?.slice(-6) || 'N/A'}</span>
-                </div>
               </div>
 
               {/* Replies */}
@@ -343,7 +350,11 @@ useEffect(() => {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {comment.replies.map((reply, repIndex) => (
+                    {[...comment.replies].sort((a, b) => {
+                      const dateA = new Date(a.createdAt);
+                      const dateB = new Date(b.createdAt);
+                      return dateB - dateA; 
+                    }).map((reply, repIndex) => (
                       <div key={reply._id || repIndex} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
                         <div className="flex items-start gap-3">
                           <img
