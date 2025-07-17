@@ -24,7 +24,7 @@ export function Dashboard() {
       <Sidenav
         routes={routes}
         brandImg={
-          sidenavType === "dark" ? "/img/logo-ct.png" : "/img/logo-ct-dark.png"
+          sidenavType === "dark" ? "/img/logo.svg" : "/img/logo.svg"
         }
         onCollapse={(value) => setCollapsed(value)} 
       />
