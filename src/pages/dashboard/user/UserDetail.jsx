@@ -48,7 +48,6 @@ export default function UserDetail() {
     ward: "",
     province: ""
   });
-
   const fetchPaginatedData = async (url, config) => {
     let allData = [];
     let page = 1;

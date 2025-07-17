@@ -2,12 +2,12 @@ import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
 import { BaseUrl } from '@/ipconfig'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Audio } from 'react-loader-spinner'
 import { Typography } from '@material-tailwind/react'
 export const CommentPostbyIdPost = ({CommentsDialog}) => {
-
+    const navigate = useNavigate();
     const [CommentByIdPost,setCommentByIdPost]=useState([])
     const [loading, setLoading] = useState(true)
     const tokenUser = localStorage.getItem('token');
@@ -22,7 +22,6 @@ export const CommentPostbyIdPost = ({CommentsDialog}) => {
     const [showAllImages, setShowAllImages] = useState(false);
     const limit = 10;
     const [page, setPage] = useState(1)
-
     const getCommentById=async(postId)=>{
 try {
     const res= await axios.get(`${BaseUrl}/admin-comment-post/post/${postId}`,
@@ -37,9 +36,9 @@ try {
 }
     }
 
-   const getUsertByComment=async()=>{
+   const getUserByAuthorId=async(authorId)=>{
 try {
-    const res= await axios.get(`${BaseUrl}/admin-users/${IdUser}`,
+    const res= await axios.get(`${BaseUrl}/admin-users/${authorId}`,
         {headers:{Authorization:`Bearer ${tokenUser}` }})
   if(res.status===200){
    setUserComment(res.data)
@@ -50,7 +49,6 @@ try {
     setLoading(false)
 }
     }
-
 const handleEditComment = (comment, index, postId) => {
   setEditComment({ ...comment, postId });
   setEditContent(comment.comment);
@@ -66,6 +64,10 @@ try {
 if(res.status===200){
 setPost(res.data)
 setIdUser(res.data.authorId)
+// Lấy thông tin user ngay sau khi có authorId
+if(res.data.authorId) {
+  getUserByAuthorId(res.data.authorId);
+}
  setLoading(false) 
 }
 } catch (error) {
@@ -95,18 +97,15 @@ const getAllUsers = async () => {
     }
   }
 
-
 useEffect(() => {
   getAllUsers();
 }, []);
-
-  // Helper functions
   const getCommentsCount = () => {
-    // New structure: {data: Array} where data contains comments directly
     if (CommentByIdPost && CommentByIdPost.data && Array.isArray(CommentByIdPost.data)) {
       return CommentByIdPost.data.length;
     }
     
+     
     // Fallback: Check if comments are nested
     if (CommentByIdPost && CommentByIdPost.data && Array.isArray(CommentByIdPost.data) && CommentByIdPost.data.length > 0) {
       return CommentByIdPost.data[0].comments?.length || 0;
@@ -118,15 +117,11 @@ useEffect(() => {
     
     return 0;
   };
-
   const getCommentsData = () => {
-    // New structure: {data: Array} where data contains comments directly
     if (CommentByIdPost && CommentByIdPost.data && Array.isArray(CommentByIdPost.data)) {
       return CommentByIdPost.data;
     }
-    
-    // Fallback: Check if comments are nested
-    if (CommentByIdPost && CommentByIdPost.data && Array.isArray(CommentByIdPost.data) && CommentByIdPost.data.length > 0) {
+        if (CommentByIdPost && CommentByIdPost.data && Array.isArray(CommentByIdPost.data) && CommentByIdPost.data.length > 0) {
       return CommentByIdPost.data[0].comments || [];
     }
     
@@ -145,113 +140,76 @@ useEffect(() => {
     if (!imagePath) return '';
     return imagePath.startsWith('http') ? imagePath : `${BaseUrl}${imagePath}`;
   };
-
-  const renderCommentActions = (item, index) => (
-    <div className="relative">
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpenMenuIndex(openMenuIndex === index ? null : index);
-        }}
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105 border border-gray-200"
-        title="Tùy chọn"
-      >
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
-      </button>
-      
-      {openMenuIndex === index && (
-        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden">
-          <div className="py-2">
-            <div className="px-4 py-2 border-b border-gray-100">
-              <p className="text-xs text-gray-500 font-medium">Thao tác với bình luận</p>
-            </div>
-            
-            <button
-              onClick={() => {
-                handleEditComment(item, index, CommentsDialog.postId);
-                setOpenMenuIndex(null);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left text-blue-600 hover:bg-blue-50 transition-colors duration-200 group"
-            >
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
+  const renderCommentActions = (item, index) => {
+    const uniqueKey = `comment-${item.createdAt}-${index}`;
+    return (
+      <div className="relative">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpenMenuIndex(openMenuIndex === uniqueKey ? null : uniqueKey);
+          }}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-105 border border-gray-200"
+          title="Tùy chọn"
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+          </svg>
+        </button>
+        
+        {openMenuIndex === uniqueKey && (
+          <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+            <div className="py-1">
+              <div className="px-3 py-2 border-b border-gray-100">
+                <p className="text-xs text-gray-500 font-medium">Thao tác</p>
               </div>
-              <div className="flex-1">
-                <div className="font-semibold text-sm">Chỉnh sửa bình luận</div>
-                <div className="text-xs text-gray-500">Sửa nội dung bình luận này</div>
-              </div>
-              <div className="text-xs text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
-            
-            <hr className="border-gray-100 my-1" />
-            
-            <button
-              onClick={() => {
-                if(confirm('�️‍🗨️ Bạn có chắc chắn muốn xóa bình luận này không?\n\n"' + item.comment + '"\n\nBình luận sẽ được xóa khỏi người dùng (status = false).')) {
-                  handleDeleteComment(item, index, CommentsDialog.postId);
-                }
-                setOpenMenuIndex(null);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 transition-colors duration-200 group"
-            >
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center group-hover:bg-red-200 transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="font-semibold text-sm">Xóa bình luận</div>
-                <div className="text-xs text-gray-500">Xóa bình luận khỏi người dùng</div>
-              </div>
-              <div className="text-xs text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderReplies = (replies) => (
-    <div className="ml-12 mt-4 border-l-2 border-blue-100 pl-4 bg-gradient-to-r from-blue-50 to-transparent rounded-r-lg py-3">
-      <div className="text-sm font-medium text-gray-600 mb-3 flex items-center gap-2">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-        </svg>
-        Phản hồi ({replies.length})
-      </div>
-      <div className="space-y-3">
-        {replies.map((reply, repIndex) => (
-          <div key={reply._id || repIndex} className="flex items-start gap-3 bg-white p-3 rounded-lg border border-gray-100">
-            <img
-              src={getImageUrl(getAvatarById(reply.userId))}
-              alt="Avatar"
-              className="w-8 h-8 rounded-full border-2 border-gray-200 object-cover flex-shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-gray-800 text-sm">{getFullNameById(reply.userId)}</span>
-                <span className="text-xs text-gray-400">•</span>
-                <span className="text-xs text-gray-400">{formatDate(reply.createdAt)}</span>
-              </div>
-              <p className="text-gray-700 text-sm leading-relaxed break-words">{reply.comment}</p>
+              
+              <button
+                onClick={() => {
+                  handleEditComment(item, index, CommentsDialog.postId);
+                  setOpenMenuIndex(null);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left text-blue-600 hover:bg-blue-50 transition-colors duration-200 group"
+              >
+                <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-sm">Chỉnh sửa</div>
+                  <div className="text-xs text-gray-500">Sửa nội dung</div>
+                </div>
+              </button>
+              
+              <hr className="border-gray-100 my-1" />
+              
+              <button
+                onClick={() => {
+                  if(confirm('👁️‍🗨️ Bạn có chắc chắn muốn xóa bình luận này không?\n\n"' + item.comment + '"\n\nBình luận sẽ được xóa khỏi người dùng (status = false).')) {
+                    handleDeleteComment(item, index, CommentsDialog.postId);
+                  }
+                  setOpenMenuIndex(null);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left text-red-600 hover:bg-red-50 transition-colors duration-200 group"
+              >
+                <div className="w-7 h-7 bg-red-100 rounded-full flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-sm">Xóa bình luận</div>
+                  <div className="text-xs text-gray-500">Xóa khỏi người dùng</div>
+                </div>
+              </button>
             </div>
           </div>
-        ))}
+        )}
       </div>
-    </div>
-  );
+    );
+  };
+
 
   const renderComments = () => {
     const comments = getCommentsData();
@@ -280,15 +238,16 @@ useEffect(() => {
     return (
       <div className="space-y-6">
         {sortedComments.map((comment, index) => {
-         
-          const originalIndex = comments.findIndex(c => c._id === comment._id);
+
+          const originalIndex = comments.findIndex(c => c.createdAt === comment.createdAt && c.comment === comment.comment);
+          const uniqueKey = `comment-${comment.createdAt}-${index}`;
           
           return (
-            <div key={comment._id || index} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 group">
-              {/* Comment Header */}
+            <div key={uniqueKey} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden">
+       
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  <div className="relative flex-shrink-0">
                     <img
                       src={getImageUrl(comment.userId?.avatar)}
                       alt={comment.userId?.fullName || 'User'}
@@ -296,23 +255,34 @@ useEffect(() => {
                     />
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-bold text-gray-900 text-lg">{comment.userId?.fullName || 'Người dùng'}</h4>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h4 
+                        className="font-bold text-gray-900 text-lg hover:text-blue-600 cursor-pointer transition-colors duration-200 truncate"
+                        onClick={() => {
+                          const userId = comment.userId?._id || comment.userId?.id || comment.userId;
+                          if (userId) {
+                            navigate(`/dashboard/users/${userId}`);
+                          }
+                        }}
+                        title="Xem chi tiết người dùng"
+                      >
+                        {comment.userId?.fullName || 'Người dùng'}
+                      </h4>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium flex-shrink-0">
                         {comment.status ? 'Đang hoạt động' : 'Đã xóa'}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <p className="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      {formatDate(comment.createdAt)}
+                      <span className="break-words">{formatDate(comment.createdAt)}</span>
                     </p>
                   </div>
                 </div>
                 {/* Always visible 3-dot menu */}
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 ml-2">
                   {renderCommentActions(comment, originalIndex)}
                 </div>
               </div>
@@ -320,7 +290,9 @@ useEffect(() => {
               {/* Comment Content */}
               <div className="mb-6">
                 <div className="bg-gray-50 rounded-xl p-4 border-l-4 border-blue-500">
-                  <p className="text-gray-800 leading-relaxed break-words text-lg">{comment.comment}</p>
+                  <p className="text-gray-800 leading-relaxed break-words text-lg overflow-wrap-anywhere whitespace-pre-wrap max-w-full">
+                    {comment.comment}
+                  </p>
                 </div>
               </div>
 
@@ -354,8 +326,10 @@ useEffect(() => {
                       const dateA = new Date(a.createdAt);
                       const dateB = new Date(b.createdAt);
                       return dateB - dateA; 
-                    }).map((reply, repIndex) => (
-                      <div key={reply._id || repIndex} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+                    }).map((reply, repIndex) => {
+                      const replyUniqueKey = `reply-${reply.createdAt}-${repIndex}`;
+                      return (
+                        <div key={replyUniqueKey} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
                         <div className="flex items-start gap-3">
                           <img
                             src={getImageUrl(getAvatarById(reply.userId))}
@@ -363,16 +337,28 @@ useEffect(() => {
                             className="w-10 h-10 rounded-full border-2 border-blue-200 object-cover flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="font-semibold text-gray-900">{getFullNameById(reply.userId)}</span>
-                              <span className="text-xs text-gray-400">•</span>
-                              <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <span 
+                                className="font-semibold text-gray-900 hover:text-blue-600 cursor-pointer transition-colors duration-200 flex-shrink-0 truncate"
+                                onClick={() => {
+                                  const userId = reply.userId?._id || reply.userId?.id || reply.userId;
+                                  if (userId) {
+                                    navigate(`/dashboard/users/${userId}`);
+                                  }
+                                }}
+                                title="Xem chi tiết người dùng"
+                              >
+                                {getFullNameById(reply.userId)}
+                              </span>
+                              <span className="text-xs text-gray-400 flex-shrink-0">•</span>
+                              <span className="text-xs text-gray-500 flex-shrink-0">{formatDate(reply.createdAt)}</span>
                             </div>
-                            <p className="text-gray-800 leading-relaxed break-words">{reply.comment}</p>
+                            <p className="text-gray-800 leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap max-w-full">{reply.comment}</p>
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -383,15 +369,19 @@ useEffect(() => {
     );
   };
 
-  const getFullNameById = (id) => {
-  const user = users.find(u => u.id === id || u._id === id);
-  return user?.fullName || "Không xác định";
-};
+  const getFullNameById = (userId) => {
+    // Nếu userId là object có _id, lấy _id
+    const id = userId?._id || userId;
+    const user = users.find(u => u.id === id || u._id === id);
+    return user?.fullName || "Không xác định";
+  };
 
-const getAvatarById = (id) => {
-  const user = users.find(u => u.id === id || u._id === id);
-  return user?.avatar || '';
-};
+  const getAvatarById = (userId) => {
+    // Nếu userId là object có _id, lấy _id
+    const id = userId?._id || userId;
+    const user = users.find(u => u.id === id || u._id === id);
+    return user?.avatar || '';
+  };
 
 
 const handleUpdateComment = async (postId) => {
@@ -422,7 +412,6 @@ const handleUpdateComment = async (postId) => {
 
 const handleDeleteComment = async (comment, index, postId) => {
   try {
-    // Thay đổi status thành false thay vì xóa hoàn toàn
     const res = await axios.put(
       `${BaseUrl}/admin-comment-post/${postId}/comment/${index}`,
       { status: false },
@@ -440,13 +429,11 @@ const handleDeleteComment = async (comment, index, postId) => {
   }
 };
 
-
     useEffect(()=>{
 if(CommentsDialog?.postId) {
   getCommentById(CommentsDialog.postId)
   callPost(CommentsDialog.postId)
 }
-getUsertByComment()
     setLoading(false)
 
     },[])
@@ -498,7 +485,6 @@ getUsertByComment()
           </div>
         ) : (
           <div className="space-y-8">
-        {/* Post Details Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
@@ -510,7 +496,7 @@ getUsertByComment()
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Images Column */}
+
             <div className="order-2 lg:order-1">
               {post.images && Array.isArray(post.images) && post.images.length > 0 ? (
                 <div>
@@ -589,16 +575,28 @@ getUsertByComment()
                 </div>
               )}
             </div>
-
-            {/* Content Column */}
             <div className="order-1 lg:order-2">
               <div className="space-y-6">
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900 mb-2 leading-tight">
                     {post.title || "Tiêu đề bài viết"}
                   </h3>
+                   <span className="text-2xl text-gray-600 mb-2 leading-tight">
+                   Người đăng: 
+                   <span 
+                     className="text-blue-600 hover:text-blue-800 cursor-pointer underline ml-2 transition-colors duration-200"
+                     onClick={() => {
+                       const authorId = post.authorId?._id || post.authorId?.id || post.authorId;
+                       if (authorId) {
+                         navigate(`/dashboard/users/${authorId}`);
+                       }
+                     }}
+                     title="Xem chi tiết người dùng"
+                   >
+                     {post.authorId?.fullName || "Tác giả"}
+                   </span>
+                  </span>
                 </div>
-                
                 <div className="space-y-4">
                   <div className="p-4 bg-gray-50 rounded-xl">
                     <span className="text-sm font-semibold text-gray-600 block mb-2">Mô tả:</span> 
@@ -728,8 +726,6 @@ getUsertByComment()
             </div>
           </div>
         )}
-
-        {/* Comments Section */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-800">

@@ -54,11 +54,9 @@ export function PostList() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
-        console.log(`Trang ${page} raw json:`, json);
 
         if (res.ok && Array.isArray(json.data)) {
           const usersPage = json.data;
-          console.log(`Trang ${page} trả về:`, usersPage);
           allUsers = allUsers.concat(usersPage);
           totalPages = json.totalPages || 1; 
           page++;
@@ -378,7 +376,7 @@ export function PostList() {
         </thead>
         <tbody>
           {posts.map((post) => {
-            console.log("post nè",posts)
+            const author = findUser(post.authorId);
             return (
               <tr
                 key={post.id}
