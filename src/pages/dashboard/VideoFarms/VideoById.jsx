@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { BaseUrl } from '@/ipconfig'
 import { Audio } from 'react-loader-spinner'
@@ -41,14 +42,15 @@ setLoading(false)
   }
 }
 
-const totalCommentCount = useMemo(() => {
-  if (!Array.isArray(videoComment)) return 0;
-  
-  return videoComment.reduce((total, cmt) => {
-    const repliesCount = Array.isArray(cmt.replies) ? cmt.replies.length : 0;
-    return total + 1 + repliesCount;
-  }, 0);
-}, [videoComment]);
+const totalCommentCount = Array.isArray(videoComment)
+  ? videoComment.reduce(
+      (total, cmt) =>
+        total +
+        1 +
+        (Array.isArray(cmt.replies) ? cmt.replies.length : 0),
+      0
+    )
+  : 0;
 
  const handleOpenLike = (e, videoId) => {
   e.stopPropagation(); 
@@ -74,11 +76,13 @@ const totalCommentCount = useMemo(() => {
   const handleSaveEdit = async(videoId)=>{
 try {
       const updatedValue = { status: "uploaded" }; 
+     
     const res= await axios.post(`${BaseUrl}/admin-video-farm/upload-s3/${videoId}`, updatedValue,{
+    
         headers: { Authorization: `Bearer ${tokenUser}` }})
 if(res.status===200){
   alert("Cập nhật thành công")
-    await  getVideoDetail(videoId);     
+    await  getVideoDetail();     
   }else {
       alert("Có lỗi trong lúc duyệt")
     }
@@ -91,7 +95,7 @@ const deletevideo = async(videoId)=>{
   try {
     const res= await axios.delete(`${BaseUrl}/admin-video-farm/delete-s3/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
 if(res.status===200){
-await getVideoDetail(videoId)
+await getVideoDetail()
 alert("Xóa thành công")
 }
   } catch (error) {
@@ -134,6 +138,7 @@ useEffect(() => {
  {item.status === "pending" ? (
         <button
           onClick={async (e) => {
+         
             e.stopPropagation();
             await handleSaveEdit(item._id);
           }}
@@ -257,5 +262,46 @@ videoId={selectedVideoId}
 
   )
 }
+
+export const deletevideo = async (videoId, callback) => {
+  const tokenUser = localStorage.getItem('token');
+  
+  try {
+    const res = await axios.delete(`${BaseUrl}/admin-video-farm/delete-s3/${videoId}`, {
+      headers: { Authorization: `Bearer ${tokenUser}` }
+    });
+    
+    if (res.status === 200) {
+      if (callback && typeof callback === 'function') {
+        await callback();
+      }
+      return { success: true, message: "Xóa thành công" };
+    }
+  } catch (error) {
+    console.log("Lỗi khi xóa video:", error);
+    return { success: false, message: "Lỗi khi xóa video", error };
+  }
+};
+
+export const approvevideo = async (videoId, callback) => {
+  const tokenUser = localStorage.getItem('token');
+  
+  try {
+    const res = await axios.put(`${BaseUrl}/admin-video-farm/${videoId}`, 
+      { status: 'uploaded' }, 
+      { headers: { Authorization: `Bearer ${tokenUser}` } }
+    );
+    
+    if (res.status === 200) {
+      if (callback && typeof callback === 'function') {
+        await callback();
+      }
+      return { success: true, message: "Duyệt video thành công" };
+    }
+  } catch (error) {
+    console.log("Lỗi khi duyệt video:", error);
+    return { success: false, message: "Lỗi khi duyệt video", error };
+  }
+};
 
 export default VideoById
