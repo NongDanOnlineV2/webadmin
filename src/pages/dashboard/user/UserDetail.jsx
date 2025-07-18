@@ -6,7 +6,7 @@ import {
 } from "@material-tailwind/react";
 import { useParams } from "react-router-dom";
 import PostLikeUserDialog from "./listpostlikeUser";
-
+const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
 export default function UserDetail() {
   const { id } = useParams();
   const [user, setUser] = useState(null);
@@ -48,6 +48,7 @@ export default function UserDetail() {
     ward: "",
     province: ""
   });
+
   const fetchPaginatedData = async (url, config) => {
     let allData = [];
     let page = 1;
@@ -320,10 +321,15 @@ const fetchVideos = async () => {
 
 const handleOpenVideos = async () => {
   if (!openVideos) {
-    await fetchVideos();
+    if (videos.length === 0) {
+      await fetchVideos();
+    }
+    const statsPromises = videos.map((video) => fetchVideoStats(video._id));
+    await Promise.allSettled(statsPromises); 
   }
-  setOpenVideos(!openVideos);
+  setOpenVideos(!openVideos); 
 };
+
 
 const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   if (videoLikesCache[videoId]) {
@@ -421,7 +427,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?.id) || String(f.createBy) === String(user?.id));
 
-  const userPosts = posts.filter(p => p.authorId === user?.id);
+  const userPosts = posts.filter(p => p.authorId?.id === user?.id);
 
   const userVideos = videos.filter(v => v.uploadedBy?.id === user?.id);
 
@@ -1149,18 +1155,26 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   <div className="flex justify-between items-center mb-3">
                     {/* Tác giả */}
                     <div className="flex items-center gap-2">
-                      <img
-                        src={
-                          users.find((u) => u.id === post.authorId)?.avatar?.startsWith("http")
-                            ? users.find((u) => u.id === post.authorId)?.avatar
-                            : `https://api-ndolv2.nongdanonline.cc${users.find((u) => u.id === post.authorId)?.avatar || ""}`
-                        }
-                        alt={users.find((u) => u.id === post.authorId)?.fullName}
-                        className="w-8 h-8 rounded-full object-cover border border-blue-200 shadow"
-                      />
-                      <Typography className="text-gray-800 text-sm font-medium">
-                        {users.find((u) => u.id === post.authorId)?.fullName || "Không rõ"}
-                      </Typography>
+                      {post.authorId ? (
+                        <>
+                          <Avatar
+                            src={post.authorId.avatar ? `${BASE_URL}${post.authorId.avatar}` : "/default-avatar.png"}
+                            size="sm"
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">
+                              {post.authorId.fullName?.length > 20
+                                ? post.authorId.fullName.slice(0, 15) + "..."
+                                : post.authorId.fullName}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {post.authorId.role?.[0] || "Unknown"}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-gray-400 italic">Không rõ</span>
+                      )}
                     </div>
 
                     {/* Ngày tạo */}
@@ -1191,19 +1205,27 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     ))}
                   </div>
 
+
                   {/* Hình ảnh */}
-                  {post.images?.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mb-2">
-                      {post.images.slice(0, 2).map((img) => (
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    {post.images?.length > 0 ? (
+                      post.images.slice(0, 2).map((img) => (
                         <img
                           key={img}
                           src={`https://api-ndolv2.nongdanonline.cc${img}`}
                           alt={`img-${img}`}
                           className="w-full h-24 object-cover rounded-lg border border-gray-200 shadow-sm"
                         />
-                      ))}
-                    </div>
-                  )}
+                      ))
+                    ) : (
+                      <>
+                        <div className="w-full h-24 flex items-center justify-center bg-gray-100 text-gray-400 border border-dashed border-gray-300 rounded-lg">
+                          Không có hình
+                        </div>
+                      </>
+                    )}
+                  </div>
+
 
                   {/* Lượt thích & Bình luận */}
                   <div className="flex flex-wrap gap-2 mt-3">
