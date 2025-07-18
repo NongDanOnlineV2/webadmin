@@ -118,18 +118,16 @@ useEffect(() => {
     return 0;
   };
   const getCommentsData = () => {
+    let comments = [];
+    
     if (CommentByIdPost && CommentByIdPost.data && Array.isArray(CommentByIdPost.data)) {
-      return CommentByIdPost.data;
+      comments = CommentByIdPost.data;
+    } else if (CommentByIdPost && CommentByIdPost.data && Array.isArray(CommentByIdPost.data) && CommentByIdPost.data.length > 0) {
+      comments = CommentByIdPost.data[0].comments || [];
+    } else if (CommentByIdPost && CommentByIdPost.comments && Array.isArray(CommentByIdPost.comments)) {
+      comments = CommentByIdPost.comments;
     }
-        if (CommentByIdPost && CommentByIdPost.data && Array.isArray(CommentByIdPost.data) && CommentByIdPost.data.length > 0) {
-      return CommentByIdPost.data[0].comments || [];
-    }
-    
-    if (CommentByIdPost && CommentByIdPost.comments && Array.isArray(CommentByIdPost.comments)) {
-      return CommentByIdPost.comments;
-    }
-    
-    return [];
+        return comments.filter(comment => comment.status === true);
   };
 
   const formatDate = (dateString) => {
@@ -253,7 +251,6 @@ useEffect(() => {
                       alt={comment.userId?.fullName || 'User'}
                       className="w-14 h-14 rounded-full border-3 border-gray-200 object-cover shadow-md"
                     />
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -269,9 +266,7 @@ useEffect(() => {
                       >
                         {comment.userId?.fullName || 'Người dùng'}
                       </h4>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium flex-shrink-0">
-                        {comment.status ? 'Đang hoạt động' : 'Đã ẩn'}
-                      </span>
+           
                     </div>
                     <p className="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
                       <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -394,14 +389,10 @@ const handleUpdateComment = async (postId) => {
     );
     
     if (res.status === 200) {
-      // Reset form
+      await getCommentById(postId);
       setEditComment(null);
       setEditCommentIndex(null);
       setEditContent('');
-      
-      // Refresh data
-      await getCommentById(postId);
-      
       // Show success message
       alert("✅ Cập nhật bình luận thành công!");
     }

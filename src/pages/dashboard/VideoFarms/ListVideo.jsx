@@ -215,7 +215,7 @@ const fetchVideoStats = async (videoIds) => {
     }
   }, [paginatedVideos]);
 
-
+console.log(paginatedVideos)
   const totalPages = Math.ceil(filteredVideos.length / limit);
 
 
