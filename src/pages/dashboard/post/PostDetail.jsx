@@ -82,7 +82,7 @@
         let page = 1;
         let totalPages = 1;
       do {
-        const res = await fetch(`${BASE_URL}/admin-users?page=${page}&limit=50`, {
+        const res = await fetch(`${BASE_URL}/admin-users?page=${page}&limit=10`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
@@ -95,8 +95,7 @@
           console.warn("Danh sách users không hợp lệ:", json); 
           break;
         }
-      } while (page <= totalPages);
-      console.log(" All users loaded:", allUsers); 
+      } while (page <= totalPages); 
       setUsers(allUsers); 
       } catch (err) {
         console.error("Fetch users error:", err);
