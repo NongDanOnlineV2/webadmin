@@ -17,7 +17,6 @@ export default function UserDetail() {
   const [openFarms, setOpenFarms] = useState(false);
   const [openVideos, setOpenVideos] = useState(false);
   const [openPosts, setOpenPosts] = useState(false);
-  const [users, setUsers] = useState([]); 
   const [videoLikes, setVideoLikes] = useState({}); 
   const [videoComments, setVideoComments] = useState({});
   const [selectedVideoLikes, setSelectedVideoLikes] = useState([]);
@@ -39,9 +38,15 @@ export default function UserDetail() {
   const [editAddressOpen, setEditAddressOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [videoLikesCache, setVideoLikesCache] = useState({});
+  const [loadingFarms,setLoadingFarms] = useState(false)
   const [videoCommentsCache, setVideoCommentsCache] = useState({});
   const [postLikesCache, setPostLikesCache] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [loadingVideos, setLoadingVideos] = useState(false);  
+  const [visibleFarms, setVisibleFarms] = useState(6);
+  const [visibleVideos, setVisibleVideos] = useState(6);
+  const [visiblePosts, setVisiblePosts] = useState(6);
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -64,6 +69,18 @@ export default function UserDetail() {
     }
 
     return allData;
+  };
+
+  const handleShowMoreFarms = () => {
+    setVisibleFarms((prev) => prev + 6);
+  };
+
+  const handleShowMoreVideos = () => {
+    setVisibleVideos((prev) => prev + 6);
+  };
+
+  const handleShowMorePosts = () => {
+    setVisiblePosts((prev) => prev + 6);
   };
 
   const fetchPostCommentsUsers = async (postId, postTitle) => {
@@ -219,8 +236,6 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
       config
     );
     const users = res.data?.users || [];
-
-    // Cache dữ liệu
     setPostLikesCache((prev) => ({
       ...prev,
       [postId]: users,
@@ -234,27 +249,18 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
   }
 };
 
-
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        const [userRes, allFarms, allVideos, allPosts, allUsers, addressRes ] = await Promise.all([
+        const [userRes, addressRes ] = await Promise.all([
           axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, config), 
-          fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/adminfarms`, config), 
-          fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-video-farm`, config), 
-          fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-post-feed`, config),
-          fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-users`, config),
           axios.get(`https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`, config), 
         ]);
 
         setUser(userRes.data);
-        setFarms(allFarms);
-        setVideos(allVideos);
-        setPosts(allPosts);
-        setUsers(allUsers);
         setAddresses(addressRes.data || []);
       } catch (err) {
         console.error(err);
@@ -266,74 +272,97 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
     fetchData();
   }, [id]);
 
+const handleOpenFarms = async () => {
+  if (openFarms) {
+    setOpenFarms(false); 
+    return;
+  }
+  setOpenFarms(true); 
+  if (farms.length === 0 && !loadingFarms) {
+    setLoadingFarms(true); 
+    try {
+      const token = localStorage.getItem("token");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-const fetchPosts = async () => {
-  if (posts.length > 0) return; 
-  const token = localStorage.getItem("token");
-  const config = { headers: { Authorization: `Bearer ${token}` } };
-  try {
-    const allPosts = await fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-post-feed`, config);
-    setPosts(allPosts);
-  } catch (err) {
-    console.error("Lỗi khi fetch posts:", err);
+      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms`, config);
+      setFarms(allFarms); 
+    } catch (err) {
+      console.error("Lỗi khi fetch farms:", err);
+    } finally {
+      if (openFarms) setLoadingFarms(false); 
+    }
   }
 };
 
 const handleOpenPosts = async () => {
-  if (!openPosts) {
-    // Nếu chưa mở, fetch posts nếu chưa có
-    if (posts.length === 0) {
-      await fetchPosts();
-    }
-
-    // Fetch số like và comment từng bài post
-    const promises = posts.map(async (post) => {
-      const [likeCount, commentCount] = await Promise.all([
-        fetchLikeCount(post.id), 
-        fetchCommentCount(post.id),
-      ]);
-      setLikeCounts((prev) => ({
-        ...prev,
-        [post.id]: likeCount,
-      }));
-      setCommentCounts((prev) => ({
-        ...prev,
-        [post.id]: commentCount,
-      }));
-    });
-
-    await Promise.allSettled(promises); // Chờ tất cả chạy xong
+  if (openPosts) {
+    setOpenPosts(false); 
+    return;
   }
-  setOpenPosts(!openPosts); // Toggle dialog
-};
+  setOpenPosts(true); 
+  if (posts.length === 0 && !loadingPosts) {
+    setLoadingPosts(true);
+    try {
+      const token = localStorage.getItem("token");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-const fetchVideos = async () => {
-  if (videos.length > 0) return; 
-  const token = localStorage.getItem("token");
-  const config = { headers: { Authorization: `Bearer ${token}` } };
-  try {
-    const allVideos = await fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-video-farm`, config);
-    setVideos(allVideos);
-  } catch (err) {
-    console.error("Lỗi khi fetch videos:", err);
+      const allPosts = await fetchPaginatedData(`${BASE_URL}/admin-post-feed`, config);
+      setPosts(allPosts); 
+
+      const statsPromises = allPosts.map(async (post) => {
+        const [likeCount, commentCount] = await Promise.all([
+          fetchLikeCount(post.id),
+          fetchCommentCount(post.id),
+        ]);
+
+        setLikeCounts((prev) => ({
+          ...prev,
+          [post.id]: likeCount,
+        }));
+
+        setCommentCounts((prev) => ({
+          ...prev,
+          [post.id]: commentCount,
+        }));
+      });
+
+      await Promise.allSettled(statsPromises); 
+    } catch (err) {
+      console.error("Lỗi khi load posts:", err);
+    } finally {
+      if (openPosts) setLoadingPosts(false); 
+    }
   }
 };
 
 const handleOpenVideos = async () => {
-  if (!openVideos) {
-    if (videos.length === 0) {
-      await fetchVideos();
-    }
-    const statsPromises = videos.map((video) => fetchVideoStats(video._id));
-    await Promise.allSettled(statsPromises); 
+  if (openVideos) {
+    setOpenVideos(false); 
+    return;
   }
-  setOpenVideos(!openVideos); 
-};
+  setOpenVideos(true); 
+  if (videos.length === 0 && !loadingVideos) {
+    setLoadingVideos(true);
+    try {
+      const token = localStorage.getItem("token");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
 
+      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
+
+      setVideos(allVideos);
+
+      const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
+      await Promise.allSettled(statsPromises);
+    } catch (err) {
+      console.error("Lỗi khi load videos:", err);
+    } finally {
+      if (openVideos) setLoadingVideos(false); 
+    }
+  }
+};
 
 const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   if (videoLikesCache[videoId]) {
-    // Nếu đã có cache => mở dialog luôn
     setSelectedVideoTitle(videoTitle);
     setSelectedVideoLikes(videoLikesCache[videoId]);
     setOpenLikesDialog(true);
@@ -359,7 +388,6 @@ const fetchVideoLikesUsers = async (videoId, videoTitle) => {
     console.error(`Error fetching likes for video ${videoId}:`, err);
   }
 };
-
 
 const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   if (videoCommentsCache[videoId]) {
@@ -388,11 +416,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     console.error(`Error fetching comments for video ${videoId}:`, err);
   }
 };
-
-
-  const countVideosByFarm = (farmId) => {
-    return videos.filter((v) => v.farmId?.id === farmId).length;
-  };
 
   const fetchVideoStats = async (videoId) => {
   const token = localStorage.getItem("token");
@@ -424,11 +447,11 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     setOpenVideoDialog(true);
 
   };
-
+  const countVideosByFarm = (farmId) => {
+  return videos.filter((v) => v.farmId?.id === farmId).length;
+};
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?.id) || String(f.createBy) === String(user?.id));
-
   const userPosts = posts.filter(p => p.authorId?.id === user?.id);
-
   const userVideos = videos.filter(v => v.uploadedBy?.id === user?.id);
 
   if (loading) {
@@ -506,7 +529,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5">
-      Địa chỉ người dùng ({addresses.length})
+      Địa chỉ người dùng
     </Typography>
     <Typography
       variant="h5"
@@ -627,11 +650,11 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       {/* Thông tin Farms của user */}
       <Card>
   <div
-    onClick={() => setOpenFarms(!openFarms)}
+    onClick={() => handleOpenFarms(!openFarms)}
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5">
-      Danh sách Farms ({userFarms.length})
+      Danh sách Farms 
     </Typography>
     <Typography
       variant="h5"
@@ -651,7 +674,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             <Typography>Chưa có Farm nào.</Typography>
           ) : (
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-              {userFarms.map((farm) => (
+              {userFarms.slice(0, visibleFarms).map((farm) => (
                 <div
                   key={farm._id}
                   className="border p-4 rounded shadow space-y-2 bg-white"
@@ -770,6 +793,17 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
               ))}
             </div>
           )}
+          {visibleFarms < userFarms.length && (
+            <div className="flex justify-center mt-4">
+              <Button
+                color="blue"
+                variant="outlined"
+                onClick={handleShowMoreFarms}
+              >
+                Xem thêm Farms
+              </Button>
+            </div>
+          )}
         </CardBody>
       </div>
     )}
@@ -783,7 +817,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5" className="text-gray-800 font-bold">
-      Danh sách Videos ({userVideos.length})
+      Danh sách Videos 
     </Typography>
     <Typography
       variant="h5"
@@ -805,7 +839,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             </Typography>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {userVideos.map((video) => (
+              {userVideos.slice(0, visibleVideos).map((video) => (
                 <div
                   key={video._id}
                   className="border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-gray-50"
@@ -913,6 +947,13 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
               ))}
             </div>
           )}
+                  {visibleVideos < userVideos.length && (
+          <div className="flex justify-center mt-4">
+            <Button onClick={handleShowMoreVideos} color="blue" variant="outlined">
+              Xem thêm videos
+            </Button>
+          </div>
+        )}
         </CardBody>
       </div>
     )}
@@ -921,8 +962,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
       <Dialog
   open={openVideoDialog}
-  size={selectedFarmVideos.length === 1 ? "md" : "xl"} // ✅ Thu nhỏ nếu chỉ có 1 video
-  handler={() => setOpenVideoDialog(false)}
+  size={selectedFarmVideos.length === 1 ? "md" : "xl"} 
   dismiss={{ outsidePress: false }}
 >
   <DialogHeader>Danh sách video - {selectedFarmName}</DialogHeader>
@@ -934,8 +974,8 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       <div
         className={`grid gap-4 ${
           selectedFarmVideos.length === 1
-            ? "grid-cols-1" // ✅ 1 video: hiển thị 1 cột
-            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" // ✅ 3 cột khi nhiều video
+            ? "grid-cols-1" 
+            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" 
         }`}
       >
         {selectedFarmVideos.map((item) => (
@@ -1124,7 +1164,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5" className="text-gray-800 font-bold">
-      Danh sách Posts ({userPosts.length})
+      Danh sách Posts 
     </Typography>
     <Typography
       variant="h5"
@@ -1146,7 +1186,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             </Typography>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {userPosts.map((post) => (
+              {userPosts.slice(0, visiblePosts).map((post) => (
                 <div
                   key={post._id}
                   className="border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-gray-50 flex flex-col justify-between"
@@ -1244,6 +1284,13 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {visiblePosts < userPosts.length && (
+            <div className="flex justify-center mt-4">
+              <Button onClick={handleShowMorePosts} color="blue" variant="outlined">
+                Xem thêm posts
+              </Button>
             </div>
           )}
         </CardBody>
