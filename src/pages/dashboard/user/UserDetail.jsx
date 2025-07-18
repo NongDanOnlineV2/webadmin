@@ -42,6 +42,8 @@ export default function UserDetail() {
   const [videoCommentsCache, setVideoCommentsCache] = useState({});
   const [postLikesCache, setPostLikesCache] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [loadingVideos, setLoadingVideos] = useState(false);  
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -281,12 +283,11 @@ const fetchPosts = async () => {
 
 const handleOpenPosts = async () => {
   if (!openPosts) {
-    // Nếu chưa mở, fetch posts nếu chưa có
-    if (posts.length === 0) {
+    setLoadingPosts(true);
+    try {
+      if (posts.length === 0) {
       await fetchPosts();
     }
-
-    // Fetch số like và comment từng bài post
     const promises = posts.map(async (post) => {
       const [likeCount, commentCount] = await Promise.all([
         fetchLikeCount(post.id), 
@@ -297,12 +298,17 @@ const handleOpenPosts = async () => {
         [post.id]: likeCount,
       }));
       setCommentCounts((prev) => ({
-        ...prev,
-        [post.id]: commentCount,
-      }));
-    });
-
-    await Promise.allSettled(promises); // Chờ tất cả chạy xong
+              ...prev,
+              [post.id]: commentCount,
+            }));
+          });
+          await Promise.allSettled(promises);
+    }
+    catch (err) {
+      console.error("Lỗi khi load posts:", err);
+    } finally {
+      setLoadingPosts(false);
+    } 
   }
   setOpenPosts(!openPosts); // Toggle dialog
 };
@@ -321,19 +327,26 @@ const fetchVideos = async () => {
 
 const handleOpenVideos = async () => {
   if (!openVideos) {
-    if (videos.length === 0) {
-      await fetchVideos();
+    setLoadingVideos(true);
+    try {
+      if (videos.length === 0) {
+        await fetchVideos();
+      }
+      const statsPromises = videos.map((video) => fetchVideoStats(video._id));
+      await Promise.allSettled(statsPromises);
+    } catch (err) {
+      console.error("Lỗi khi load videos:", err);
+    } finally {
+      setLoadingVideos(false);
     }
-    const statsPromises = videos.map((video) => fetchVideoStats(video._id));
-    await Promise.allSettled(statsPromises); 
   }
-  setOpenVideos(!openVideos); 
+  setOpenVideos(!openVideos);
 };
+
 
 
 const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   if (videoLikesCache[videoId]) {
-    // Nếu đã có cache => mở dialog luôn
     setSelectedVideoTitle(videoTitle);
     setSelectedVideoLikes(videoLikesCache[videoId]);
     setOpenLikesDialog(true);
@@ -796,7 +809,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   </div>
 
   <Collapse open={openVideos}>
-    {openVideos && (
+    {loadingVideos && (
       <div className="overflow-hidden transition-all duration-300">
         <CardBody className="bg-white rounded-b-md">
           {userVideos.length === 0 ? (
@@ -1137,7 +1150,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   </div>
 
   <Collapse open={openPosts}>
-    {openPosts && (
+    {loadingPosts && (
       <div className="overflow-hidden transition-all duration-300">
         <CardBody className="bg-white rounded-b-md">
           {userPosts.length === 0 ? (
