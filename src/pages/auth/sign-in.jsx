@@ -1,11 +1,6 @@
 import React, { useRef, useState } from "react";
 import {
-  Card,
-  Input,
-  Checkbox,
-  Button,
-  Typography,
-  Radio,
+  Card, Input, Checkbox, Button, Typography, Radio
 } from "@material-tailwind/react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMaterialTailwindController, setAuthStatus } from "@/context";
@@ -15,8 +10,9 @@ export function SignIn() {
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [env, setEnv] = useState("default");
+  const [env, setEnv] = useState("dev");
   const [customApiUrl, setCustomApiUrl] = useState("");
+
   const navigate = useNavigate();
   const [, dispatch] = useMaterialTailwindController();
   const emailRef = useRef();
@@ -40,34 +36,51 @@ export function SignIn() {
       return;
     }
 
-    const BASE_URL =
-      env === "default"
-        ? "https://api-ndolv2.nongdanonline.cc"
-        : customApiUrl.trim();
-
-    if (env === "custom" && !customApiUrl.trim()) {
-      alert("Vui lòng nhập URL API tuỳ chỉnh");
-      return;
-    }
-
-    localStorage.setItem("apiBaseUrl", BASE_URL);
-
     try {
-      const res = await fetch(`${BASE_URL}/auth/login`, {
+      let BASE_URL = "";
+
+      if (env === "dev") {
+        BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+      } else {
+        if (!customApiUrl.trim()) {
+          alert("Vui lòng nhập URL API khi chọn chế độ tuỳ chỉnh");
+          return;
+        }
+        if (!/^https?:\/\/.+/i.test(customApiUrl.trim())) {
+          alert("URL không hợp lệ. Vui lòng nhập đúng định dạng http hoặc https.");
+          return;
+        }
+        BASE_URL = customApiUrl.trim();
+      }
+
+      localStorage.setItem("apiBaseUrl", BASE_URL);
+
+      const finalURL = `${BASE_URL.replace(/\/+$/, "")}/auth/login`;
+
+      const res = await fetch(finalURL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type");
 
       if (res.ok) {
-        localStorage.setItem("token", data.accessToken);
-        localStorage.setItem("refreshToken", data.refreshToken);
-        setAuthStatus(dispatch, true);
-        navigate("/dashboard/home");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await res.json();
+          localStorage.setItem("token", data.accessToken);
+          localStorage.setItem("refreshToken", data.refreshToken);
+          setAuthStatus(dispatch, true);
+          navigate("/dashboard/home");
+        } else {
+          alert("Phản hồi từ máy chủ không hợp lệ (không phải JSON)");
+        }
       } else {
-        alert(data.message || "Đăng nhập thất bại");
+        const errorMessage =
+          contentType && contentType.includes("application/json")
+            ? (await res.json()).message
+            : await res.text();
+        alert(errorMessage || "Đăng nhập thất bại");
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -82,24 +95,13 @@ export function SignIn() {
           <Typography variant="h2" className="font-bold mb-4">
             Sign In
           </Typography>
-          <Typography
-            variant="paragraph"
-            color="blue-gray"
-            className="text-lg font-normal"
-          >
+          <Typography variant="paragraph" color="blue-gray" className="text-lg font-normal">
             Enter your email and password to Sign In.
           </Typography>
         </div>
-        <form
-          className="mt-8 mb-2 mx-auto w-80 max-w-screen-lg lg:w-1/2"
-          onSubmit={handleLogin}
-        >
+        <form className="mt-8 mb-2 mx-auto w-80 max-w-screen-lg lg:w-1/2" onSubmit={handleLogin}>
           <div className="mb-1 flex flex-col gap-6">
-            <Typography
-              variant="small"
-              color="blue-gray"
-              className="-mb-3 font-medium"
-            >
+            <Typography variant="small" color="blue-gray" className="-mb-3 font-medium">
               Your email
             </Typography>
             <Input
@@ -112,16 +114,9 @@ export function SignIn() {
               inputRef={emailRef}
             />
             {emailError && (
-              <Typography variant="small" className="text-red-500 -mt-4">
-                {emailError}
-              </Typography>
+              <Typography variant="small" className="text-red-500 -mt-4">{emailError}</Typography>
             )}
-
-            <Typography
-              variant="small"
-              color="blue-gray"
-              className="-mb-3 font-medium"
-            >
+            <Typography variant="small" color="blue-gray" className="-mb-3 font-medium">
               Password
             </Typography>
             <Input
@@ -135,53 +130,45 @@ export function SignIn() {
               inputRef={passwordRef}
             />
             {passwordError && (
-              <Typography variant="small" className="text-red-500 -mt-4">
-                {passwordError}
-              </Typography>
+              <Typography variant="small" className="text-red-500 -mt-4">{passwordError}</Typography>
             )}
           </div>
 
-          {/* Môi trường API */}
-          <div className="mt-6">
+          <div className="mt-4">
             <Typography variant="small" className="font-medium mb-2">
               Chọn môi trường API:
             </Typography>
-
-            <div className="flex gap-4 mb-2">
+            <div className="flex gap-4">
               <Radio
-                id="env-default"
+                id="env-dev"
                 name="environment"
                 label="Mặc định"
-                value="default"
-                checked={env === "default"}
-                onChange={() => setEnv("default")}
+                value="dev"
+                checked={env === "dev"}
+                onChange={() => setEnv("dev")}
               />
               <Radio
-                id="env-custom"
+                id="env-prod"
                 name="environment"
                 label="Tuỳ chỉnh"
-                value="custom"
-                checked={env === "custom"}
-                onChange={() => setEnv("custom")}
+                value="prod"
+                checked={env === "prod"}
+                onChange={() => setEnv("prod")}
               />
             </div>
-
-            {env === "custom" && (
-              <div className="flex flex-col gap-2">
-  <Typography
-    variant="small"
-    color="blue-gray"
-    className="font-medium"
-  >
-    Nhập URL API:
-  </Typography>
-  <Input
-    size="lg"
-    placeholder="https://your-custom-api.com"
-    value={customApiUrl}
-    onChange={(e) => setCustomApiUrl(e.target.value)}
-  />
-</div>
+            {env === "prod" && (
+              <div className="mt-4">
+                <Typography variant="small" className="-mb-1 font-medium">
+                  Nhập URL API:
+                </Typography>
+                <Input
+                  size="lg"
+                  placeholder="https://api.example.com"
+                  value={customApiUrl}
+                  onChange={(e) => setCustomApiUrl(e.target.value)}
+                  className=" !border-t-blue-gray-200 focus:!border-t-gray-900 mt-2"
+                />
+              </div>
             )}
           </div>
 
@@ -192,11 +179,7 @@ export function SignIn() {
           <div className="flex items-center justify-between gap-2 mt-6">
             <Checkbox
               label={
-                <Typography
-                  variant="small"
-                  color="gray"
-                  className="flex items-center justify-start font-medium"
-                >
+                <Typography variant="small" color="gray" className="flex items-center justify-start font-medium">
                   Subscribe me to newsletter
                 </Typography>
               }
@@ -208,13 +191,8 @@ export function SignIn() {
           </div>
         </form>
       </div>
-
       <div className="w-2/5 h-full hidden lg:block">
-        <img
-          src="/img/pattern.png"
-          className="h-full w-full object-cover rounded-3xl"
-          alt="pattern"
-        />
+        <img src="/img/pattern.png" className="h-full w-full object-cover rounded-3xl" />
       </div>
     </section>
   );
