@@ -131,15 +131,12 @@ export function PostList() {
               }
             );
 
-            console.log("Đang gọi API:", `${BASE_URL}/admin-comment-post/post/${post.id}`);
-
             if (!commentRes.ok) {
               console.warn(`Không lấy được comment cho post ${post.id}:`, await commentRes.text());
               return { ...post, commentCount: 0 };
             }
 
             const commentJson = await commentRes.json();
-            console.log("commentJson:", commentJson);
 
             const commentsArray = Array.isArray(commentJson?.data) ? commentJson.data : [];
 
