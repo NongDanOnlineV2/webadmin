@@ -93,41 +93,46 @@ export function AnswersTable() {
   };
 
   const getFarmandQuestion = async () => {
-    try {
-      const response = await Promise.all(
-        answers.map(async (item) => {
-          try {
-            const [resQ, resF] = await Promise.all([
-axios.get(
-                `https://api-ndolv2.nongdanonline.cc/admin-questions/${item.questionId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              ),
-              axios.get(
-                `https://api-ndolv2.nongdanonline.cc/adminfarms/${item.farmId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              ),
-            ]);
+  try {
+    const uniqueQuestionIds = [...new Set(answers.map((item) => item.questionId))];
+    const uniqueFarmIds = [...new Set(answers.map((item) => item.farmId))];
 
-            return {
-              ...item,
-              question: resQ.data,
-              farm: {
-                ...resF.data,
-                ownerName: resF.data.owner?.fullname || "—",
-              },
-            };
-          } catch {
-            return { ...item };
-          }
-        })
-      );
-      setQuestionAndFarmId(response);
-    } catch {
-      setQuestionAndFarmId([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const [questions, farms] = await Promise.all([
+      Promise.all(uniqueQuestionIds.map(id =>
+        axios.get(`https://api-ndolv2.nongdanonline.cc/admin-questions/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(res => ({ id, data: res.data })).catch(() => null)
+      )),
+      Promise.all(uniqueFarmIds.map(id =>
+        axios.get(`https://api-ndolv2.nongdanonline.cc/adminfarms/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(res => ({ id, data: res.data })).catch(() => null)
+      )),
+    ]);
+
+    const questionMap = new Map();
+    questions.forEach(q => { if (q) questionMap.set(q.id, q.data); });
+
+    const farmMap = new Map();
+    farms.forEach(f => { if (f) farmMap.set(f.id, f.data); });
+
+    const merged = answers.map(item => ({
+      ...item,
+      question: questionMap.get(item.questionId),
+      farm: {
+        ...farmMap.get(item.farmId),
+        ownerName: farmMap.get(item.farmId)?.owner?.fullname || "—",
+      },
+    }));
+
+    setQuestionAndFarmId(merged);
+  } catch (err) {
+    console.error("Lỗi khi tải câu hỏi/farm:", err);
+    setQuestionAndFarmId([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchAnswers();

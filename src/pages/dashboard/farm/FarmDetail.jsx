@@ -351,8 +351,6 @@ const [answers, setAnswers] = useState([]);
   </DialogFooter>
 </Dialog>
 
-
-
             <div className="mt-6">
               <Button onClick={handleToggleChanges} color="blue" variant="outlined" size="sm">
                 Xem câu hỏi và trả lời
