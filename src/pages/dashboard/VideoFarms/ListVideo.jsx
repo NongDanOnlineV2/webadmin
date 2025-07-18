@@ -7,6 +7,7 @@ import { Typography, Button, Input, Menu, MenuHandler, MenuList, MenuItem } from
 import { Dialog } from '@material-tailwind/react';
 import VideoLikeList from './VideoLikeList';
 import CommentVideo from './commentVideo';
+import Hls from 'hls.js';
 import {deletevideo, approvevideo} from './VideoById';
 const fetchAllVideos = async () => {
   const token = localStorage.getItem('token');
