@@ -81,7 +81,6 @@ export function AnswersTable() {
   const [uploading, setUploading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchAnswers = async () => {
     try {
@@ -98,14 +97,16 @@ export function AnswersTable() {
       const response = await Promise.all(
         answers.map(async (item) => {
           try {
-            const resQ = await axios.get(
-              `https://api-ndolv2.nongdanonline.cc/admin-questions/${item.questionId}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            const resF = await axios.get(
-              `https://api-ndolv2.nongdanonline.cc/adminfarms/${item.farmId}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
+            const [resQ, resF] = await Promise.all([
+              axios.get(
+                `https://api-ndolv2.nongdanonline.cc/admin-questions/${item.questionId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              ),
+              axios.get(
+                `https://api-ndolv2.nongdanonline.cc/adminfarms/${item.farmId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              ),
+            ]);
 
             return {
               ...item,
@@ -115,8 +116,7 @@ export function AnswersTable() {
                 ownerName: resF.data.owner?.fullname || "—",
               },
             };
-          } catch (error) {
-            console.warn("Lỗi khi lấy farm/question:", error);
+          } catch {
             return { ...item };
           }
         })
@@ -174,7 +174,6 @@ export function AnswersTable() {
         method: "POST",
         body: formData,
       });
-
       const result = await res.json();
       if (!res.ok) throw new Error(result.message);
 
@@ -190,7 +189,6 @@ export function AnswersTable() {
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
     const payload =
       formType === "edit"
         ? {
@@ -214,9 +212,7 @@ export function AnswersTable() {
 
     try {
       const url =
-        formType === "edit"
-          ? `${API_URL}/${editData?._id}`
-          : API_URL;
+        formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
       const method = formType === "edit" ? "PUT" : "POST";
 
       const res = await fetchWithAuth(url, {
@@ -226,11 +222,7 @@ export function AnswersTable() {
       });
 
       const result = await res.json();
-
-      if (!res.ok) {
-        console.error("Lỗi từ API:", result);
-        throw new Error(result.message || "Không thể lưu dữ liệu");
-      }
+      if (!res.ok) throw new Error(result.message || "Không thể lưu dữ liệu");
 
       toast.success(
         formType === "edit"
@@ -238,21 +230,10 @@ export function AnswersTable() {
           : "Thêm câu trả lời thành công!"
       );
 
-      setForm({
-        farmId: "",
-        questionId: "",
-        selectedOptions: [],
-        uploadedFiles: [],
-        otherText: "",
-      });
-
       setFormType(null);
       fetchAnswers();
     } catch (error) {
-      console.error("Lỗi submit:", error);
       toast.error(error.message || "Không thể lưu dữ liệu");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -272,14 +253,11 @@ export function AnswersTable() {
     const questionText = item.question?.text?.toLowerCase() || "";
     const selected = item.selectedOptions?.join(", ").toLowerCase() || "";
 
-    const matchSearch =
-      farmName.includes(searchText.toLowerCase()) ||
-      questionText.includes(searchText.toLowerCase());
-
-    const matchFilter =
-      !filterOption || selected.includes(filterOption.toLowerCase());
-
-    return matchSearch && matchFilter;
+    return (
+      (farmName.includes(searchText.toLowerCase()) ||
+        questionText.includes(searchText.toLowerCase())) &&
+      (!filterOption || selected.includes(filterOption.toLowerCase()))
+    );
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -304,40 +282,45 @@ export function AnswersTable() {
         </Menu>
       </div>
 
-      <div className="mb-4">
-        <Input
-          label="Tìm kiếm câu hỏi hoặc farm"
-          value={searchText}
-          onChange={(e) => {
-            setSearchText(e.target.value);
-            setCurrentPage(1);
-          }}
-        />
-      </div>
+      
 
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Lọc theo đáp án
-        </label>
-        <select
-          value={filterOption}
-          onChange={(e) => {
-            setFilterOption(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="border rounded px-2 py-1 text-sm w-full max-w-xs"
-        >
-          <option value="">Tất cả</option>
-          {[...new Set(questionAnFarmId.flatMap((item) => item.selectedOptions || []))].map((opt, idx) => (
-            <option key={idx} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-      </div>
+  <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4 mb-4">
+  <div className="sm:w-60">
+    <Input
+      label="Tìm kiếm câu hỏi hoặc farm"
+      value={searchText}
+      onChange={(e) => {
+        setSearchText(e.target.value);
+        setCurrentPage(1);
+      }}
+    />
+  </div>
+  <div className="sm:w-64 mt-4 sm:mt-0">
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Lọc theo đáp án
+    </label>
+    <select
+      value={filterOption}
+      onChange={(e) => {
+        setFilterOption(e.target.value);
+        setCurrentPage(1);
+      }}
+      className="border rounded px-2 py-1 text-sm w-full"
+    >
+      <option value="">Tất cả</option>
+      {[...new Set(questionAnFarmId.flatMap((item) => item.selectedOptions || []))].map((opt, idx) => (
+        <option key={idx} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+
+
 
       {loading ? (
-        <Audio height="80" width="80" radius="9" color="green" ariaLabel="loading" />
+        <Audio height="80" width="80" color="green" ariaLabel="loading" />
       ) : (
         <table className="min-w-full">
           <thead className="bg-gray-100">
@@ -406,25 +389,9 @@ export function AnswersTable() {
       )}
 
       <div className="flex items-center justify-center gap-4 mt-6">
-        <Button
-          variant="outlined"
-          size="sm"
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((p) => p - 1)}
-        >
-          Trang trước
-        </Button>
-        <span className="text-sm font-medium">
-          Trang {currentPage} / {totalPages || 1}
-        </span>
-        <Button
-          variant="outlined"
-          size="sm"
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((p) => p + 1)}
-        >
-          Trang sau
-        </Button>
+        <Button variant="outlined" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>Trang trước</Button>
+        <span className="text-sm font-medium">Trang {currentPage} / {totalPages || 1}</span>
+        <Button variant="outlined" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)}>Trang sau</Button>
       </div>
 
       <Dialog open={formType !== null} handler={() => setFormType(null)} size="xl">
@@ -451,11 +418,7 @@ export function AnswersTable() {
         ) : null}
       </Dialog>
 
-      <AnswersTableDetail
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        data={selectedAnswer}
-      />
+      <AnswersTableDetail open={detailOpen} onClose={() => setDetailOpen(false)} data={selectedAnswer} />
     </div>
   );
 }
