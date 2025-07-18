@@ -48,6 +48,7 @@ export default function UserDetail() {
     ward: "",
     province: ""
   });
+
   const fetchPaginatedData = async (url, config) => {
     let allData = [];
     let page = 1;
@@ -320,10 +321,15 @@ const fetchVideos = async () => {
 
 const handleOpenVideos = async () => {
   if (!openVideos) {
-    await fetchVideos();
+    if (videos.length === 0) {
+      await fetchVideos();
+    }
+    const statsPromises = videos.map((video) => fetchVideoStats(video._id));
+    await Promise.allSettled(statsPromises); 
   }
-  setOpenVideos(!openVideos);
+  setOpenVideos(!openVideos); 
 };
+
 
 const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   if (videoLikesCache[videoId]) {
@@ -421,7 +427,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?.id) || String(f.createBy) === String(user?.id));
 
-  const userPosts = posts.filter(p => p.authorId === user?.id);
+  const userPosts = posts.filter(p => p.authorId?.id === user?.id);
 
   const userVideos = videos.filter(v => v.uploadedBy?.id === user?.id);
 
