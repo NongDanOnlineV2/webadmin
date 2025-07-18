@@ -174,6 +174,27 @@ export default function FarmDetail({ open, onClose, farmId }) {
           <Typography color="red">Không tìm thấy dữ liệu</Typography>
         ) : (
           <>
+                          {/* hình ảnh chó */}
+              <div className="mt-6">
+                <Typography className="font-semibold">Hình ảnh:</Typography>
+                {images.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+                    {images.map((image, index) => (
+                      <img
+                        key={index}
+                        src={image.url.startsWith("http") ? image.url : `${API}/${image.url.replace(/^\/+/, "")}`}
+                        alt={`Hình ảnh ${index + 1}`}
+                        className="w-full h-48 object-cover rounded border"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <Typography color="gray" className="italic mt-2">
+                    Chưa có hình ảnh
+                  </Typography>
+                )}
+              </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <Info label="Chủ sở hữu" value={farm.ownerInfo?.name} />
               <Info label="Tên nông trại" value={farm.name} />
@@ -206,28 +227,8 @@ export default function FarmDetail({ open, onClose, farmId }) {
               </div>
             )}
                   
-                  {/* hình ảnh chó */}
-            <div>
-              <Typography variant="h6" className="mb-2 text-blue-gray-900">Hình ảnh</Typography>
-              {images.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  {images.map((img, idx) => (
-                    <div key={idx}>
-                      <img
-                        src={`${BASE_URL}${post.images[0]}`}
-                        alt={img.isAvatar ? "Ảnh" : `Ảnh ${idx + 1}`}
-                        className="w-full h-40 object-cover rounded-lg border shadow-sm"
-                      />
-                      {img.isAvatar && (
-                        <Typography className="text-xs text-center text-gray-600 mt-1">Ảnh</Typography>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Typography className="text-sm italic text-gray-500">Chưa có hình ảnh</Typography>
-              )}
-            </div>
+  
+
 
             <div className="mt-6">
               <Typography variant="h6" className="mb-2 text-blue-gray-900">Danh sách video</Typography>
