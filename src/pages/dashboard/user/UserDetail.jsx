@@ -285,28 +285,27 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
 
 const handleOpenFarms = async () => {
   if (openFarms) {
-    setOpenFarms(false); // ✅ Đóng ngay nếu đang mở
+    setOpenFarms(false); 
     return;
   }
 
-  setOpenFarms(true); // ✅ Mở UI ngay
+  setOpenFarms(true); 
 
   if (farms.length === 0 && !loadingFarms) {
-    setLoadingFarms(true); // ✅ Thêm loading state nếu cần
+    setLoadingFarms(true); 
     try {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms`, config);
-      setFarms(allFarms); // ✅ Lưu farms vào state
+      setFarms(allFarms); 
     } catch (err) {
       console.error("Lỗi khi fetch farms:", err);
     } finally {
-      if (openFarms) setLoadingFarms(false); // ✅ Chỉ set nếu UI còn mở
+      if (openFarms) setLoadingFarms(false); 
     }
   }
 };
-
 
 const handleOpenPosts = async () => {
   if (openPosts) {
