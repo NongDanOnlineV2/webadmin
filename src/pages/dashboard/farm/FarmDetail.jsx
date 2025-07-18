@@ -56,8 +56,6 @@ const featureOptions = [
   { label: "Theo dõi độ ẩm đất", value: "soil_moisture_monitoring" },
   { label: "Cảm biến chất lượng không khí", value: "air_quality_sensor" },
 ];
-
-
 export default function FarmDetail({ open, onClose, farmId }) {
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [farm, setFarm] = useState(null);
@@ -71,7 +69,6 @@ export default function FarmDetail({ open, onClose, farmId }) {
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [loadingAnswers, setLoadingAnswers] = useState(true);
   const [visibleCount, setVisibleCount] = useState(10);
-
   const getOpts = () => ({
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -103,16 +100,37 @@ export default function FarmDetail({ open, onClose, farmId }) {
 
 
   const fetchFarmVideos = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farmId}`, getOpts());
-      setVideos(res.data?.data || []);
-      setVideoCount((res.data?.data || []).length);
-    } catch (err) {
-      console.error("Lỗi video:", err);
-      setVideos([]);
-      setVideoCount(0);
-    }
-  };
+  if (!farmId) {
+    console.warn("⚠️ Không có farmId để load video.");
+    return;
+  }
+
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.");
+    window.location.href = "/signin";
+    return;
+  }
+
+  try {
+    const res = await axios.get(
+      `${BASE_URL}/admin-video-farm/farm/${farmId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const videoList = Array.isArray(res.data?.data) ? res.data.data : [];
+
+    setVideos(videoList);
+    setVideoCount(videoList.length);
+  } catch (err) {
+    console.error("❌ Lỗi khi tải video của farm:", err.response?.data || err.message);
+    setVideos([]);
+    setVideoCount(0);
+  }
+};
+
 
   const fetchQuestions = async () => {
     setLoadingQuestions(true);
@@ -168,24 +186,25 @@ export default function FarmDetail({ open, onClose, farmId }) {
           <>
                           {/* hình ảnh chó */}
               <div className="mt-6">
-                <Typography className="font-semibold">Hình ảnh:</Typography>
-                {images.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
-                    {images.map((image, index) => (
-                      <img
-                        key={index}
-                        src={image.url.startsWith("http") ? image.url : `${API}/${image.url.replace(/^\/+/, "")}`}
-                        alt={`Hình ảnh ${index + 1}`}
-                        className="w-full h-48 object-cover rounded border"
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <Typography color="gray" className="italic mt-2">
-                    Chưa có hình ảnh
-                  </Typography>
-                )}
-              </div>
+  <Typography className="font-semibold">Hình ảnh:</Typography>
+  {images.length > 0 ? (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+      {images.map((image, index) => (
+        <img
+          key={index}
+          src={getImageUrl(image.url)}
+          alt={`Hình ảnh ${index + 1}`}
+          className="w-full h-48 object-cover rounded border"
+        />
+      ))}
+    </div>
+  ) : (
+    <Typography color="gray" className="italic mt-2">
+      Chưa có hình ảnh
+    </Typography>
+  )}
+</div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <Info label="Chủ sở hữu" value={farm.ownerInfo?.name} />
               <Info label="Tên nông trại" value={farm.name} />
@@ -249,15 +268,18 @@ export default function FarmDetail({ open, onClose, farmId }) {
                               : video.status === "pending" ? "text-yellow-700 bg-yellow-100"
                               : video.status === "deleted" ? "text-red-700 bg-red-100"
                               : "text-gray-700 bg-gray-100"}`}>
-                            {video.status === "uploaded"
-                              ? "uploaded"
+                            {video.status === "active"
+                              ? "Đã duyệt"
                               : video.status === "pending"
-                              ? "pending"
+                              ? "Chờ duyệt"
                               : video.status === "deleted"
-                              ? "deleted"
+                              ? "Đã xóa"
                               : video.status === "failed"
-                              ? "failed"
-                              : "lổi video"}
+                              ? "Lỗi upload"
+                              : video.status === "uploaded"
+                              ? "Đã tải lên"
+                              : "Không xác định"}
+
                           </span>
                         </td>
 
@@ -347,10 +369,9 @@ export default function FarmDetail({ open, onClose, farmId }) {
 </Dialog>
             <div className="mt-6">
               <Button onClick={handleToggleChanges} color="blue" variant="outlined" size="sm">
-                Xem câu hỏi và trả lời
+                {showChanges ? "Đóng câu hỏi & trả lời" : "Xem câu hỏi và trả lời"}
               </Button>
             </div>
-
             <Dialog open={showChanges} handler={handleToggleChanges} size="lg">
               <DialogHeader>Danh sách câu hỏi và câu trả lời</DialogHeader>
               <DialogBody className="space-y-4 max-h-[70vh] overflow-y-auto">

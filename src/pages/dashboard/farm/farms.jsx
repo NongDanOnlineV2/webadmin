@@ -50,34 +50,51 @@ export function Farms() {
 
 const fetchFarms = async () => {
   setLoading(true);
+
   try {
+    const opts = getOpts(); // tách ra để có thể debug
+
     const res = await axios.get(`${BASE_URL}/adminfarms`, {
-      ...getOpts(),
-      params: {
-        limit: 10000,
-      },
+      ...opts,
+      params: { limit: 10000 },
     });
 
     const farms = res.data?.data || [];
 
-    // 🔽 Lấy video count cho từng farm
-    const farmWithVideoCount = await Promise.all(
-      farms.map(async (farm) => {
-        try {
-          const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
-          const videos = videoRes.data?.data || [];
-          return { ...farm, videoCount: videos.length };
-        } catch (err) {
-          console.error("Lỗi khi lấy video của farm:", farm._id);
-          return { ...farm, videoCount: 0 };
-        }
-      })
-    );
+    const batchSize = 10; // Load từng batch 10 farm
+    const farmWithVideoCount = [];
+
+    for (let i = 0; i < farms.length; i += batchSize) {
+      const batch = farms.slice(i, i + batchSize);
+
+      const results = await Promise.allSettled(
+        batch.map(async (farm) => {
+          try {
+            const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, opts);
+            const videos = videoRes.data?.data || [];
+            return { ...farm, videoCount: videos.length };
+          } catch (err) {
+            console.error("Lỗi khi lấy video của farm:", farm._id, err.message);
+            return { ...farm, videoCount: 0 };
+          }
+        })
+      );
+
+      results.forEach((r) => {
+        if (r.status === "fulfilled") farmWithVideoCount.push(r.value);
+      });
+    }
 
     const sortedFarms = farmWithVideoCount.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-setAllFarms(sortedFarms);
+    setAllFarms(sortedFarms);
   } catch (err) {
-    setError(err.response?.data?.message || err.message);
+    console.error("Lỗi fetchFarms:", err);
+    if (err.message.includes("token")) {
+      alert("Bạn chưa đăng nhập hoặc token đã hết hạn. Vui lòng đăng nhập lại.");
+      window.location.href = "/signin"; // hoặc route login của bạn
+    } else {
+      setError(err.response?.data?.message || err.message);
+    }
   } finally {
     setLoading(false);
   }
