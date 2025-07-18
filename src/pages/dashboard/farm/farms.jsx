@@ -48,58 +48,34 @@ export function Farms() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-const fetchFarms = async () => {
+  // Đặt ở ngoài fetchFarms
+const [totalFarms, setTotalFarms] = useState(0);
+const totalPages = Math.ceil(totalFarms / itemsPerPage);
+const fetchFarms = async (page = 1) => {
   setLoading(true);
-
   try {
-    const opts = getOpts(); // tách ra để có thể debug
-
+    const opts = getOpts();
     const res = await axios.get(`${BASE_URL}/adminfarms`, {
       ...opts,
-      params: { limit: 10000 },
+      params: {
+        limit: itemsPerPage,
+        page:1,
+          limit: 100
+      },
     });
-
     const farms = res.data?.data || [];
+    const totalCount = res.data?.total || 0;
 
-    const batchSize = 10; // Load từng batch 10 farm
-    const farmWithVideoCount = [];
-
-    for (let i = 0; i < farms.length; i += batchSize) {
-      const batch = farms.slice(i, i + batchSize);
-
-      const results = await Promise.allSettled(
-        batch.map(async (farm) => {
-          try {
-            const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, opts);
-            const videos = videoRes.data?.data || [];
-            return { ...farm, videoCount: videos.length };
-          } catch (err) {
-            console.error("Lỗi khi lấy video của farm:", farm._id, err.message);
-            return { ...farm, videoCount: 0 };
-          }
-        })
-      );
-
-      results.forEach((r) => {
-        if (r.status === "fulfilled") farmWithVideoCount.push(r.value);
-      });
-    }
-
-    const sortedFarms = farmWithVideoCount.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    setAllFarms(sortedFarms);
+    const sortedFarms = farms.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    setFarms(sortedFarms);
+    setTotalFarms(totalCount);
   } catch (err) {
     console.error("Lỗi fetchFarms:", err);
-    if (err.message.includes("token")) {
-      alert("Bạn chưa đăng nhập hoặc token đã hết hạn. Vui lòng đăng nhập lại.");
-      window.location.href = "/signin"; // hoặc route login của bạn
-    } else {
-      setError(err.response?.data?.message || err.message);
-    }
+    setError(err.response?.data?.message || err.message);
   } finally {
     setLoading(false);
   }
 };
-
 
   const addFarm = async (data) => {
     try {
@@ -150,7 +126,6 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
     setOpenDetail(true);
   };
 
-  // ✅ Lọc client-side
   useEffect(() => {
     const keyword = search.toLowerCase();
     const filtered = allFarms
@@ -174,11 +149,10 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
   }, [search, tab, allFarms]);
 
   useEffect(() => {
-    fetchFarms();
-  }, []);
+  fetchFarms(currentPage);
+}, [currentPage]);
 
   const paginatedFarms = farms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(farms.length / itemsPerPage);
 
   return (
     <>
@@ -331,29 +305,22 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
                 <Button
                   size="sm"
                   variant="outlined"
-                  className="rounded-md px-4 py-1"
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 >
-                  <span className={currentPage === 1 ? "text-gray-400 font-semibold" : "font-semibold"}>
-                    TRANG TRƯỚC
-                  </span>
+                  TRANG TRƯỚC
                 </Button>
 
                 <Typography variant="small" className="text-black font-medium">
                   Trang {currentPage} / {totalPages}
                 </Typography>
-
                 <Button
                   size="sm"
                   variant="outlined"
-                  className="rounded-md px-4 py-1"
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 >
-                  <span className={currentPage === totalPages ? "text-gray-400 font-semibold" : "font-semibold"}>
-                    TRANG SAU
-                  </span>
+                  TRANG SAU
                 </Button>
               </div>
             )}
