@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import HlsPlayer from './HlsPlayer';
 import axios from 'axios';
 import { BaseUrl } from '@/ipconfig';
 import { Audio } from 'react-loader-spinner';
@@ -309,27 +310,20 @@ const handleOpenStatusFilter = async () => {
             <div key={item._id} className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow">
               {/* Video Display */}
               <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center">
-                {item.status === "pending" && item.localFilePath ? (
-                  <video
-                    src={
-                      item.localFilePath.startsWith('http')
-                        ? item.localFilePath
-                        : `${BaseUrl}${item.localFilePath}`
-                    }
-                    controls
-                    className="w-full h-full object-cover rounded-t-lg"
-                  >
-                    Trình duyệt của bạn không hỗ trợ video
-                  </video>
-                ) : item.youtubeLink && item.status === "uploaded" ? (
-                  item.youtubeLink.endsWith('.mp4') ? (
-                    <video 
-                      src={item.youtubeLink} 
-                      controls   
+                {/* Phát đúng loại: youtube, mp4, m3u8 */}
+                {item.youtubeLink ? (
+                  item.youtubeLink.endsWith('.m3u8') ? (
+                    <HlsPlayer src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`} className="w-full h-full object-cover rounded-t-lg" />
+                  ) : item.youtubeLink.endsWith('.mp4') ? (
+                    <video
+                      src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`}
+                      controls
                       className="w-full h-full object-cover rounded-t-lg"
-                    />
-                  ) : (
-                    <iframe 
+                    >
+                      Trình duyệt của bạn không hỗ trợ video
+                    </video>
+                  ) : (/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//.test(item.youtubeLink) ? (
+                    <iframe
                       src={
                         "https://www.youtube.com/embed/" +
                         (item.youtubeLink.match(/(?:v=|\/embed\/|\.be\/)([^\s&?]+)/)?.[1] || "")
@@ -339,6 +333,34 @@ const handleOpenStatusFilter = async () => {
                       allowFullScreen
                       className="w-full h-full rounded-t-lg"
                     ></iframe>
+                  ) : (
+                    <audio
+                      src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`}
+                      controls
+                      className="w-full h-full object-cover rounded-t-lg"
+                    >
+                      Trình duyệt của bạn không hỗ trợ audio
+                    </audio>
+                  ))
+                ) : item.localFilePath ? (
+                  item.localFilePath.endsWith('.m3u8') ? (
+                    <HlsPlayer src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`} className="w-full h-full object-cover rounded-t-lg" />
+                  ) : item.localFilePath.endsWith('.mp4') ? (
+                    <video
+                      src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`}
+                      controls
+                      className="w-full h-full object-cover rounded-t-lg"
+                    >
+                      Trình duyệt của bạn không hỗ trợ video
+                    </video>
+                  ) : (
+                    <audio
+                      src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`}
+                      controls
+                      className="w-full h-full object-cover rounded-t-lg"
+                    >
+                      Trình duyệt của bạn không hỗ trợ audio
+                    </audio>
                   )
                 ) : (
                   <div className="flex items-center justify-center h-full text-red-500 font-semibold">

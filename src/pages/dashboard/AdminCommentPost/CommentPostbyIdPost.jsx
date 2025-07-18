@@ -14,8 +14,6 @@ export const CommentPostbyIdPost = ({CommentsDialog}) => {
     const [editComment, setEditComment] = useState(null);
     const [editContent, setEditContent] = useState("");
     const [editCommentIndex, setEditCommentIndex] = useState(null);
-    const [userComment, setUserComment] = useState(null);
-    const [IdUser, setIdUser] = useState(null);
     const [post, setPost] = useState("");
     const [users, setUsers] = useState([]);
     const [openMenuIndex, setOpenMenuIndex] = useState(null);
@@ -105,9 +103,7 @@ useEffect(() => {
       return CommentByIdPost.data.length;
     }
     
-     
-    // Fallback: Check if comments are nested
-    if (CommentByIdPost && CommentByIdPost.data && Array.isArray(CommentByIdPost.data) && CommentByIdPost.data.length > 0) {
+         if (CommentByIdPost && CommentByIdPost.data && Array.isArray(CommentByIdPost.data) && CommentByIdPost.data.length > 0) {
       return CommentByIdPost.data[0].comments?.length || 0;
     }
     
