@@ -39,11 +39,15 @@ export default function UserDetail() {
   const [editAddressOpen, setEditAddressOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [videoLikesCache, setVideoLikesCache] = useState({});
+  const [loadingFarms,setLoadingFarms] = useState(false)
   const [videoCommentsCache, setVideoCommentsCache] = useState({});
   const [postLikesCache, setPostLikesCache] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [loadingVideos, setLoadingVideos] = useState(false);  
+  const [visibleFarms, setVisibleFarms] = useState(6);
+  const [visibleVideos, setVisibleVideos] = useState(6);
+  const [visiblePosts, setVisiblePosts] = useState(6);
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -66,6 +70,18 @@ export default function UserDetail() {
     }
 
     return allData;
+  };
+
+  const handleShowMoreFarms = () => {
+    setVisibleFarms((prev) => prev + 6);
+  };
+
+  const handleShowMoreVideos = () => {
+    setVisibleVideos((prev) => prev + 6);
+  };
+
+  const handleShowMorePosts = () => {
+    setVisiblePosts((prev) => prev + 6);
   };
 
   const fetchPostCommentsUsers = async (postId, postTitle) => {
@@ -221,8 +237,6 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
       config
     );
     const users = res.data?.users || [];
-
-    // Cache dữ liệu
     setPostLikesCache((prev) => ({
       ...prev,
       [postId]: users,
@@ -243,20 +257,20 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
         const token = localStorage.getItem("token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        const [userRes, allFarms, allVideos, allPosts, allUsers, addressRes ] = await Promise.all([
+        const [userRes, addressRes ] = await Promise.all([
           axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, config), 
-          fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/adminfarms`, config), 
-          fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-video-farm`, config), 
-          fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-post-feed`, config),
-          fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-users`, config),
+          // fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/adminfarms`, config), 
+          // fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-video-farm`, config), 
+          // fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-post-feed`, config),
+          // fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-users`, config),
           axios.get(`https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`, config), 
         ]);
 
         setUser(userRes.data);
-        setFarms(allFarms);
-        setVideos(allVideos);
-        setPosts(allPosts);
-        setUsers(allUsers);
+        // setFarms(allFarms);
+        // setVideos(allVideos);
+        // setPosts(allPosts);
+        // setUsers(allUsers);
         setAddresses(addressRes.data || []);
       } catch (err) {
         console.error(err);
@@ -269,81 +283,103 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
   }, [id]);
 
 
-const fetchPosts = async () => {
-  if (posts.length > 0) return; 
-  const token = localStorage.getItem("token");
-  const config = { headers: { Authorization: `Bearer ${token}` } };
-  try {
-    const allPosts = await fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-post-feed`, config);
-    setPosts(allPosts);
-  } catch (err) {
-    console.error("Lỗi khi fetch posts:", err);
+const handleOpenFarms = async () => {
+  if (openFarms) {
+    setOpenFarms(false); // ✅ Đóng ngay nếu đang mở
+    return;
+  }
+
+  setOpenFarms(true); // ✅ Mở UI ngay
+
+  if (farms.length === 0 && !loadingFarms) {
+    setLoadingFarms(true); // ✅ Thêm loading state nếu cần
+    try {
+      const token = localStorage.getItem("token");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms`, config);
+      setFarms(allFarms); // ✅ Lưu farms vào state
+    } catch (err) {
+      console.error("Lỗi khi fetch farms:", err);
+    } finally {
+      if (openFarms) setLoadingFarms(false); // ✅ Chỉ set nếu UI còn mở
+    }
   }
 };
+
 
 const handleOpenPosts = async () => {
-  if (!openPosts) {
+  if (openPosts) {
+    setOpenPosts(false); // ✅ Đóng ngay nếu đang mở
+    return;
+  }
+
+  setOpenPosts(true); // ✅ Mở UI ngay
+
+  if (posts.length === 0 && !loadingPosts) {
     setLoadingPosts(true);
     try {
-      if (posts.length === 0) {
-      await fetchPosts();
-    }
-    const promises = posts.map(async (post) => {
-      const [likeCount, commentCount] = await Promise.all([
-        fetchLikeCount(post.id), 
-        fetchCommentCount(post.id),
-      ]);
-      setLikeCounts((prev) => ({
-        ...prev,
-        [post.id]: likeCount,
-      }));
-      setCommentCounts((prev) => ({
-              ...prev,
-              [post.id]: commentCount,
-            }));
-          });
-          await Promise.allSettled(promises);
-    }
-    catch (err) {
+      const token = localStorage.getItem("token");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      const allPosts = await fetchPaginatedData(`${BASE_URL}/admin-post-feed`, config);
+      setPosts(allPosts); // ✅ Set posts ngay khi fetch xong
+
+      // Load lượt like & comment cho từng post
+      const statsPromises = allPosts.map(async (post) => {
+        const [likeCount, commentCount] = await Promise.all([
+          fetchLikeCount(post.id),
+          fetchCommentCount(post.id),
+        ]);
+
+        setLikeCounts((prev) => ({
+          ...prev,
+          [post.id]: likeCount,
+        }));
+
+        setCommentCounts((prev) => ({
+          ...prev,
+          [post.id]: commentCount,
+        }));
+      });
+
+      await Promise.allSettled(statsPromises); // ✅ Đợi hết các promise
+    } catch (err) {
       console.error("Lỗi khi load posts:", err);
     } finally {
-      setLoadingPosts(false);
-    } 
-  }
-  setOpenPosts(!openPosts); // Toggle dialog
-};
-
-const fetchVideos = async () => {
-  if (videos.length > 0) return; 
-  const token = localStorage.getItem("token");
-  const config = { headers: { Authorization: `Bearer ${token}` } };
-  try {
-    const allVideos = await fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-video-farm`, config);
-    setVideos(allVideos);
-  } catch (err) {
-    console.error("Lỗi khi fetch videos:", err);
+      if (openPosts) setLoadingPosts(false); // ✅ Chỉ set nếu UI còn mở
+    }
   }
 };
 
 const handleOpenVideos = async () => {
-  if (!openVideos) {
+  if (openVideos) {
+    setOpenVideos(false); // đóng luôn nếu đang mở
+    return;
+  }
+
+  setOpenVideos(true); // mở UI ngay
+
+  if (videos.length === 0 && !loadingVideos) {
     setLoadingVideos(true);
     try {
-      if (videos.length === 0) {
-        await fetchVideos();
-      }
-      const statsPromises = videos.map((video) => fetchVideoStats(video._id));
+      const token = localStorage.getItem("token");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
+
+      // ✅ CHỈ setVideos nếu UI vẫn mở
+      setVideos(allVideos);
+
+      const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
       await Promise.allSettled(statsPromises);
     } catch (err) {
       console.error("Lỗi khi load videos:", err);
     } finally {
-      setLoadingVideos(false);
+      if (openVideos) setLoadingVideos(false); // ✅ chỉ set nếu UI còn mở
     }
   }
-  setOpenVideos(!openVideos);
 };
-
-
 
 const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   if (videoLikesCache[videoId]) {
@@ -403,10 +439,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 };
 
 
-  const countVideosByFarm = (farmId) => {
-    return videos.filter((v) => v.farmId?.id === farmId).length;
-  };
-
   const fetchVideoStats = async (videoId) => {
   const token = localStorage.getItem("token");
   const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -437,6 +469,9 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     setOpenVideoDialog(true);
 
   };
+  const countVideosByFarm = (farmId) => {
+  return videos.filter((v) => v.farmId?.id === farmId).length;
+};
 
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?.id) || String(f.createBy) === String(user?.id));
 
@@ -519,7 +554,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5">
-      Địa chỉ người dùng ({addresses.length})
+      Địa chỉ người dùng
     </Typography>
     <Typography
       variant="h5"
@@ -640,11 +675,11 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       {/* Thông tin Farms của user */}
       <Card>
   <div
-    onClick={() => setOpenFarms(!openFarms)}
+    onClick={() => handleOpenFarms(!openFarms)}
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5">
-      Danh sách Farms ({userFarms.length})
+      Danh sách Farms 
     </Typography>
     <Typography
       variant="h5"
@@ -664,7 +699,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             <Typography>Chưa có Farm nào.</Typography>
           ) : (
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-              {userFarms.map((farm) => (
+              {userFarms.slice(0, visibleFarms).map((farm) => (
                 <div
                   key={farm._id}
                   className="border p-4 rounded shadow space-y-2 bg-white"
@@ -783,6 +818,17 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
               ))}
             </div>
           )}
+          {visibleFarms < userFarms.length && (
+            <div className="flex justify-center mt-4">
+              <Button
+                color="blue"
+                variant="outlined"
+                onClick={handleShowMoreFarms}
+              >
+                Xem thêm
+              </Button>
+            </div>
+          )}
         </CardBody>
       </div>
     )}
@@ -796,7 +842,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5" className="text-gray-800 font-bold">
-      Danh sách Videos ({userVideos.length})
+      Danh sách Videos 
     </Typography>
     <Typography
       variant="h5"
@@ -818,7 +864,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             </Typography>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {userVideos.map((video) => (
+              {userVideos.slice(0, visibleVideos).map((video) => (
                 <div
                   key={video._id}
                   className="border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-gray-50"
@@ -926,6 +972,13 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
               ))}
             </div>
           )}
+                  {visibleVideos < userVideos.length && (
+          <div className="flex justify-center mt-4">
+            <Button onClick={handleShowMoreVideos} color="blue" variant="outlined">
+              Xem thêm videos
+            </Button>
+          </div>
+        )}
         </CardBody>
       </div>
     )}
@@ -947,8 +1000,8 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       <div
         className={`grid gap-4 ${
           selectedFarmVideos.length === 1
-            ? "grid-cols-1" // ✅ 1 video: hiển thị 1 cột
-            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" // ✅ 3 cột khi nhiều video
+            ? "grid-cols-1" 
+            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" 
         }`}
       >
         {selectedFarmVideos.map((item) => (
@@ -1137,7 +1190,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5" className="text-gray-800 font-bold">
-      Danh sách Posts ({userPosts.length})
+      Danh sách Posts 
     </Typography>
     <Typography
       variant="h5"
@@ -1153,7 +1206,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     {loadingPosts && (
       <div className="overflow-hidden transition-all duration-300">
         <CardBody className="bg-white rounded-b-md">
-          {userPosts.length === 0 ? (
+          {userPosts.slice(0, visiblePosts).length === 0 ? (
             <Typography className="text-center text-gray-500 py-6">
               Chưa có bài viết nào.
             </Typography>
@@ -1257,6 +1310,13 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {visiblePosts < userPosts.length && (
+            <div className="flex justify-center mt-4">
+              <Button onClick={handleShowMorePosts} color="green" variant="outlined">
+                Xem thêm posts
+              </Button>
             </div>
           )}
         </CardBody>
