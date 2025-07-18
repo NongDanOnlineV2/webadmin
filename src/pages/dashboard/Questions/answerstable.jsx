@@ -93,12 +93,13 @@ export function AnswersTable() {
   };
 
   const getFarmandQuestion = async () => {
+
     try {
       const response = await Promise.all(
         answers.map(async (item) => {
           try {
-            const [resQ, resF] = await Promise.all([
-axios.get(
+const [resQ, resF] = await Promise.all([
+              axios.get(
                 `https://api-ndolv2.nongdanonline.cc/admin-questions/${item.questionId}`,
                 { headers: { Authorization: `Bearer ${token}` } }
               ),
@@ -212,8 +213,9 @@ axios.get(
 
     try {
       const url =
-        formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
-const method = formType === "edit" ? "PUT" : "POST";
+formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
+
+      const method = formType === "edit" ? "PUT" : "POST";
 
       const res = await fetchWithAuth(url, {
         method,
@@ -308,8 +310,10 @@ const method = formType === "edit" ? "PUT" : "POST";
       className="border rounded px-2 py-1 text-sm w-full"
     >
       <option value="">Tất cả</option>
-      {[...new Set(questionAnFarmId.flatMap((item) => item.selectedOptions || []))].map((opt, idx) => (
-<option key={idx} value={opt}>
+{[...new Set(questionAnFarmId.flatMap((item) => item.selectedOptions || []))].map((opt, idx) => (
+
+        <option key={idx} value={opt}>
+
           {opt}
         </option>
       ))}
@@ -377,7 +381,7 @@ const method = formType === "edit" ? "PUT" : "POST";
                         onClick={(e) => { e.stopPropagation(); handleDelete(item._id); }}
                         className="text-red-500"
                       >
-                        Xoá
+Xoá
                       </MenuItem>
                     </MenuList>
 </Menu>
