@@ -17,7 +17,6 @@ export default function UserDetail() {
   const [openFarms, setOpenFarms] = useState(false);
   const [openVideos, setOpenVideos] = useState(false);
   const [openPosts, setOpenPosts] = useState(false);
-  const [users, setUsers] = useState([]); 
   const [videoLikes, setVideoLikes] = useState({}); 
   const [videoComments, setVideoComments] = useState({});
   const [selectedVideoLikes, setSelectedVideoLikes] = useState([]);
@@ -250,7 +249,6 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
   }
 };
 
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -259,18 +257,10 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
 
         const [userRes, addressRes ] = await Promise.all([
           axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, config), 
-          // fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/adminfarms`, config), 
-          // fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-video-farm`, config), 
-          // fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-post-feed`, config),
-          // fetchPaginatedData(`https://api-ndolv2.nongdanonline.cc/admin-users`, config),
           axios.get(`https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`, config), 
         ]);
 
         setUser(userRes.data);
-        // setFarms(allFarms);
-        // setVideos(allVideos);
-        // setPosts(allPosts);
-        // setUsers(allUsers);
         setAddresses(addressRes.data || []);
       } catch (err) {
         console.error(err);
@@ -281,7 +271,6 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
 
     fetchData();
   }, [id]);
-
 
 const handleOpenFarms = async () => {
   if (openFarms) {
@@ -400,7 +389,6 @@ const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   }
 };
 
-
 const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   if (videoCommentsCache[videoId]) {
     setSelectedVideoTitle(videoTitle);
@@ -428,7 +416,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     console.error(`Error fetching comments for video ${videoId}:`, err);
   }
 };
-
 
   const fetchVideoStats = async (videoId) => {
   const token = localStorage.getItem("token");
@@ -463,11 +450,8 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   const countVideosByFarm = (farmId) => {
   return videos.filter((v) => v.farmId?.id === farmId).length;
 };
-
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?.id) || String(f.createBy) === String(user?.id));
-
   const userPosts = posts.filter(p => p.authorId?.id === user?.id);
-
   const userVideos = videos.filter(v => v.uploadedBy?.id === user?.id);
 
   if (loading) {
@@ -978,8 +962,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
       <Dialog
   open={openVideoDialog}
-  size={selectedFarmVideos.length === 1 ? "md" : "xl"} // ✅ Thu nhỏ nếu chỉ có 1 video
-  handler={() => setOpenVideoDialog(false)}
+  size={selectedFarmVideos.length === 1 ? "md" : "xl"} 
   dismiss={{ outsidePress: false }}
 >
   <DialogHeader>Danh sách video - {selectedFarmName}</DialogHeader>
