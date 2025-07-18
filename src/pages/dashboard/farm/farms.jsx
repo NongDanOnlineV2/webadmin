@@ -48,34 +48,43 @@ export function Farms() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Đặt ở ngoài fetchFarms
-const [totalFarms, setTotalFarms] = useState(0);
-const totalPages = Math.ceil(totalFarms / itemsPerPage);
-const fetchFarms = async (page = 1) => {
+const fetchFarms = async () => {
   setLoading(true);
   try {
-    const opts = getOpts();
     const res = await axios.get(`${BASE_URL}/adminfarms`, {
-      ...opts,
-      params: {
-        limit: itemsPerPage,
-        page:1,
-          limit: 100
-      },
+      ...getOpts(),
+      params: { limit: 10000 },
     });
-    const farms = res.data?.data || [];
-    const totalCount = res.data?.total || 0;
 
-    const sortedFarms = farms.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    setFarms(sortedFarms);
-    setTotalFarms(totalCount);
+    const farms = res.data?.data || [];
+
+    // Gán danh sách trước (chưa có videoCount)
+    setAllFarms(farms);
+
+    // Gọi videoCount cho từng farm
+    farms.forEach(async (farm) => {
+      try {
+        const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
+        const videos = videoRes.data?.data || [];
+
+        // Cập nhật farm với videoCount
+        setAllFarms((prevFarms) =>
+          prevFarms.map((f) =>
+            f._id === farm._id ? { ...f, videoCount: videos.length } : f
+          )
+        );
+      } catch (err) {
+        console.error(`Lỗi videoCount của farm ${farm._id}:`, err.message);
+      }
+    });
   } catch (err) {
-    console.error("Lỗi fetchFarms:", err);
     setError(err.response?.data?.message || err.message);
   } finally {
     setLoading(false);
   }
 };
+
+
 
   const addFarm = async (data) => {
     try {
@@ -99,14 +108,14 @@ const fetchFarms = async (page = 1) => {
   const deleteFarm = async (id) => {
     try {
       await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
-      await fetchFarms();
+await fetchFarms();
     } catch (err) {
-alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
+      alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
     }
   };
 
   const changeStatus = async (id, action) => {
-const actionMap = {
+    const actionMap = {
       activate: "kích hoạt",
       deactivate: "khóa",
     };
@@ -126,6 +135,7 @@ const actionMap = {
     setOpenDetail(true);
   };
 
+  // ✅ Lọc client-side
   useEffect(() => {
     const keyword = search.toLowerCase();
     const filtered = allFarms
@@ -149,10 +159,11 @@ const actionMap = {
   }, [search, tab, allFarms]);
 
   useEffect(() => {
-  fetchFarms(currentPage);
-}, [currentPage]);
+    fetchFarms();
+  }, []);
 
   const paginatedFarms = farms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(farms.length / itemsPerPage);
 
   return (
     <>
@@ -182,19 +193,19 @@ const actionMap = {
               <Tab value="inactive" onClick={() => setTab("inactive")}>Đã khoá</Tab>
             </TabsHeader>
           </Tabs>
-        </div>
+</div>
 
         {loading ? (
-<Typography className="text-indigo-500">Đang tải dữ liệu...</Typography>
+          <Typography className="text-indigo-500">Đang tải dữ liệu...</Typography>
         ) : error ? (
           <Typography color="red">Lỗi: {error}</Typography>
         ) : (
           <div className="overflow-x-auto">
-<table className="w-full min-w-[1000px] table-auto text-base">
+            <table className="w-full min-w-[1000px] table-auto text-base">
               <thead>
                 <tr className="bg-blue-gray-50 text-blue-gray-700 text-sm">
                   <th className="px-2 py-2 font-semibold uppercase">Tên</th>
-                  <th className="px-2 py-2 font-semibold uppercase">Ngày tạo</th>
+                  <th className="px-2 py-2 font-semibold uppercase">Tags</th>
                   <th className="px-2 py-2 font-semibold uppercase">Mã</th>
                   <th className="px-2 py-2 font-semibold uppercase">Chủ sở hữu</th>
                   <th className="px-2 py-2 font-semibold uppercase">SĐT</th>
@@ -214,16 +225,40 @@ const actionMap = {
                   >
                     <td className="px-2 py-2">{farm.name}</td>
                     <td className="px-2 py-2">
-                      {new Date(farm.createdAt).toLocaleDateString("vi-VN")}
-                    </td>
+                          {Array.isArray(farm.tags) && farm.tags.length > 0 ? (
+                            <div className="flex items-center gap-2">
+                              <Chip
+                                size="sm"
+                                value={
+                                  farm.tags[0].length > 10
+                                    ? farm.tags[0].slice(0, 10) + "..."
+                                    : farm.tags[0]
+                                }
+                                className="bg-gray-200 text-gray-800"
+                              />
+                              {farm.tags.length > 1 && (
+                                <span className="text-sm text-gray-600 font-medium">+{farm.tags.length - 1}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                      </td>
                     <td className="px-2 py-2">{farm.code}</td>
                     <td className="px-2 py-2">{farm.ownerInfo?.name || "—"}</td>
                     <td className="px-2 py-2">{farm.phone || "—"}</td>
                     <td className="px-2 py-2">
-                      {farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
+{farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
                     </td>
                     <td className="px-2 py-2">{farm.area} m²</td>
-                    <td className="px-2 py-2">{farm.videoCount ?? 0}</td>
+                    <td className="px-2 py-2">
+                      {farm.videoCount !== undefined ? (
+                        farm.videoCount
+                      ) : (
+                        <span className="text-gray-400 italic">Đang tải...</span>
+                      )}
+                    </td>
+
                     <td className="px-2 py-2">
                       <Chip
                         value={
@@ -245,7 +280,7 @@ const actionMap = {
                     </td>
                     <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
                       <Menu
-open={openMenuId === farm._id}
+                        open={openMenuId === farm._id}
                         handler={() =>
                           setOpenMenuId(openMenuId === farm._id ? null : farm._id)
                         }
@@ -282,8 +317,8 @@ open={openMenuId === farm._id}
                           </MenuItem>
                           {farm.status === "pending" && (
                             <>
-                              <MenuItem onClick={() => { changeStatus(farm._id, "activate"); setOpenMenuId(null); }}>Duyệt</MenuItem>
-<MenuItem onClick={() => { changeStatus(farm._id, "deactivate"); setOpenMenuId(null); }}>Từ chối</MenuItem>
+<MenuItem onClick={() => { changeStatus(farm._id, "activate"); setOpenMenuId(null); }}>Duyệt</MenuItem>
+                              <MenuItem onClick={() => { changeStatus(farm._id, "deactivate"); setOpenMenuId(null); }}>Từ chối</MenuItem>
                             </>
                           )}
                           {farm.status === "active" && (
@@ -305,21 +340,29 @@ open={openMenuId === farm._id}
                 <Button
                   size="sm"
                   variant="outlined"
+                  className="rounded-md px-4 py-1"
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 >
-                  TRANG TRƯỚC
+                  <span className={currentPage === 1 ? "text-gray-400 font-semibold" : "font-semibold"}>
+                    TRANG TRƯỚC
+                  </span>
                 </Button>
-<Typography variant="small" className="text-black font-medium">
+
+                <Typography variant="small" className="text-black font-medium">
                   Trang {currentPage} / {totalPages}
                 </Typography>
+
                 <Button
                   size="sm"
                   variant="outlined"
+                  className="rounded-md px-4 py-1"
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                 >
-                  TRANG SAU
+                  <span className={currentPage === totalPages ? "text-gray-400 font-semibold" : "font-semibold"}>
+                    TRANG SAU
+                  </span>
                 </Button>
               </div>
             )}
@@ -347,8 +390,8 @@ open={openMenuId === farm._id}
           Chi tiết nông trại
           <IconButton variant="text" onClick={() => setOpenDetail(false)} className="ml-auto">✕</IconButton>
         </DialogHeader>
-        <DialogBody className="p-4">
-<FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} />
+<DialogBody className="p-4">
+          <FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} />
         </DialogBody>
       </Dialog>
 

@@ -47,6 +47,13 @@ export default function UserDetail() {
   const [visibleFarms, setVisibleFarms] = useState(6);
   const [visibleVideos, setVisibleVideos] = useState(6);
   const [visiblePosts, setVisiblePosts] = useState(6);
+  const [videoCountsByFarm, setVideoCountsByFarm] = useState({});
+  const [pageFarms, setPageFarms] = useState(1);
+  const [pageVideos, setPageVideos] = useState(1);
+  const [pagePosts, setPagePosts] = useState(1);
+  const [hasMoreFarms, setHasMoreFarms] = useState(true);
+  const [hasMoreVideos, setHasMoreVideos] = useState(true);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -284,8 +291,21 @@ const handleOpenFarms = async () => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms`, config);
+      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms?page=1&limit=6`, config);
       setFarms(allFarms); 
+      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm?page=1&limit=6`, config);
+
+      const counts = {};
+      allVideos.forEach((video) => {
+        const farmId = video.farmId?._id; 
+        if (farmId) {
+          counts[farmId] = (counts[farmId] || 0) + 1;
+        }
+      });
+      setVideoCountsByFarm(counts);
+      setVideos(allVideos);
+      const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
+      await Promise.allSettled(statsPromises);
     } catch (err) {
       console.error("Lỗi khi fetch farms:", err);
     } finally {
@@ -450,6 +470,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   const countVideosByFarm = (farmId) => {
   return videos.filter((v) => v.farmId?.id === farmId).length;
 };
+
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?.id) || String(f.createBy) === String(user?.id));
   const userPosts = posts.filter(p => p.authorId?.id === user?.id);
   const userVideos = videos.filter(v => v.uploadedBy?.id === user?.id);
