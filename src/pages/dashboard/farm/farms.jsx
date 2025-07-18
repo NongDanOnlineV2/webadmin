@@ -56,11 +56,12 @@ const fetchFarms = async () => {
       params: { limit: 10000 },
     });
 
-    const farms = res.data?.data || [];
+    const farms = (res.data?.data || []).sort(
+  (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+);
 
     // Gán danh sách trước (chưa có videoCount)
     setAllFarms(farms);
-
     // Gọi videoCount cho từng farm
     farms.forEach(async (farm) => {
       try {
@@ -107,8 +108,8 @@ const fetchFarms = async () => {
 
   const deleteFarm = async (id) => {
     try {
-      await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
-await fetchFarms();
+await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
+      await fetchFarms();
     } catch (err) {
       alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
     }
@@ -190,10 +191,10 @@ await fetchFarms();
               <Tab value="all" onClick={() => setTab("all")}>Tất cả</Tab>
               <Tab value="pending" onClick={() => setTab("pending")}>Chờ duyệt</Tab>
               <Tab value="active" onClick={() => setTab("active")}>Đang hoạt động</Tab>
-              <Tab value="inactive" onClick={() => setTab("inactive")}>Đã khoá</Tab>
+<Tab value="inactive" onClick={() => setTab("inactive")}>Đã khoá</Tab>
             </TabsHeader>
           </Tabs>
-</div>
+        </div>
 
         {loading ? (
           <Typography className="text-indigo-500">Đang tải dữ liệu...</Typography>
@@ -205,7 +206,7 @@ await fetchFarms();
               <thead>
                 <tr className="bg-blue-gray-50 text-blue-gray-700 text-sm">
                   <th className="px-2 py-2 font-semibold uppercase">Tên</th>
-                  <th className="px-2 py-2 font-semibold uppercase">Tags</th>
+                  <th className="px-2 py-2 font-semibold uppercase">Ngày tạo</th>
                   <th className="px-2 py-2 font-semibold uppercase">Mã</th>
                   <th className="px-2 py-2 font-semibold uppercase">Chủ sở hữu</th>
                   <th className="px-2 py-2 font-semibold uppercase">SĐT</th>
@@ -224,31 +225,21 @@ await fetchFarms();
                     onClick={() => handleOpenDetail(farm._id)}
                   >
                     <td className="px-2 py-2">{farm.name}</td>
-                    <td className="px-2 py-2">
-                          {Array.isArray(farm.tags) && farm.tags.length > 0 ? (
-                            <div className="flex items-center gap-2">
-                              <Chip
-                                size="sm"
-                                value={
-                                  farm.tags[0].length > 10
-                                    ? farm.tags[0].slice(0, 10) + "..."
-                                    : farm.tags[0]
-                                }
-                                className="bg-gray-200 text-gray-800"
-                              />
-                              {farm.tags.length > 1 && (
-                                <span className="text-sm text-gray-600 font-medium">+{farm.tags.length - 1}</span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
+                      <td className="px-2 py-2">
+                        {farm.createdAt
+                          ? new Date(farm.createdAt).toLocaleDateString("vi-VN", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })
+                          : "—"}
                       </td>
+
                     <td className="px-2 py-2">{farm.code}</td>
                     <td className="px-2 py-2">{farm.ownerInfo?.name || "—"}</td>
                     <td className="px-2 py-2">{farm.phone || "—"}</td>
                     <td className="px-2 py-2">
-{farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
+                      {farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
                     </td>
                     <td className="px-2 py-2">{farm.area} m²</td>
                     <td className="px-2 py-2">
@@ -258,8 +249,7 @@ await fetchFarms();
                         <span className="text-gray-400 italic">Đang tải...</span>
                       )}
                     </td>
-
-                    <td className="px-2 py-2">
+<td className="px-2 py-2">
                       <Chip
                         value={
                           farm.status === "pending"
@@ -317,12 +307,12 @@ await fetchFarms();
                           </MenuItem>
                           {farm.status === "pending" && (
                             <>
-<MenuItem onClick={() => { changeStatus(farm._id, "activate"); setOpenMenuId(null); }}>Duyệt</MenuItem>
+                              <MenuItem onClick={() => { changeStatus(farm._id, "activate"); setOpenMenuId(null); }}>Duyệt</MenuItem>
                               <MenuItem onClick={() => { changeStatus(farm._id, "deactivate"); setOpenMenuId(null); }}>Từ chối</MenuItem>
                             </>
                           )}
                           {farm.status === "active" && (
-                            <MenuItem onClick={() => { changeStatus(farm._id, "deactivate"); setOpenMenuId(null); }}>Khóa</MenuItem>
+<MenuItem onClick={() => { changeStatus(farm._id, "deactivate"); setOpenMenuId(null); }}>Khóa</MenuItem>
                           )}
                           {farm.status === "inactive" && (
                             <MenuItem onClick={() => { changeStatus(farm._id, "activate"); setOpenMenuId(null); }}>Mở khóa</MenuItem>
@@ -390,7 +380,7 @@ await fetchFarms();
           Chi tiết nông trại
           <IconButton variant="text" onClick={() => setOpenDetail(false)} className="ml-auto">✕</IconButton>
         </DialogHeader>
-<DialogBody className="p-4">
+        <DialogBody className="p-4">
           <FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} />
         </DialogBody>
       </Dialog>
@@ -399,7 +389,7 @@ await fetchFarms();
       <Dialog open={deleteConfirmOpen} handler={setDeleteConfirmOpen} size="sm">
         <DialogHeader>Xác nhận xoá</DialogHeader>
         <DialogBody>
-          Bạn có chắc chắn muốn xoá nông trại này? Hành động này không thể hoàn tác.
+Bạn có chắc chắn muốn xoá nông trại này? Hành động này không thể hoàn tác.
         </DialogBody>
         <div className="flex justify-end gap-2 p-4">
           <Button color="gray" onClick={() => setDeleteConfirmOpen(false)}>Huỷ</Button>
