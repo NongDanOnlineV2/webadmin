@@ -288,9 +288,7 @@ const handleOpenFarms = async () => {
     setOpenFarms(false); 
     return;
   }
-
   setOpenFarms(true); 
-
   if (farms.length === 0 && !loadingFarms) {
     setLoadingFarms(true); 
     try {
@@ -309,12 +307,10 @@ const handleOpenFarms = async () => {
 
 const handleOpenPosts = async () => {
   if (openPosts) {
-    setOpenPosts(false); // ✅ Đóng ngay nếu đang mở
+    setOpenPosts(false); 
     return;
   }
-
-  setOpenPosts(true); // ✅ Mở UI ngay
-
+  setOpenPosts(true); 
   if (posts.length === 0 && !loadingPosts) {
     setLoadingPosts(true);
     try {
@@ -322,9 +318,8 @@ const handleOpenPosts = async () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       const allPosts = await fetchPaginatedData(`${BASE_URL}/admin-post-feed`, config);
-      setPosts(allPosts); // ✅ Set posts ngay khi fetch xong
+      setPosts(allPosts); 
 
-      // Load lượt like & comment cho từng post
       const statsPromises = allPosts.map(async (post) => {
         const [likeCount, commentCount] = await Promise.all([
           fetchLikeCount(post.id),
@@ -342,23 +337,21 @@ const handleOpenPosts = async () => {
         }));
       });
 
-      await Promise.allSettled(statsPromises); // ✅ Đợi hết các promise
+      await Promise.allSettled(statsPromises); 
     } catch (err) {
       console.error("Lỗi khi load posts:", err);
     } finally {
-      if (openPosts) setLoadingPosts(false); // ✅ Chỉ set nếu UI còn mở
+      if (openPosts) setLoadingPosts(false); 
     }
   }
 };
 
 const handleOpenVideos = async () => {
   if (openVideos) {
-    setOpenVideos(false); // đóng luôn nếu đang mở
+    setOpenVideos(false); 
     return;
   }
-
-  setOpenVideos(true); // mở UI ngay
-
+  setOpenVideos(true); 
   if (videos.length === 0 && !loadingVideos) {
     setLoadingVideos(true);
     try {
@@ -367,7 +360,6 @@ const handleOpenVideos = async () => {
 
       const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
 
-      // ✅ CHỈ setVideos nếu UI vẫn mở
       setVideos(allVideos);
 
       const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
@@ -375,7 +367,7 @@ const handleOpenVideos = async () => {
     } catch (err) {
       console.error("Lỗi khi load videos:", err);
     } finally {
-      if (openVideos) setLoadingVideos(false); // ✅ chỉ set nếu UI còn mở
+      if (openVideos) setLoadingVideos(false); 
     }
   }
 };
@@ -854,7 +846,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   </div>
 
   <Collapse open={openVideos}>
-    {loadingVideos && (
+    {openVideos && (
       <div className="overflow-hidden transition-all duration-300">
         <CardBody className="bg-white rounded-b-md">
           {userVideos.length === 0 ? (
@@ -1202,16 +1194,16 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   </div>
 
   <Collapse open={openPosts}>
-    {loadingPosts && (
+    {openPosts && (
       <div className="overflow-hidden transition-all duration-300">
         <CardBody className="bg-white rounded-b-md">
-          {userPosts.slice(0, visiblePosts).length === 0 ? (
+          {userPosts.length === 0 ? (
             <Typography className="text-center text-gray-500 py-6">
               Chưa có bài viết nào.
             </Typography>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {userPosts.map((post) => (
+              {userPosts.slice(0, visiblePosts).map((post) => (
                 <div
                   key={post._id}
                   className="border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-gray-50 flex flex-col justify-between"
@@ -1313,7 +1305,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           )}
           {visiblePosts < userPosts.length && (
             <div className="flex justify-center mt-4">
-              <Button onClick={handleShowMorePosts} color="green" variant="outlined">
+              <Button onClick={handleShowMorePosts} color="blue" variant="outlined">
                 Xem thêm posts
               </Button>
             </div>
