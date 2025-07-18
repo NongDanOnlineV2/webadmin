@@ -79,35 +79,39 @@ const [answers, setAnswers] = useState([]);
   });
 
   const fetchDetail = async () => {
-    if (!farmId) return;
-    try {
-      const res = await axios.get(`${BASE_URL}/adminfarms/${farmId}`, getOpts());
-      setFarm(res.data?.data || res.data);
-    } catch (err) {
-      setError(err.response?.data?.message || err.message);
-      setFarm(null);
-    }
-  };
+  if (!farmId) return;
+  try {
+    const res = await axios.get(`${BASE_URL}/adminfarms/${farmId}`, getOpts());
+    const farmData = res.data?.data || res.data;
 
-  const fetchImages = async () => {
-    try {
-      const [farmRes, imageRes] = await Promise.all([
-        axios.get(`${BASE_URL}/adminfarms/${farmId}`, getOpts()),
-        axios.get(`${BASE_URL}/farm-pictures/${farmId}`, getOpts()),
-      ]);
+    const pictures = farmData.pictures || [];
 
-      const user = farmRes.data?.data?.ownerInfo;
-      const farmImages = imageRes.data?.data || [];
+    const defaultImg =
+      pictures.find((pic) => pic.isDefault) ||
+      (pictures.length > 0 ? pictures[0] : null);
 
-      const avatarImage = user?.avatar
-        ? [{ url: user.avatar, isAvatar: true }]
-        : [];
+    setFarm({
+      ...farmData,
+      imageUrl: defaultImg
+        ? `${BASE_URL}${defaultImg.imageUrl}`
+        : null,
+    });
 
-      setImages([...avatarImage, ...farmImages]);
-    } catch (err) {
-      console.error("Lỗi ảnh:", err);
-    }
-  };
+    // Gán ảnh luôn cho images
+    setImages(
+      pictures.map((p) => ({
+        ...p,
+        url: `${BASE_URL}${p.imageUrl}`,
+        isAvatar: p.isDefault,
+      }))
+    );
+  } catch (err) {
+    setError(err.response?.data?.message || err.message);
+    setFarm(null);
+  }
+};
+
+
 
   const fetchFarmVideos = async () => {
     try {
@@ -157,7 +161,6 @@ const [answers, setAnswers] = useState([]);
   useEffect(() => {
     if (open && farmId) {
       fetchDetail();
-      fetchImages();
       fetchFarmVideos();
     }
   }, [open, farmId]);
@@ -205,7 +208,7 @@ const [answers, setAnswers] = useState([]);
               </div>
             )}
                   
-                  {/* hình ảnh chó */}
+                  {/* hình ảnh  */}
             <div>
               <Typography variant="h6" className="mb-2 text-blue-gray-900">Hình ảnh</Typography>
               {images.length > 0 ? (
@@ -213,13 +216,16 @@ const [answers, setAnswers] = useState([]);
                   {images.map((img, idx) => (
                     <div key={idx}>
                       <img
-                        src={img.url.startsWith("http") ? img.url : `${BASE_URL}${img.url}`}
-                        alt={img.isAvatar ? "Ảnh" : `Ảnh ${idx + 1}`}
+                        src={img.url} 
+                        alt={img.isAvatar ? "Ảnh đại diện" : `Ảnh ${idx + 1}`}
                         className="w-full h-40 object-cover rounded-lg border shadow-sm"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "/fallback.jpg"; // ✅ fallback khi lỗi ảnh
+                        }}
                       />
-
                       {img.isAvatar && (
-                        <Typography className="text-xs text-center text-gray-600 mt-1">Ảnh</Typography>
+                        <Typography className="text-xs text-center text-gray-600 mt-1">Ảnh đại diện</Typography>
                       )}
                     </div>
                   ))}
@@ -228,6 +234,7 @@ const [answers, setAnswers] = useState([]);
                 <Typography className="text-sm italic text-gray-500">Chưa có hình ảnh</Typography>
               )}
             </div>
+
 
             <div className="mt-6">
 <Typography variant="h6" className="mb-2 text-blue-gray-900">Danh sách video</Typography>
