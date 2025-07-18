@@ -53,6 +53,9 @@ const fetchFarms = async () => {
     const res = await axios.get(`${BASE_URL}/adminfarms`, {
       ...getOpts(),
       params: { limit: 100 },
+
+
+
     });
 
     const farms = (res.data?.data || []).sort(
@@ -248,7 +251,10 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
                         <span className="text-gray-400 italic">Đang tải...</span>
                       )}
                     </td>
-<td className="px-2 py-2">
+
+
+
+                    <td className="px-2 py-2">
                       <Chip
                         value={
                           farm.status === "pending"

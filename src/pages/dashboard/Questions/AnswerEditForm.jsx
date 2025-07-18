@@ -107,7 +107,9 @@ export default function AnswersTable() {
 
   return (
     <div className="p-4">
-<Typography variant="h4" className="mb-4">
+
+      <Typography variant="h4" className="mb-4">
+
         Danh sách câu trả lời
       </Typography>
       {loading ? (
@@ -167,4 +169,5 @@ export default function AnswersTable() {
       />
     </div>
   );
+
 }

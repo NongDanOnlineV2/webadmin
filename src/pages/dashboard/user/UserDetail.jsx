@@ -50,7 +50,7 @@ export default function UserDetail() {
   const [videoCountsByFarm, setVideoCountsByFarm] = useState({});
   const [pageFarms, setPageFarms] = useState(1);
   const [pageVideos, setPageVideos] = useState(1);
-  const [pagePosts, setPagePosts] = useState(1);
+const [pagePosts, setPagePosts] = useState(1);
   const [hasMoreFarms, setHasMoreFarms] = useState(true);
   const [hasMoreVideos, setHasMoreVideos] = useState(true);
   const [hasMorePosts, setHasMorePosts] = useState(true);
@@ -158,7 +158,7 @@ const fetchLikeCount = async (postId) => {
 const handleOpenEditAddress = (addr) => {
   setEditingAddress(addr);
   setAddressForm({
-    addressName: addr.addressName || "",
+addressName: addr.addressName || "",
     address: addr.address || "",
     ward: addr.ward || "",
     province: addr.province || ""
@@ -261,8 +261,7 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
       try {
         const token = localStorage.getItem("token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
-
-        const [userRes, addressRes ] = await Promise.all([
+const [userRes, addressRes ] = await Promise.all([
           axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, config), 
           axios.get(`https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`, config), 
         ]);
@@ -291,9 +290,9 @@ const handleOpenFarms = async () => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms?page=1&limit=6`, config);
+      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms`, config);
       setFarms(allFarms); 
-      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm?page=1&limit=6`, config);
+      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
 
       const counts = {};
       allVideos.forEach((video) => {
@@ -366,8 +365,7 @@ const handleOpenVideos = async () => {
     try {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
-
-      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
+const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
 
       setVideos(allVideos);
 
@@ -463,7 +461,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   const showFarmVideos = async (farmId, farmName) => {           
     const relatedVideos = videos.filter((v) => v.farmId?.id === farmId);
     setSelectedFarmVideos(relatedVideos);
-    setSelectedFarmName(farmName);
+setSelectedFarmName(farmName);
     setOpenVideoDialog(true);
 
   };
@@ -533,7 +531,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             </div>
             <div>
               <Typography variant="h6" className="text-gray-700 font-semibold">Ngày tạo:</Typography>
-              <Typography className="text-gray-900">{new Date(user.createdAt).toLocaleString()}</Typography>
+<Typography className="text-gray-900">{new Date(user.createdAt).toLocaleString()}</Typography>
             </div>
             <div>
               <Typography variant="h6" className="text-gray-700 font-semibold">Ngày Updated gần nhất:</Typography>
@@ -617,7 +615,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     </Button>
                   </div>
                 </div>
-              ))}
+))}
             </div>
           )}
         </CardBody>
@@ -715,7 +713,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       <b>Tags:</b>{" "}
                       {(farm.tags || []).join(", ") || "—"}
                     </Typography>
-                    <Typography>
+<Typography>
                       <b>Trạng thái:</b>{" "}
                       {farm.status === "pending"
                         ? "Chờ duyệt"
@@ -787,7 +785,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     <Button
                       size="sm"
                       color="blue"
-                      onClick={() =>
+onClick={() =>
                         showFarmVideos(farm._id, farm.name)
                       }
                     >
@@ -875,7 +873,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
                   {/* Thuộc farm */}
                   <Typography className="mb-2 text-sm text-gray-700">
-                    <strong>Thuộc Farm:</strong>{" "}
+<strong>Thuộc Farm:</strong>{" "}
                     {video.farmId?.name || (
                       <span className="text-red-500">
                         Không thuộc farm nào
@@ -943,7 +941,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     <p>
                       <strong>Trạng thái:</strong> {video.status}
                     </p>
-                  </div>
+</div>
 
                   {/* Lượt thích & Lượt bình luận */}
                   <div className="flex flex-wrap gap-2 mt-3">
@@ -1025,7 +1023,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                 Trình duyệt không hỗ trợ video
               </video>
             ) : item.youtubeLink && item.status === "uploaded" ? (
-              item.youtubeLink.endsWith(".mp4") ? (
+item.youtubeLink.endsWith(".mp4") ? (
                 <video
                   src={item.youtubeLink}
                   controls
@@ -1110,7 +1108,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
         size="md"
         handler={() => setOpenLikesDialog(false)}
         dismiss={{ outsidePress: false }}
-      >
+>
         <DialogHeader onClick={(e) => e.stopPropagation()}>Danh sách user đã like - {selectedVideoTitle}</DialogHeader>
         <DialogBody className="space-y-4 max-h-[400px] overflow-y-auto">
           {selectedVideoLikes.length === 0 ? (
@@ -1182,7 +1180,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       <Card>
   <div
     onClick={handleOpenPosts}
-    className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
+className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5" className="text-gray-800 font-bold">
       Danh sách Posts 
@@ -1250,7 +1248,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   </Typography>
 
                   {/* Mô tả */}
-                  <Typography className="text-sm text-gray-700 mb-2">
+<Typography className="text-sm text-gray-700 mb-2">
                     {post.description}
                   </Typography>
 
@@ -1324,7 +1322,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       open={openPostCommentDialog}
       size="md"
       handler={() => setOpenPostCommentDialog(false)}
-      dismiss={{ outsidePress: false }}
+dismiss={{ outsidePress: false }}
     >
       <DialogHeader>Danh sách bình luận - {selectedPostTitle}</DialogHeader>
       <DialogBody className="space-y-4 max-h-[400px] overflow-y-auto">
@@ -1392,7 +1390,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
         }
       </DialogBody>
       <DialogFooter>
-        <Button color="red" onClick={() => setOpenPostCommentDialog(false)}>Đóng</Button>
+<Button color="red" onClick={() => setOpenPostCommentDialog(false)}>Đóng</Button>
       </DialogFooter>
     </Dialog>
 

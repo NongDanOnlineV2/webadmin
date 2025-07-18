@@ -78,4 +78,6 @@ const AnswersTableDetail = ({ open, onClose, data }) => {
   );
 };
 
+
 export default AnswersTableDetail;
+

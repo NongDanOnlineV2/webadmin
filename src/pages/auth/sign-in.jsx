@@ -90,7 +90,7 @@ export function SignIn() {
               size="lg"
               placeholder="name@mail.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+onChange={(e) => setEmail(e.target.value)}
               className=" !border-t-blue-gray-200 focus:!border-t-gray-900"
               labelProps={{ className: "before:content-none after:content-none" }}
               inputRef={emailRef}
@@ -162,7 +162,7 @@ export function SignIn() {
         </form>
       </div>
       <div className="w-2/5 h-full hidden lg:block">
-        <img src="/img/pattern.png" className="h-full w-full object-cover rounded-3xl" />
+<img src="/img/pattern.png" className="h-full w-full object-cover rounded-3xl" />
       </div>
     </section>
   );

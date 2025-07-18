@@ -216,14 +216,17 @@ const [answers, setAnswers] = useState([]);
                   {images.map((img, idx) => (
                     <div key={idx}>
                       <img
-                        src={img.url} 
-                        alt={img.isAvatar ? "Ảnh đại diện" : `Ảnh ${idx + 1}`}
+
+
+                        src={img.url.startsWith("http") ? img.url : `${BASE_URL}${img.url}`}
+                        alt={img.isAvatar ? "Ảnh" : `Ảnh ${idx + 1}`}
                         className="w-full h-40 object-cover rounded-lg border shadow-sm"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = "/fallback.jpg"; // ✅ fallback khi lỗi ảnh
+                          e.target.src = "/fallback.jpg"; 
                         }}
                       />
+
                       {img.isAvatar && (
                         <Typography className="text-xs text-center text-gray-600 mt-1">Ảnh đại diện</Typography>
                       )}
