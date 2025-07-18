@@ -48,34 +48,44 @@ export function Farms() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Đặt ở ngoài fetchFarms
-const [totalFarms, setTotalFarms] = useState(0);
-const totalPages = Math.ceil(totalFarms / itemsPerPage);
-const fetchFarms = async (page = 1) => {
+const fetchFarms = async () => {
   setLoading(true);
   try {
-    const opts = getOpts();
     const res = await axios.get(`${BASE_URL}/adminfarms`, {
-      ...opts,
-      params: {
-        limit: itemsPerPage,
-        page:1,
-          limit: 100
-      },
+      ...getOpts(),
+      params: { limit: 10000 },
     });
-    const farms = res.data?.data || [];
-    const totalCount = res.data?.total || 0;
 
-    const sortedFarms = farms.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    setFarms(sortedFarms);
-    setTotalFarms(totalCount);
+    const farms = (res.data?.data || []).sort(
+  (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+);
+
+    // Gán danh sách trước (chưa có videoCount)
+    setAllFarms(farms);
+    // Gọi videoCount cho từng farm
+    farms.forEach(async (farm) => {
+      try {
+        const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
+        const videos = videoRes.data?.data || [];
+
+        // Cập nhật farm với videoCount
+        setAllFarms((prevFarms) =>
+          prevFarms.map((f) =>
+            f._id === farm._id ? { ...f, videoCount: videos.length } : f
+          )
+        );
+      } catch (err) {
+        console.error(`Lỗi videoCount của farm ${farm._id}:`, err.message);
+      }
+    });
   } catch (err) {
-    console.error("Lỗi fetchFarms:", err);
     setError(err.response?.data?.message || err.message);
   } finally {
     setLoading(false);
   }
 };
+
+
 
   const addFarm = async (data) => {
     try {
@@ -101,7 +111,7 @@ const fetchFarms = async (page = 1) => {
       await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
       await fetchFarms();
     } catch (err) {
-alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
+      alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -126,6 +136,7 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
     setOpenDetail(true);
   };
 
+  // ✅ Lọc client-side
   useEffect(() => {
     const keyword = search.toLowerCase();
     const filtered = allFarms
@@ -149,10 +160,11 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
   }, [search, tab, allFarms]);
 
   useEffect(() => {
-  fetchFarms(currentPage);
-}, [currentPage]);
+    fetchFarms();
+  }, []);
 
   const paginatedFarms = farms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(farms.length / itemsPerPage);
 
   return (
     <>
@@ -185,7 +197,7 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
         </div>
 
         {loading ? (
-<Typography className="text-indigo-500">Đang tải dữ liệu...</Typography>
+          <Typography className="text-indigo-500">Đang tải dữ liệu...</Typography>
         ) : error ? (
           <Typography color="red">Lỗi: {error}</Typography>
         ) : (
@@ -213,9 +225,16 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
                     onClick={() => handleOpenDetail(farm._id)}
                   >
                     <td className="px-2 py-2">{farm.name}</td>
-                    <td className="px-2 py-2">
-                      {new Date(farm.createdAt).toLocaleDateString("vi-VN")}
-                    </td>
+                      <td className="px-2 py-2">
+                        {farm.createdAt
+                          ? new Date(farm.createdAt).toLocaleDateString("vi-VN", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </td>
+
                     <td className="px-2 py-2">{farm.code}</td>
                     <td className="px-2 py-2">{farm.ownerInfo?.name || "—"}</td>
                     <td className="px-2 py-2">{farm.phone || "—"}</td>
@@ -223,7 +242,14 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
                       {farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
                     </td>
                     <td className="px-2 py-2">{farm.area} m²</td>
-                    <td className="px-2 py-2">{farm.videoCount ?? 0}</td>
+                    <td className="px-2 py-2">
+                      {farm.videoCount !== undefined ? (
+                        farm.videoCount
+                      ) : (
+                        <span className="text-gray-400 italic">Đang tải...</span>
+                      )}
+                    </td>
+
                     <td className="px-2 py-2">
                       <Chip
                         value={
@@ -283,7 +309,7 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
                           {farm.status === "pending" && (
                             <>
                               <MenuItem onClick={() => { changeStatus(farm._id, "activate"); setOpenMenuId(null); }}>Duyệt</MenuItem>
-<MenuItem onClick={() => { changeStatus(farm._id, "deactivate"); setOpenMenuId(null); }}>Từ chối</MenuItem>
+                              <MenuItem onClick={() => { changeStatus(farm._id, "deactivate"); setOpenMenuId(null); }}>Từ chối</MenuItem>
                             </>
                           )}
                           {farm.status === "active" && (
@@ -305,22 +331,29 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
                 <Button
                   size="sm"
                   variant="outlined"
+                  className="rounded-md px-4 py-1"
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 >
-                  TRANG TRƯỚC
+                  <span className={currentPage === 1 ? "text-gray-400 font-semibold" : "font-semibold"}>
+                    TRANG TRƯỚC
+                  </span>
                 </Button>
 
                 <Typography variant="small" className="text-black font-medium">
                   Trang {currentPage} / {totalPages}
                 </Typography>
+
                 <Button
                   size="sm"
                   variant="outlined"
+                  className="rounded-md px-4 py-1"
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                 >
-                  TRANG SAU
+                  <span className={currentPage === totalPages ? "text-gray-400 font-semibold" : "font-semibold"}>
+                    TRANG SAU
+                  </span>
                 </Button>
               </div>
             )}
@@ -349,7 +382,7 @@ alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
           <IconButton variant="text" onClick={() => setOpenDetail(false)} className="ml-auto">✕</IconButton>
         </DialogHeader>
         <DialogBody className="p-4">
-<FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} />
+          <FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} />
         </DialogBody>
       </Dialog>
 
