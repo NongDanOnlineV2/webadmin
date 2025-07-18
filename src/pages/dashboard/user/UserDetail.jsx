@@ -291,9 +291,9 @@ const handleOpenFarms = async () => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms?page=1&limit=6`, config);
+      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms`, config);
       setFarms(allFarms); 
-      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm?page=1&limit=6`, config);
+      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
 
       const counts = {};
       allVideos.forEach((video) => {
