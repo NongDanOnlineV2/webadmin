@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogHeader,
-  DialogBody,
-  DialogFooter,
-  Input,
-  Button,
   Typography,
+  Button,
+  Dialog,
+  Input,
   Menu,
   MenuHandler,
   MenuList,
@@ -14,14 +11,17 @@ import {
   IconButton,
 } from "@material-tailwind/react";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
-import axios from "axios";
 import { Audio } from "react-loader-spinner";
+import axios from "axios";
+import AnswersTableDetail from "./answerstabledetail";
+import AnswerAddForm from "./AnswerAddForm";
+import AnswerEditForm from "./AnswerEditForm";
+import { toast } from "react-toastify";
 
 const API_URL = "https://api-ndolv2.nongdanonline.cc/answers";
 const FILE_BASE_URL = "https://api-ndolv2.nongdanonline.cc";
 let token = localStorage.getItem("token");
 
-// Auto-refresh token
 const fetchWithAuth = async (url, options = {}) => {
   let res = await fetch(url, {
     ...options,
@@ -62,8 +62,15 @@ const fetchWithAuth = async (url, options = {}) => {
 };
 
 export function AnswersTable() {
-  const [questionAnFarmId, setQuestionAndFarmId] = useState([]);
   const [answers, setAnswers] = useState([]);
+  const [questionAnFarmId, setQuestionAndFarmId] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState("");
+  const [filterOption, setFilterOption] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [formType, setFormType] = useState(null);
+  const [editData, setEditData] = useState(null);
   const [form, setForm] = useState({
     farmId: "",
     questionId: "",
@@ -71,15 +78,9 @@ export function AnswersTable() {
     otherText: "",
     uploadedFiles: [],
   });
-  const [editData, setEditData] = useState(null);
-  const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const [searchText, setSearchText] = useState("");
-  const [filterOption, setFilterOption] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
 
   const fetchAnswers = async () => {
     try {
@@ -96,22 +97,32 @@ export function AnswersTable() {
       const response = await Promise.all(
         answers.map(async (item) => {
           try {
-            const resQ = await axios.get(
-              `https://api-ndolv2.nongdanonline.cc/admin-questions/${item.questionId}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            const resF = await axios.get(
-              `https://api-ndolv2.nongdanonline.cc/adminfarms/${item.farmId}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            return { ...item, question: resQ.data, farm: resF.data };
+            const [resQ, resF] = await Promise.all([
+axios.get(
+                `https://api-ndolv2.nongdanonline.cc/admin-questions/${item.questionId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              ),
+              axios.get(
+                `https://api-ndolv2.nongdanonline.cc/adminfarms/${item.farmId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              ),
+            ]);
+
+            return {
+              ...item,
+              question: resQ.data,
+              farm: {
+                ...resF.data,
+                ownerName: resF.data.owner?.fullname || "—",
+              },
+            };
           } catch {
             return { ...item };
           }
         })
       );
       setQuestionAndFarmId(response);
-    } catch (err) {
+    } catch {
       setQuestionAndFarmId([]);
     } finally {
       setLoading(false);
@@ -126,62 +137,28 @@ export function AnswersTable() {
     if (answers.length > 0) getFarmandQuestion();
   }, [answers]);
 
-  const openForm = (data = null) => {
+  const openAddForm = () => {
     setForm({
-      farmId: data?.farmId || "",
-      questionId: data?.questionId || "",
-      selectedOptions: data?.selectedOptions || [],
-      otherText: data?.otherText || "",
-      uploadedFiles: data?.uploadedFiles || [],
+      farmId: "",
+      questionId: "",
+      selectedOptions: [],
+      otherText: "",
+      uploadedFiles: [],
+    });
+    setFormType("add");
+    setEditData(null);
+  };
+
+  const openEditForm = (data) => {
+    setForm({
+      farmId: data.farmId || "",
+      questionId: data.questionId || "",
+      selectedOptions: data.selectedOptions || [],
+      otherText: data.otherText || "",
+      uploadedFiles: data.uploadedFiles || [],
     });
     setEditData(data);
-    setOpen(true);
-  };
-
-  const handleSubmit = async () => {
-    if (!form.farmId || !form.questionId) {
-      alert("Vui lòng nhập đủ Farm ID và Question ID");
-      return;
-    }
-
-    try {
-      const res = await fetchWithAuth(`${API_URL}/batch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          farmId: form.farmId,
-          answers: [
-            {
-              questionId: form.questionId,
-              selectedOptions: form.selectedOptions,
-              otherText: form.otherText,
-              uploadedFiles: form.uploadedFiles,
-            },
-          ],
-        }),
-      });
-
-      if (!res.ok) throw new Error("Không thể lưu dữ liệu");
-
-      setOpen(false);
-      setEditData(null);
-      fetchAnswers();
-    } catch (err) {
-      alert(`Lỗi: ${err.message}`);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xoá?")) return;
-    try {
-      const res = await fetchWithAuth(`${API_URL}/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Không thể xoá dữ liệu");
-      fetchAnswers();
-    } catch (err) {
-      alert(err.message);
-    }
+    setFormType("edit");
   };
 
   const handleUploadImage = async (e) => {
@@ -197,7 +174,6 @@ export function AnswersTable() {
         method: "POST",
         body: formData,
       });
-
       const result = await res.json();
       if (!res.ok) throw new Error(result.message);
 
@@ -212,19 +188,76 @@ export function AnswersTable() {
     }
   };
 
+  const handleSubmit = async () => {
+    const payload =
+      formType === "edit"
+        ? {
+            farmId: form.farmId,
+            questionId: form.questionId,
+            selectedOptions: form.selectedOptions,
+            otherText: form.otherText,
+            uploadedFiles: form.uploadedFiles,
+          }
+        : {
+            farmId: form.farmId,
+            answers: [
+              {
+                questionId: form.questionId,
+                selectedOptions: form.selectedOptions,
+                otherText: form.otherText,
+                uploadedFiles: form.uploadedFiles,
+              },
+            ],
+          };
+
+    try {
+      const url =
+        formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
+const method = formType === "edit" ? "PUT" : "POST";
+
+      const res = await fetchWithAuth(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Không thể lưu dữ liệu");
+
+      toast.success(
+        formType === "edit"
+          ? "Cập nhật câu trả lời thành công!"
+          : "Thêm câu trả lời thành công!"
+      );
+
+      setFormType(null);
+      fetchAnswers();
+    } catch (error) {
+      toast.error(error.message || "Không thể lưu dữ liệu");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Bạn có chắc muốn xoá?")) return;
+    try {
+      const res = await fetchWithAuth(`${API_URL}/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Không thể xoá dữ liệu");
+      fetchAnswers();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const filteredData = questionAnFarmId.filter((item) => {
     const farmName = item.farm?.name?.toLowerCase() || "";
     const questionText = item.question?.text?.toLowerCase() || "";
     const selected = item.selectedOptions?.join(", ").toLowerCase() || "";
 
-    const matchSearch =
-      farmName.includes(searchText.toLowerCase()) ||
-      questionText.includes(searchText.toLowerCase());
-
-    const matchFilter =
-      !filterOption || selected.includes(filterOption.toLowerCase());
-
-    return matchSearch && matchFilter;
+    return (
+      (farmName.includes(searchText.toLowerCase()) ||
+        questionText.includes(searchText.toLowerCase())) &&
+      (!filterOption || selected.includes(filterOption.toLowerCase()))
+    );
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -237,50 +270,62 @@ export function AnswersTable() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <Typography variant="h5">Danh sách câu trả lời</Typography>
-        <Button color="green" onClick={() => openForm()}>
-          Thêm mới
-        </Button>
+        <Menu placement="bottom-end">
+          <MenuHandler>
+            <IconButton variant="text">
+              <EllipsisVerticalIcon className="h-6 w-6" />
+            </IconButton>
+          </MenuHandler>
+          <MenuList>
+            <MenuItem onClick={openAddForm}>Thêm mới</MenuItem>
+          </MenuList>
+        </Menu>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-        <Input
-          label="Tìm kiếm câu hỏi hoặc farm"
-          value={searchText}
-          onChange={(e) => {
-            setSearchText(e.target.value);
-            setCurrentPage(1);
-          }}
-        />
-      </div>
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">Lọc theo đáp án</label>
-  <select
-    value={filterOption}
-    onChange={(e) => {
-      setFilterOption(e.target.value);
-      setCurrentPage(1);
-    }}
-    style={{ width: '50%' , height:'50%' }}
-    className="border rounded px-3 py-2"
-  >
-    <option value="">Tất cả</option>
-    {[...new Set(questionAnFarmId.flatMap((item) => item.selectedOptions || []))].map((opt, idx) => (
-      <option key={idx} value={opt}>
-        {opt}
-      </option>
-    ))}
-  </select>
+      
+
+  <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4 mb-4">
+  <div className="sm:w-60">
+    <Input
+      label="Tìm kiếm câu hỏi hoặc farm"
+      value={searchText}
+      onChange={(e) => {
+        setSearchText(e.target.value);
+        setCurrentPage(1);
+      }}
+    />
+  </div>
+  <div className="sm:w-64 mt-4 sm:mt-0">
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Lọc theo đáp án
+    </label>
+    <select
+      value={filterOption}
+      onChange={(e) => {
+        setFilterOption(e.target.value);
+        setCurrentPage(1);
+      }}
+      className="border rounded px-2 py-1 text-sm w-full"
+    >
+      <option value="">Tất cả</option>
+      {[...new Set(questionAnFarmId.flatMap((item) => item.selectedOptions || []))].map((opt, idx) => (
+<option key={idx} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </select>
+  </div>
 </div>
 
 
 
       {loading ? (
-        <Audio height="80" width="80" radius="9" color="green" ariaLabel="loading" />
+        <Audio height="80" width="80" color="green" ariaLabel="loading" />
       ) : (
         <table className="min-w-full">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-3 text-left">#</th>
+              <th className="px-4 py-3 text-left"></th>
               <th className="px-4 py-3 text-left">Farm</th>
               <th className="px-4 py-3 text-left">Câu hỏi</th>
               <th className="px-4 py-3 text-left">Đáp án chọn</th>
@@ -291,7 +336,14 @@ export function AnswersTable() {
           </thead>
           <tbody>
             {paginatedData.map((item, index) => (
-              <tr key={item._id} className="hover:bg-gray-50 transition">
+              <tr
+                key={item._id}
+                className="hover:bg-gray-50 transition cursor-pointer"
+                onClick={() => {
+                  setSelectedAnswer(item);
+                  setDetailOpen(true);
+                }}
+              >
                 <td className="px-4 py-3">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                 <td className="px-4 py-3">{item.farm?.name || <i className="text-gray-400">chưa có</i>}</td>
                 <td className="px-4 py-3">{item.question?.text || <i className="text-gray-400">chưa có</i>}</td>
@@ -320,15 +372,15 @@ export function AnswersTable() {
                       </IconButton>
                     </MenuHandler>
                     <MenuList>
-                      <MenuItem onClick={() => openForm(item)}>Sửa</MenuItem>
+                      <MenuItem onClick={(e) => { e.stopPropagation(); openEditForm(item); }}>Sửa</MenuItem>
                       <MenuItem
-                        onClick={() => handleDelete(item._id)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(item._id); }}
                         className="text-red-500"
                       >
                         Xoá
                       </MenuItem>
                     </MenuList>
-                  </Menu>
+</Menu>
                 </td>
               </tr>
             ))}
@@ -336,60 +388,37 @@ export function AnswersTable() {
         </table>
       )}
 
-      {/* Pagination */}
       <div className="flex items-center justify-center gap-4 mt-6">
-        <Button
-          variant="outlined"
-          size="sm"
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((p) => p - 1)}
-        >
-          Trang trước
-        </Button>
-        <span className="text-sm font-medium">
-          Trang {currentPage} / {totalPages || 1}
-        </span>
-        <Button
-          variant="outlined"
-          size="sm"
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((p) => p + 1)}
-        >
-          Trang sau
-        </Button>
+        <Button variant="outlined" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>Trang trước</Button>
+        <span className="text-sm font-medium">Trang {currentPage} / {totalPages || 1}</span>
+        <Button variant="outlined" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)}>Trang sau</Button>
       </div>
 
-      {/* Dialog Form */}
-      <Dialog open={open} handler={() => setOpen(!open)}>
-        <DialogHeader>{editData ? "Chỉnh sửa" : "Thêm mới"} câu trả lời</DialogHeader>
-        <DialogBody className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input label="Farm ID" value={form.farmId} onChange={(e) => setForm({ ...form, farmId: e.target.value })} />
-          <Input label="Question ID" value={form.questionId} onChange={(e) => setForm({ ...form, questionId: e.target.value })} />
-          <div className="max-w-sm">
-            <Input
-              label="Selected Options (cách nhau bằng dấu phẩy)"
-              value={form.selectedOptions.join(", ")}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  selectedOptions: e.target.value
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-            />
-          </div>
-
-          <Input label="Other Text" value={form.otherText} onChange={(e) => setForm({ ...form, otherText: e.target.value })} />
-          <Input type="file" onChange={handleUploadImage} />
-          {uploading && <span className="text-sm text-gray-500">Đang tải lên...</span>}
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="outlined" onClick={() => setOpen(false)}>Huỷ</Button>
-          <Button color="blue" onClick={handleSubmit}>{editData ? "Cập nhật" : "Tạo mới"}</Button>
-        </DialogFooter>
+      <Dialog open={formType !== null} handler={() => setFormType(null)} size="xl">
+        {formType === "add" ? (
+          <AnswerAddForm
+            open
+            setOpen={() => setFormType(null)}
+            form={form}
+            setForm={setForm}
+            uploading={uploading}
+            handleUploadImage={handleUploadImage}
+            handleSubmit={handleSubmit}
+          />
+        ) : formType === "edit" ? (
+          <AnswerEditForm
+            open
+            setOpen={() => setFormType(null)}
+            form={form}
+            setForm={setForm}
+            uploading={uploading}
+            handleUploadImage={handleUploadImage}
+            handleSubmit={handleSubmit}
+          />
+        ) : null}
       </Dialog>
+
+      <AnswersTableDetail open={detailOpen} onClose={() => setDetailOpen(false)} data={selectedAnswer} />
     </div>
   );
 }
