@@ -184,7 +184,7 @@ useEffect(() => {
               
               <button
                 onClick={() => {
-                  if(confirm('👁️‍🗨️ Bạn có chắc chắn muốn ẩn bình luận này không?\n\n"' + item.comment + '"\n\nBình luận sẽ được ẩn khỏi người dùng (status = false).')) {
+                  if(confirm('👁️‍🗨️ Bạn có chắc chắn muốn xóa bình luận này không?\n\n"' + item.comment + '"\n\nBình luận sẽ được xóa khỏi người dùng (status = false).')) {
                     handleDeleteComment(item, index, CommentsDialog.postId);
                   }
                   setOpenMenuIndex(null);
@@ -197,8 +197,8 @@ useEffect(() => {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-sm">Ẩn bình luận</div>
-                  <div className="text-xs text-gray-500">Ẩn khỏi người dùng</div>
+                  <div className="font-medium text-sm">Xóa bình luận</div>
+                  <div className="text-xs text-gray-500">Xóa khỏi người dùng</div>
                 </div>
               </button>
             </div>
@@ -413,10 +413,10 @@ const handleDeleteComment = async (comment, index, postId) => {
     
     if (res.status === 200) {
       await getCommentById(postId);
-      alert("✅ Ẩn bình luận thành công!");
+      alert("✅ Xóa bình luận thành công!");
     }
   } catch (error) {
-    alert("❌ Lỗi khi ẩn bình luận: " + (error.response?.data?.message || error.message));
+    alert("❌ Lỗi khi xóa bình luận: " + (error.response?.data?.message || error.message));
   }
 };
 

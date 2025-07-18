@@ -37,6 +37,8 @@ export function PostList() {
   const [filterStatus, setFilterStatus] = useState("");
   const [topTags, setTopTags] = useState([]);
 
+
+
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
 
@@ -88,78 +90,86 @@ export function PostList() {
 };
 
   const fetchPosts = async () => {
-    setLoading(true);
-    const token = localStorage.getItem("token");
-    const queryParams = new URLSearchParams({
-      page: currentPage,
-      limit: postsPerPage,
-    });
+  setLoading(true);
+  const token = localStorage.getItem("token");
+  const queryParams = new URLSearchParams({
+    page: currentPage,
+    limit: postsPerPage,
+  });
 
+  if (filterUserId) queryParams.append("userId", filterUserId);
+  if (filterTitle) queryParams.append("title", filterTitle);
+  if (filterStatus === "true") queryParams.append("status", true);
+  else if (filterStatus === "false") queryParams.append("status", false);
+  if (filterSortLikes) queryParams.append("sortLikes", filterSortLikes);
+  if (filterSortComments) queryParams.append("sortComments", filterSortComments);
+  if (filterTag) queryParams.append("tags", filterTag);
 
-    if (filterUserId) queryParams.append("userId", filterUserId);
-    if (filterTitle) queryParams.append("title", filterTitle);
-    if (filterStatus === "true") queryParams.append("status", true);
-    else if (filterStatus === "false") queryParams.append("status", false);
-    if (filterSortLikes) queryParams.append("sortLikes", filterSortLikes);
-    if (filterSortComments) queryParams.append("sortComments", filterSortComments);
-    if (filterTag) queryParams.append("tags", filterTag);
+  try {
+    const res = await fetch(
+      `${BASE_URL}/admin-post-feed?${queryParams.toString()}`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-    try {
-      const res = await fetch(
-        `${BASE_URL}/admin-post-feed?${queryParams.toString()}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const json = await res.json();
-      if (res.ok) {
-        const fetchPosts = json.data || [];
-        const postsWithComments = await Promise.all(
+    const json = await res.json();
+
+    if (res.ok) {
+      const fetchPosts = json.data || [];
+      const postsWithComments = await Promise.all(
         fetchPosts.map(async (post) => {
           try {
+            // ✅ Fix dùng post.id thay vì post._id
             const commentRes = await fetch(
               `${BASE_URL}/admin-comment-post/post/${post.id}`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
             );
-            const commentJson = await commentRes.json();
-            if (commentRes.ok) {
-              const comments = commentJson.comments || [];
-              let totalReplies = 0;
-              comments.forEach((c) => {
-                totalReplies += c.replies?.length || 0;
-              });
-              return {
-                ...post,
-                commentCount: comments.length + totalReplies,
-              };
-            } else {
-              console.warn("Không lấy được comment cho post:", post.id);
+
+            if (!commentRes.ok) {
+              console.warn(`Không lấy được comment cho post ${post.id}:`, await commentRes.text());
               return { ...post, commentCount: 0 };
             }
+
+            const commentJson = await commentRes.json();
+
+            const commentsArray = Array.isArray(commentJson?.data) ? commentJson.data : [];
+
+            const totalComments = commentsArray.length;
+            const totalReplies = commentsArray.reduce(
+              (acc, comment) => acc + (Array.isArray(comment.replies) ? comment.replies.length : 0),
+              0
+            );
+
+            return {
+              ...post,
+              commentCount: totalComments + totalReplies,
+            };
           } catch (err) {
             console.error("Fetch comment error:", err);
             return { ...post, commentCount: 0 };
           }
         })
       );
-        setPosts(postsWithComments);
-        setTotalPages(json.totalPages || 1);
-      } else {
-        console.error("API lỗi:", json.message);
-        alert("Không lấy được dữ liệu: " + json.message);
-      }
-    } catch (err) {
-      console.error("Fetch posts error:", err);
-      alert("Không thể lấy danh sách bài viết: " + err.message);
+      setPosts(postsWithComments);
+      setTotalPages(json.totalPages || 1);
+    } else {
+      console.error("API lỗi:", json.message);
+      alert("Không lấy được dữ liệu: " + json.message);
     }
+  } catch (err) {
+    console.error("Fetch posts error:", err);
+    alert("Không thể lấy danh sách bài viết: " + err.message);
+  }
 
-    setLoading(false);
-  };
+  setLoading(false);
+};
+
 
   const handleFilter = () => {
     setCurrentPage(1);
@@ -352,7 +362,7 @@ export function PostList() {
           <tr>
             <th className="p-3 border">Tiêu đề</th>
             <th className="p-3 border">Mô tả</th>
-            <th className="p-3 border">Tags</th>
+            <th className="p-3 border">Ngày tạo</th>
             <th className="p-3 border">Hình</th>
             <th className="p-3 border">Tác giả</th>
             <th className="p-3 border text-center">Like</th>
@@ -376,24 +386,15 @@ export function PostList() {
                 <td className="p-3 border">{post.title}</td>
                 <td className="p-3 border max-w-xs">
                   <p className="line-clamp-2 text-sm leading-snug break-words">
-                    {post.description?.length > 45
-                      ? post.description.slice(0, 40) + "..."
+                    {post.description?.length > 20
+                      ? post.description.slice(0, 15) + "..."
                       : post.description || "Không có mô tả"}
                   </p>
                 </td>
                 <td className="p-3 border">
-                  {Array.isArray(post.tags) && post.tags.length > 0 && (
-                    <div className="flex items-center gap-1">
-                      <div className="px-2 py-1 text-xs bg-gray-200 rounded">
-                        {post.tags[0]}
-                      </div>
-                      {post.tags.length > 1 && (
-                        <span className="text-xs text-gray-500">
-                          +{post.tags.length - 1}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {post.createdAt
+                    ? new Date(post.createdAt).toLocaleDateString("vi-VN")
+                    : "Không rõ"}
                 </td>
                 <td className="p-3 border">
                   {post.images?.length > 0 ? (
@@ -408,9 +409,23 @@ export function PostList() {
                 </td>
                 <td className="p-3 border">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{author?.fullName?.length > 20? author?.fullName.slice(0, 15) + "..." : author?.fullName || "Không rõ"}</span>
+                    {post.authorId ? (
+                      <>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {post.authorId.fullName?.length > 20
+                              ? post.authorId.fullName.slice(0, 15) + "..."
+                              : post.authorId.fullName}
+                          </span>
+                          
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-gray-400 italic">Không rõ</span>
+                    )}
                   </div>
                 </td>
+
                 <td className="p-3 border text-center">{post.like}</td>
                 <td className="p-3 border text-center">{post.commentCount ?? 0}</td>
                 <td className="p-3 border text-center">

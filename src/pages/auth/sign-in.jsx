@@ -15,6 +15,9 @@ export function SignIn() {
   const [, dispatch] = useMaterialTailwindController();
   const emailRef = useRef();
   const passwordRef = useRef();
+  const [useDefaultApi, setUseDefaultApi] = useState(true);
+  const [customApiUrl, setCustomApiUrl] = useState("");
+
 
 
   const handleLogin = async (e) => {
@@ -36,10 +39,17 @@ export function SignIn() {
     }
 
     try {
-      const BASE_URL = env === "dev"? "https://api-ndolv2.nongdanonline.cc" : "https://api-ndol-v2-prod.nongdanonline.cc/";
+            const BASE_URL = useDefaultApi
+        ? "https://api-ndolv2.nongdanonline.cc"
+        : customApiUrl.trim();
+
+      if (!BASE_URL) {
+        alert("Vui lòng nhập URL API tùy chỉnh.");
+        return;
+      }
       localStorage.setItem("apiBaseUrl", BASE_URL);
 
-      const res = await fetch("https://api-ndolv2.nongdanonline.cc/auth/login", {
+      const res = await fetch(`${BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -110,26 +120,29 @@ export function SignIn() {
             <Typography variant="small" className="font-medium mb-2">
               Chọn môi trường API:
             </Typography>
-            <div className="flex gap-4">
-              <Radio
-                id="env-dev"
-                name="environment"
-                label="Dev (Mặc định)"
-                value="dev"
-                checked={env === "dev"}
-                onChange={() => setEnv("dev")}
+            <div className="flex flex-col gap-2">
+              <Checkbox
+                label="Sử dụng API mặc định (Dev)"
+                checked={useDefaultApi}
+                onChange={() => setUseDefaultApi(!useDefaultApi)}
               />
-              <Radio
-                id="env-prod"
-                name="environment"
-                label="Production"
-                value="prod"
-                checked={env === "prod"}
-                onChange={() => setEnv("prod")}
-              />
+              {!useDefaultApi && (
+                <>
+                  <Typography variant="small" color="blue-gray" className="font-medium">
+                    Nhập URL API tùy chỉnh:
+                  </Typography>
+                  <Input
+                    size="lg"
+                    placeholder="https://your-custom-api.com"
+                    value={customApiUrl}
+                    onChange={(e) => setCustomApiUrl(e.target.value)}
+                    className=" !border-t-blue-gray-200 focus:!border-t-gray-900"
+                    labelProps={{ className: "before:content-none after:content-none" }}
+                  />
+                </>
+              )}
             </div>
           </div>
-
 
           <Button className="mt-6" type="submit" fullWidth>Sign In</Button>
 

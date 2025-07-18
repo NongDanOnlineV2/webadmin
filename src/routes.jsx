@@ -7,12 +7,17 @@ import {
   RectangleStackIcon,
   NewspaperIcon,
   ReceiptPercentIcon,
-  ChatBubbleLeftEllipsisIcon
+  ChatBubbleLeftEllipsisIcon,
+  ShieldCheckIcon
 } from "@heroicons/react/24/solid";
 
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
 import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost  } from "@/pages/dashboard";
 import { SignIn, SignUp } from "@/pages/auth";
+import ChinhSach from "@/pages/dashboard/ChinhSach";
+import ChinhSachBaoMat from "@/pages/dashboard/ChinhSachBaoMat";
+import ChinhSachCookie from "@/pages/dashboard/ChinhSachCookie";
+import DieuKhoanDieuKien from "@/pages/dashboard/DieuKhoanDieuKien";
 
 import { ViewfinderCircleIcon,VideoCameraIcon,ChatBubbleOvalLeftEllipsisIcon  } from "@heroicons/react/24/outline";
 import { Comment } from "react-loader-spinner";
@@ -82,6 +87,15 @@ export const routes = [
          element: <CommentPost />,
 
       }, 
+{
+  icon: <ShieldCheckIcon {...icon} />,
+  name: "CHÍNH SÁCH",
+  collapse: [
+    { name: "CHÍNH SÁCH BẢO MẬT", path: "/chinh-sach/bao-mat", element: <ChinhSachBaoMat /> },
+    { name: "CHÍNH SÁCH COOKIE", path: "/chinh-sach/cookie", element: <ChinhSachCookie /> },
+    { name: "ĐIỀU KHOẢN & ĐIỀU KIỆN", path: "/chinh-sach/dieu-khoan", element: <DieuKhoanDieuKien /> },
+  ],
+}
       
     ],
   },

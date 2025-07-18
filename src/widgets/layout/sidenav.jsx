@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { useState, useEffect } from "react";
 import {
@@ -12,15 +12,14 @@ import {
   setOpenSidenav,
   setAuthStatus,
 } from "@/context";
-import { useNavigate } from "react-router-dom";
 
 export function Sidenav({ brandImg, brandName, routes, onCollapse }) {
   const [controller, dispatch] = useMaterialTailwindController();
   const { sidenavColor, sidenavType, openSidenav, isAuthenticated } = controller;
   const [collapsed, setCollapsed] = useState(false);
+  const [openCollapse, setOpenCollapse] = useState(null);
   const navigate = useNavigate();
 
-  // Gửi trạng thái collapse ra ngoài nếu cần dùng bên ngoài
   useEffect(() => {
     if (onCollapse) onCollapse(collapsed);
   }, [collapsed]);
@@ -80,7 +79,7 @@ export function Sidenav({ brandImg, brandName, routes, onCollapse }) {
         </IconButton>
       </div>
 
-      <div className="m-4">
+      <div className="m-4 overflow-y-auto max-h-[calc(100vh-200px)] pr-2">
         {visibleRoutes.map(({ layout, title, pages }, key) => (
           <ul key={key} className="mb-4 flex flex-col gap-1">
             {title && !collapsed && (
@@ -94,38 +93,93 @@ export function Sidenav({ brandImg, brandName, routes, onCollapse }) {
                 </Typography>
               </li>
             )}
-            {pages.map(({ icon, name, path }) => (
-              <li key={name}>
-                <NavLink to={`/${layout}${path}`}>
-                  {({ isActive }) => (
-                    <Button
-                      variant={isActive ? "gradient" : "text"}
-                      color={
-                        isActive
-                          ? sidenavColor
-                          : sidenavType === "dark"
-                          ? "white"
-                          : "blue-gray"
-                      }
-                      className={`flex items-center gap-4 capitalize transition-all duration-200 ${
-                        collapsed ? "justify-center p-3" : "px-4"
+
+            {pages.map((route) => {
+              if (route.collapse) {
+                const isOpen = openCollapse === route.name;
+                return (
+                  <li key={route.name}>
+                    <button
+                      className={`w-full text-left px-4 py-2 font-semibold uppercase ${
+                        collapsed ? "hidden" : ""
                       }`}
-                      fullWidth
+                      onClick={() => setOpenCollapse(isOpen ? null : route.name)}
                     >
-                      {icon}
-                      {!collapsed && (
-                        <Typography
-                          color="inherit"
-                          className="font-medium capitalize"
-                        >
-                          {name}
-                        </Typography>
-                      )}
-                    </Button>
-                  )}
-                </NavLink>
-              </li>
-            ))}
+                      {route.name}
+                    </button>
+
+                    {isOpen && (
+                      <ul className="ml-4 space-y-1">
+                        {route.collapse.map((subRoute) => (
+                          <li key={subRoute.name}>
+                            <NavLink to={`/${layout}${subRoute.path}`}>
+                              {({ isActive }) => (
+                                <Button
+                                  variant={isActive ? "gradient" : "text"}
+                                  color={
+                                    isActive
+                                      ? sidenavColor
+                                      : sidenavType === "dark"
+                                      ? "white"
+                                      : "blue-gray"
+                                  }
+                                  className={`flex items-center gap-4 transition-all duration-200 text-sm ${
+                                    collapsed ? "justify-center p-3" : "px-4"
+                                  }`}
+                                  fullWidth
+                                >
+                                  {!collapsed && (
+                                    <Typography
+                                      color="inherit"
+                                      className="font-normal"
+                                    >
+                                      {subRoute.name}
+                                    </Typography>
+                                  )}
+                                </Button>
+                              )}
+                            </NavLink>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              }
+
+              return (
+                <li key={route.name}>
+                  <NavLink to={`/${layout}${route.path}`}>
+                    {({ isActive }) => (
+                      <Button
+                        variant={isActive ? "gradient" : "text"}
+                        color={
+                          isActive
+                            ? sidenavColor
+                            : sidenavType === "dark"
+                            ? "white"
+                            : "blue-gray"
+                        }
+                        className={`flex items-center gap-4 capitalize transition-all duration-200 ${
+                          collapsed ? "justify-center p-3" : "px-4"
+                        }`}
+                        fullWidth
+                      >
+                        {route.icon}
+                        {!collapsed && (
+                          <Typography
+                            color="inherit"
+                            className="font-medium capitalize"
+                          >
+                            {route.name}
+                          </Typography>
+                        )}
+                      </Button>
+                    )}
+                  </NavLink>
+                </li>
+              );
+            })}
           </ul>
         ))}
       </div>
@@ -141,7 +195,6 @@ export function Sidenav({ brandImg, brandName, routes, onCollapse }) {
             fullWidth
             onClick={handleLogout}
           >
-            {/* icon */}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -161,7 +214,6 @@ export function Sidenav({ brandImg, brandName, routes, onCollapse }) {
                 d="M18.75 12H9m0 0l3-3m-3 3l3 3"
               />
             </svg>
-
             {!collapsed && (
               <Typography color="inherit" className="font-medium">
                 Log out
@@ -183,7 +235,7 @@ Sidenav.propTypes = {
   brandImg: PropTypes.string,
   brandName: PropTypes.string,
   routes: PropTypes.arrayOf(PropTypes.object).isRequired,
-  onCollapse: PropTypes.func, // optional callback
+  onCollapse: PropTypes.func,
 };
 
 Sidenav.displayName = "/src/widgets/layout/sidnave.jsx";

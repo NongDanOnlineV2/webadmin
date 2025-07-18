@@ -22,7 +22,6 @@ export default function Users() {
     fullName: "", email: "", phone: "", isActive: true, selectedAddress: ""
   });
   const [selectedRole, setSelectedRole] = useState("Farmer");
-console.log(formData)
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
@@ -73,21 +72,22 @@ setRoles(uniqueRoles);
       const videos = videosRes.data?.data || [];
       const posts = postsRes.data?.data || [];
 
-      const postCountsMap = {};
-      posts.forEach(p => {
-        const uid = p.userId || p.authorId;
-        if (uid) postCountsMap[uid] = (postCountsMap[uid] || 0) + 1;
-      });
+   const postCountsMap = {};
+posts.forEach(p => {
+  const uid = p.userId || p.authorId?.id;
+  if (uid) postCountsMap[uid] = (postCountsMap[uid] || 0) + 1;
+});
 
-      const countsObj = {};
-      usersData.forEach(user => {
-        countsObj[user.id] = {
-          farms: farms.filter(f => f.ownerId === user.id).length,
-          videos: videos.filter(v => v.uploadedBy?.id === user.id).length,
-          posts: postCountsMap[user.id] || 0
-        };
-      });
-      setCounts(countsObj);
+const countsObj = {};
+usersData.forEach(user => {
+  countsObj[user.id] = {
+    farms: farms.filter(f => f.ownerId === user.id).length,
+    videos: videos.filter(v => v.uploadedBy?.id === user.id).length,
+    posts: postCountsMap[user.id] || 0
+  };
+});
+setCounts(countsObj);
+
     } catch (err) {
       console.error("Lỗi khi tải users:", err);
       setError("Lỗi khi tải danh sách người dùng.");
@@ -160,7 +160,6 @@ setRoles(uniqueRoles);
     setEditOpen(true);
   };
   
-console.log(users)
 // CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
  const handleUpdate = async () => {
     if (!token || !selectedUser) return;
