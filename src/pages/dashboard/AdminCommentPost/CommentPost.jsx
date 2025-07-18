@@ -155,50 +155,17 @@ const getPost = async () => {
       if (missingIds.length > 0) {
         const individualPromises = missingIds.map(async (postId) => {
           try {
-            let individualRes;
-            
-            try {
-              individualRes = await axios.get(`${BaseUrl}/admin-post-feed/${postId}`, {
-                headers: { Authorization: `Bearer ${tokenUser}` }
-              });
-            } catch (e1) {
-              if (e1.response?.status === 404) {
-                try {
-                  individualRes = await axios.get(`${BaseUrl}/admin-post/${postId}`, {
-                    headers: { Authorization: `Bearer ${tokenUser}` }
-                  });
-                } catch (e2) {
-                  if (e2.response?.status === 404) {
-                    try {
-                      individualRes = await axios.get(`${BaseUrl}/post/${postId}`, {
-                        headers: { Authorization: `Bearer ${tokenUser}` }
-                      });
-                    } catch (e3) {
-                      // Bài viết không tồn tại, return null thay vì log error
-                      return null;
-                    }
-                  } else {
-                    throw e2;
-                  }
-                }
-              } else {
-                throw e1;
-              }
-            }
-            
+            const individualRes = await axios.get(`${BaseUrl}/admin-post-feed/${postId}`, {
+              headers: { Authorization: `Bearer ${tokenUser}` }
+            });
             if (individualRes?.status === 200) {
               return individualRes.data;
             }
             return null;
           } catch (error) {
-            // Chỉ log error nếu không phải 404
-            if (error.response?.status !== 404) {
-              console.warn('Error fetching post:', postId, error.response?.status);
-            }
             return null;
           }
         });
-        
         const individualResults = await Promise.all(individualPromises);
         const foundIndividualPosts = individualResults.filter(p => p !== null);
         posts = [...posts, ...foundIndividualPosts];
@@ -230,7 +197,7 @@ const filteredComments = React.useMemo(() => {
       return title.toLowerCase().includes(searchTitle.toLowerCase());
     });
   }
-  
+
   return result.sort((a, b) => {
     const dateA = new Date(a.createdAt);
     const dateB = new Date(b.createdAt);
@@ -312,8 +279,7 @@ filteredComments.length === 0 ? (
         {filteredComments.map((item) => {
           const postInfo = postMap[String(item.postId).trim()];
           const title = postInfo?.title?.trim() 
-            ? postInfo.title
-            : `Bài viết không tìm thấy (ID: ${String(item.postId).slice(-8)})`;
+            
           
           const sortedComments = item.comments
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
