@@ -800,7 +800,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                 variant="outlined"
                 onClick={handleShowMoreFarms}
               >
-                Xem thêm
+                Xem thêm Farms
               </Button>
             </div>
           )}
