@@ -144,6 +144,7 @@
     };
 
     return (
+      <>
       <Dialog
   open={open}
   handler={onClose}
@@ -336,9 +337,43 @@
         </div>
       </>
     )}
+    <Dialog
+  open={likeDialogOpen}
+  handler={() => setLikeDialogOpen(false)}
+  className="max-w-md z-50"
+>
+  <DialogHeader className="flex justify-between items-center">
+    <Typography variant="h5">Người đã thích bài viết</Typography>
+    <Button size="sm" onClick={() => setLikeDialogOpen(false)}>
+      Đóng
+    </Button>
+  </DialogHeader>
+  <DialogBody className="max-h-[60vh] overflow-y-auto">
+    {likeUsers.length > 0 ? (
+      likeUsers.map((user) => (
+        <div key={user._id || user.id} className="flex items-center gap-3 mb-2">
+          <Avatar
+            src={
+              user.avatar?.startsWith("http")
+                ? user.avatar
+                : `${BASE_URL}${user.avatar || ""}`
+            }
+            size="sm"
+          />
+          <div>
+            <Typography className="font-medium">{user.fullName}</Typography>
+            <Typography className="text-xs text-gray-500">{user.email}</Typography>
+          </div>
+        </div>
+      ))
+    ) : (
+      <Typography>Chưa có ai thích bài viết này.</Typography>
+    )}
+  </DialogBody>
+</Dialog>
   </DialogBody>
 </Dialog>
 
-
+</>
     );
   }
