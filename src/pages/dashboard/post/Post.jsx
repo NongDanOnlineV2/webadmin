@@ -25,7 +25,6 @@ export function PostList() {
   const [users, setUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;
-
   const [filterUserId, setFilterUserId] = useState("");
   const [filterTitle, setFilterTitle] = useState("");
   const [filterSortLikes, setFilterSortLikes] = useState("");
@@ -35,6 +34,7 @@ export function PostList() {
   const [filterTag, setFilterTag] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [topTags, setTopTags] = useState([]);
+  const [postCache, setPostCache] = useState({});
 
 
 
@@ -89,6 +89,11 @@ export function PostList() {
 };
 
   const fetchPosts = async () => {
+    if (postCache[currentPage]) {
+    setPosts(postCache[currentPage].posts);
+    setTotalPages(postCache[currentPage].totalPages);
+    return;
+  }
   setLoading(true);
   const token = localStorage.getItem("token");
   const queryParams = new URLSearchParams({
@@ -134,7 +139,7 @@ export function PostList() {
               console.warn(`Không lấy được comment cho post ${post.id}:`, await commentRes.text());
               return { ...post, commentCount: 0 };
             }
-
+            
             const commentJson = await commentRes.json();
 
             const commentsArray = Array.isArray(commentJson?.data) ? commentJson.data : [];
@@ -155,6 +160,13 @@ export function PostList() {
           }
         })
       );
+      setPostCache((prev) => ({
+        ...prev,
+        [currentPage]: {
+          posts: postsWithComments,
+          totalPages: json.totalPages || 1,
+        },
+      }));
       setPosts(postsWithComments);
       setTotalPages(json.totalPages || 1);
     } else {

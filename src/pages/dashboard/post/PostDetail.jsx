@@ -20,6 +20,7 @@ import { BaseUrl } from "@/ipconfig";
     const [commentLoading, setCommentLoading] = useState(true);
     const [showComments, setShowComments] = useState(false);
     const [likeDialogOpen, setLikeDialogOpen] = useState(false); 
+    const [lastPostIdFetched, setLastPostIdFetched] = useState(null);
    
 
     const token = localStorage.getItem("token");
@@ -55,10 +56,7 @@ import { BaseUrl } from "@/ipconfig";
     });
     const json = await res.json();
     if (res.ok) {
-      // ✅ Fix: dùng json.data thay vì json.comments
       const commentsArray = Array.isArray(json?.data) ? json.data : [];
-
-      console.log("✅ Comments loaded:", commentsArray);
 
       setComments(commentsArray);
     } else {
@@ -85,7 +83,6 @@ import { BaseUrl } from "@/ipconfig";
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
-        console.log(`User page ${page}:`, json);
         if (res.ok && Array.isArray(json.data)) {
           allUsers = allUsers.concat(json.data);
           totalPages = json.totalPages || 1; 
@@ -120,10 +117,12 @@ import { BaseUrl } from "@/ipconfig";
   };
 
     useEffect(() => {
-      if (open) {
+      if (open && postId && postId !== lastPostIdFetched) {
         setPost(null);
         setComments([]);
+        setLastPostIdFetched(postId);
         fetchPost();
+        setLikeUsers([]);
         fetchComments();
         fetchUsers();
         setShowComments(false);
@@ -258,7 +257,12 @@ import { BaseUrl } from "@/ipconfig";
           </div>
           <div
             className="flex items-center gap-1 cursor-pointer"
-            onClick={() => {fetchLikeUsers(); setLikeDialogOpen(true)}}
+            onClick={() => {
+              if (likeUsers.length === 0) {
+                fetchLikeUsers();
+              }
+              setLikeDialogOpen(true);
+            }}
           >
             <Typography className="font-semibold">Lượt thích:</Typography>
             <Chip value={post.like || 0} color="blue" size="sm" />
