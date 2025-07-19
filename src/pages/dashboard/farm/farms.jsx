@@ -45,43 +45,44 @@ export function Farms() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-// const fetchFarms = async (page = 1) => {
-//   setLoading(true);
-//   try {
-//     const res = await axios.get(`${BASE_URL}/adminfarms`, {
-//       ...getOpts(),
-//       params: { 
-//         limit: itemsPerPage, 
-//         page,
-//         status: tab === "all" ? undefined : tab,
-//         name: searchQuery || undefined,
-//       },
-//     });
+  
+const fetchFarms = async (page = 1) => {
+  setLoading(true);
+  try {
+    const res = await axios.get(`${BASE_URL}/adminfarms`, {
+      ...getOpts(),
+      params: {
+        status: tab === "all" ? undefined : tab,
+        name: searchQuery || undefined,
+      },
+      signal,
+    });
 
-//     const farms = (res.data?.data || []).sort(
-//   (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-// );
-//     const total = res.data?.total || 0;
-//     const farmsWithVideoCounts = await Promise.all(
-//       farms.map(async (farm) => {
-//         try {
-//           const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
-//           const videos = videoRes.data?.data || [];
-//           return { ...farm, videoCount: videos.length };
-//         } catch (err) {
-//           console.error(`Lỗi videoCount của farm ${farm._id}:`, err.message);
-//           return { ...farm, videoCount: 0 };
-//         }
-//       })
-//     );
-//     setFarms(farmsWithVideoCounts);
-//     setTotalPage(Math.ceil(total / itemsPerPage));
-//   } catch (err) {
-//     setError(err.response?.data?.message || err.message);
-//   } finally {
-//     setLoading(false);
-//   }
-// };
+
+    const farms = (res.data?.data || []).sort(
+  (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+);
+    const total = res.data?.total || 0;
+    const farmsWithVideoCounts = await Promise.all(
+      farms.map(async (farm) => {
+        try {
+          const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
+          const videos = videoRes.data?.data || [];
+          return { ...farm, videoCount: videos.length };
+        } catch (err) {
+          console.error(`Lỗi videoCount của farm ${farm._id}:`, err.message);
+          return { ...farm, videoCount: 0 };
+        }
+      })
+    );
+    setFarms(farmsWithVideoCounts);
+    setTotalPage(Math.ceil(total / itemsPerPage));
+  } catch (err) {
+    setError(err.response?.data?.message || err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 const handleSearch = () => {
   if (searchQuery !== searchInput) {
     setSearchQuery(searchInput);
@@ -154,9 +155,7 @@ useEffect(() => {
     try {
       const res = await axios.get(`${BASE_URL}/adminfarms`, {
         ...getOpts(),
-        params: {
-          limit: itemsPerPage,
-          page: currentPage,
+       params: {
           status: tab === "all" ? undefined : tab,
           name: searchQuery || undefined,
         },
