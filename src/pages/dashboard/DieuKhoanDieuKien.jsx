@@ -93,9 +93,6 @@ export default function DieuKhoanDieuKien() {
   </main>
 
   <!-- Footer -->
-  <footer class="bg-green-100 text-center py-4 mt-10 border-t border-green-300">
-    <p class="text-sm">© 2025 Farm Talk | Amazing Tech</p>
-  </footer>
   `;
 
   return (

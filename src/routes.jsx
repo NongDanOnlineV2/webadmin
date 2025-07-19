@@ -14,7 +14,6 @@ import {
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
 import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost  } from "@/pages/dashboard";
 import { SignIn, SignUp } from "@/pages/auth";
-import ChinhSach from "@/pages/dashboard/ChinhSach";
 import ChinhSachBaoMat from "@/pages/dashboard/ChinhSachBaoMat";
 import ChinhSachCookie from "@/pages/dashboard/ChinhSachCookie";
 import DieuKhoanDieuKien from "@/pages/dashboard/DieuKhoanDieuKien";
@@ -86,21 +85,10 @@ export const routes = [
         path: "/CommentPost",
          element: <CommentPost />,
 
-      }, 
-{
-  icon: <ShieldCheckIcon {...icon} />,
-  name: "CHÍNH SÁCH",
-  collapse: [
-    { name: "CHÍNH SÁCH BẢO MẬT", path: "/chinh-sach/bao-mat", element: <ChinhSachBaoMat /> },
-    { name: "CHÍNH SÁCH COOKIE", path: "/chinh-sach/cookie", element: <ChinhSachCookie /> },
-    { name: "ĐIỀU KHOẢN & ĐIỀU KIỆN", path: "/chinh-sach/dieu-khoan", element: <DieuKhoanDieuKien /> },
-  ],
-}
-      
+      },    
     ],
   },
   {
-    title: "auth pages",
     layout: "auth",
     pages: [
       {
@@ -108,6 +96,27 @@ export const routes = [
         name: "sign in",
         path: "/sign-in",
         element: <SignIn />,
+      },
+    ],
+  },
+
+  {
+    layout: "public",
+    pages: [
+      {
+        name: "Chính sách bảo mật",
+        path: "/chinh-sach/bao-mat",
+        element: <ChinhSachBaoMat />,
+      },
+      {
+        name: "Chính sách cookie",
+        path: "/chinh-sach/cookie",
+        element: <ChinhSachCookie />,
+      },
+      {
+        name: "Điều khoản điều kiện",
+        path: "/chinh-sach/dieu-khoan",
+        element: <DieuKhoanDieuKien />,
       },
     ],
   },

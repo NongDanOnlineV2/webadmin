@@ -40,8 +40,15 @@ export function Sidenav({ brandImg, brandName, routes, onCollapse }) {
   };
 
   const visibleRoutes = isAuthenticated
-    ? routes.filter(({ title }) => title?.toLowerCase() !== "auth pages")
-    : routes;
+  ? routes
+      .filter((section) => section.layout !== "auth")
+      .map((section) => ({
+        ...section,
+        pages: section.pages.filter(
+          (page) => page.name?.toLowerCase() !== "sign in"
+        ),
+      }))
+  : routes;
 
   return (
     <aside
@@ -149,7 +156,7 @@ export function Sidenav({ brandImg, brandName, routes, onCollapse }) {
 
               return (
                 <li key={route.name}>
-                  <NavLink to={`/${layout}${route.path}`}>
+                  <NavLink to={layout === 'public'? `${route.path}`: `/${layout}${route.path}`}>
                     {({ isActive }) => (
                       <Button
                         variant={isActive ? "gradient" : "text"}

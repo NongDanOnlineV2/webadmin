@@ -1,6 +1,6 @@
 import React, {useEffect} from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { Dashboard, Auth } from "@/layouts";
+import { Dashboard, Auth, Public } from "@/layouts";
 import VideoFarmById from "./pages/dashboard/VideoFarms/VideoById";
 import VideoLikeList from "./pages/dashboard/VideoFarms/VideoLikeList";
 import PostDetail from "./pages/dashboard/post/PostDetail";
@@ -9,11 +9,14 @@ import FarmDetail from "./pages/dashboard/farm/FarmDetail";
 import { Farms } from "./pages/dashboard/farm/farms";
 import UserDetail from "./pages/dashboard/user/UserDetail";
 import VideoById from "./pages/dashboard/VideoFarms/VideoById";
+import ChinhSachBaoMat from "./pages/dashboard/ChinhSachBaoMat";
+import ChinhSachCookie from "./pages/dashboard/ChinhSachCookie";
+import DieuKhoanDieuKien from "./pages/dashboard/DieuKhoanDieuKien";
 function App() {
   const navigate = useNavigate();
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
+    if (!token && !window.location.pathname.startsWith("/chinh-sach") && !window.location.pathname.startsWith("/auth")) {
       navigate("/auth/sign-in");
     }
 
@@ -47,14 +50,13 @@ function App() {
       <Route path="/admin/Farms" element={<Farms />} />
       <Route path="/admin/farms/:id" element={<FarmDetail />} />
       <Route path="*" element={<Navigate to="/dashboard/home" replace />} />
-
+      <Route path="/chinh-sach/*" element={<Public />}>
+        <Route path="bao-mat" element={<ChinhSachBaoMat />} />
+        <Route path="cookie" element={<ChinhSachCookie />} />
+        <Route path="dieu-khoan" element={<DieuKhoanDieuKien />} />
+      </Route>
     </Routes>
   );
 }
 
- 
-
-  
-
- 
 export default App;
