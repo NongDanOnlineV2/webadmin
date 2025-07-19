@@ -53,7 +53,7 @@ const fetchFarms = async () => {
   try {
     const res = await axios.get(`${BASE_URL}/adminfarms`, {
       ...getOpts(),
-      params: { limit: 10000 },
+      params: { limit: 100 },
     });
 
     const farms = (res.data?.data || []).sort(
