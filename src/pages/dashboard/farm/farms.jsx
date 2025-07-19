@@ -58,30 +58,30 @@ export function Farms() {
 //       },
 //     });
 
-    const farms = (res.data?.data || []).sort(
-  (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-);
-    const total = res.data?.total || 0;
-    const farmsWithVideoCounts = await Promise.all(
-      farms.map(async (farm) => {
-        try {
-          const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
-          const videos = videoRes.data?.data || [];
-          return { ...farm, videoCount: videos.length };
-        } catch (err) {
-          console.error(`Lỗi videoCount của farm ${farm._id}:`, err.message);
-          return { ...farm, videoCount: 0 };
-        }
-      })
-    );
-    setFarms(farmsWithVideoCounts);
-    setTotalPage(Math.ceil(total / itemsPerPage));
-  } catch (err) {
-    setError(err.response?.data?.message || err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+//     const farms = (res.data?.data || []).sort(
+//   (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+// );
+//     const total = res.data?.total || 0;
+//     const farmsWithVideoCounts = await Promise.all(
+//       farms.map(async (farm) => {
+//         try {
+//           const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
+//           const videos = videoRes.data?.data || [];
+//           return { ...farm, videoCount: videos.length };
+//         } catch (err) {
+//           console.error(`Lỗi videoCount của farm ${farm._id}:`, err.message);
+//           return { ...farm, videoCount: 0 };
+//         }
+//       })
+//     );
+//     setFarms(farmsWithVideoCounts);
+//     setTotalPage(Math.ceil(total / itemsPerPage));
+//   } catch (err) {
+//     setError(err.response?.data?.message || err.message);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
 const handleSearch = () => {
   if (searchQuery !== searchInput) {
     setSearchQuery(searchInput);
@@ -164,10 +164,9 @@ useEffect(() => {
       });
 
       const farms = (res.data?.data || []).sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       const total = res.data?.total || 0;
-
       const farmsWithVideoCounts = await Promise.all(
         farms.map(async (farm) => {
           // Tạo controller cho từng request video
