@@ -33,7 +33,7 @@ export function Farms() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
-  const [search, setSearch] = useState("");
+  const [farmCache, setFarmCache] = useState({});
   const [openForm, setOpenForm] = useState(false);
   const [editingFarm, setEditingFarm] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -92,10 +92,11 @@ const handleSearch = () => {
 const handlePageChange = (newPage) => {
   setCurrentPage(newPage);
 };
-
+const clearCache = () => setFarmCache({});
   const addFarm = async (data) => {
     try {
       await axios.post(`${BASE_URL}/adminfarms`, data, getOpts());
+      clearCache();
       await fetchFarms();
       alert("Tạo farm thành công!");
     } catch (err) {
@@ -141,6 +142,7 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
     setSelectedFarmId(id);
     setOpenDetail(true);
   };
+  
 
 useEffect(() => {
   const controller = new AbortController();
@@ -148,6 +150,16 @@ useEffect(() => {
 
   // Tạo mảng lưu các controller cho video count
   let videoControllers = [];
+
+  const key = `${currentPage}-${tab}-${searchQuery}`;
+
+  // Nếu đã có trong cache thì không fetch lại
+  if (farmCache[key]) {
+    setFarms(farmCache[key].farms);
+    setTotalPage(farmCache[key].totalPages);
+    setLoading(false);
+    return;
+  }
 
   const fetchFarms = async () => {
     setLoading(true);
@@ -192,9 +204,16 @@ useEffect(() => {
           }
         })
       );
-
+      const cleanedFarms = farmsWithVideoCounts.filter(Boolean);
       setFarms(farmsWithVideoCounts.filter(Boolean));
       setTotalPage(Math.ceil(total / itemsPerPage));
+      setFarmCache((prev) => ({
+        ...prev,
+        [key]: {
+          farms: cleanedFarms,
+          totalPages: Math.ceil(total / itemsPerPage),
+        },
+      }));
     } catch (err) {
       if (axios.isCancel(err) || err.name === "CanceledError") {
         // Bị huỷ
