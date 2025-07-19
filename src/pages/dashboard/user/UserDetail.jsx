@@ -501,7 +501,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Typography variant="h6" className="text-gray-700 font-semibold">ID:</Typography>
-              <Typography className="text-gray-900">{user.id}</Typography>
+              <Typography className="text-gray-900">{user._id}</Typography>
             </div>
             <div>
               <Typography variant="h6" className="text-gray-700 font-semibold">Name:</Typography>
