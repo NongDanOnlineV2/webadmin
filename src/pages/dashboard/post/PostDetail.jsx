@@ -9,8 +9,7 @@
     DialogBody,
   } from "@material-tailwind/react";
   import { Audio } from "react-loader-spinner";
-
-  const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+import { BaseUrl } from "@/ipconfig";
 
   export default function PostDetailDialog({ postId, open, onClose }) {
     const [post, setPost] = useState(null);
@@ -27,7 +26,7 @@
 
     const fetchPost = async () => {
       try {
-        const res = await fetch(`${BASE_URL}/admin-post-feed/${postId}`, {
+        const res = await fetch(`${BaseUrl}/admin-post-feed/${postId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -51,7 +50,7 @@
 
     const fetchComments = async () => {
   try {
-    const res = await fetch(`${BASE_URL}/admin-comment-post/post/${postId}`, {
+    const res = await fetch(`${BaseUrl}/admin-comment-post/post/${postId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const json = await res.json();
@@ -82,7 +81,7 @@
         let page = 1;
         let totalPages = 1;
       do {
-        const res = await fetch(`${BASE_URL}/admin-users?page=${page}&limit=10`, {
+        const res = await fetch(`${BaseUrl}/admin-users?page=${page}&limit=10`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
@@ -105,7 +104,7 @@
 
     const fetchLikeUsers = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/post-feed/${postId}/likes`, {
+      const res = await fetch(`${BaseUrl}/post-feed/${postId}/likes`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
@@ -178,7 +177,7 @@
             {post.authorId ? (
               <>
                 <Avatar
-                  src={post.authorId.avatar ? `${BASE_URL}${post.authorId.avatar}` : "/default-avatar.png"}
+                  src={post.authorId.avatar ? `${BaseUrl}${post.authorId.avatar}` : "/default-avatar.png"}
                   size="sm"
                 />
                 <div className="flex flex-col">
@@ -238,7 +237,7 @@
               {post.images.map((img, idx) => (
                 <img
                   key={idx}
-                  src={`${BASE_URL}${img}`}
+                  src={`${BaseUrl}${img}`}
                   alt={`img-${idx}`}
                   className="w-full h-52 object-cover rounded shadow"
                 />
@@ -288,7 +287,7 @@
                       src={
                         cmt.userId?.avatar?.startsWith("http")
                           ? cmt.userId.avatar
-                          : `${BASE_URL}${cmt.userId?.avatar || ""}`
+                          : `${BaseUrl}${cmt.userId?.avatar || ""}`
                       }
                       alt={cmt.userId?.fullName}
                       size="sm"
@@ -310,7 +309,7 @@
                                   src={
                                     replyUser?.avatar?.startsWith("http")
                                       ? replyUser.avatar
-                                      : `${BASE_URL}${replyUser?.avatar || ""}`
+                                      : `${BaseUrl}${replyUser?.avatar || ""}`
                                   }
                                   alt={replyUser?.fullName}
                                   size="xs"
@@ -356,7 +355,7 @@
             src={
               user.avatar?.startsWith("http")
                 ? user.avatar
-                : `${BASE_URL}${user.avatar || ""}`
+                : `${BaseUrl}${user.avatar || ""}`
             }
             size="sm"
           />

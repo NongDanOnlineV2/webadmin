@@ -15,8 +15,7 @@ import {
 import PostDetailDialog from "./PostDetail";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
-
-const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+import { BaseUrl } from "@/ipconfig";
 
 export function PostList() {
   const [posts, setPosts] = useState([]);
@@ -50,7 +49,7 @@ export function PostList() {
       let totalPages = 1;
 
       do {
-        const res = await fetch(`${BASE_URL}/admin-users?page=${page}&limit=50`, {
+        const res = await fetch(`${BaseUrl}/admin-users?page=${page}&limit=50`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
@@ -75,7 +74,7 @@ export function PostList() {
   const fetchTopTags = async () => {
   try {
     const token = localStorage.getItem("token");
-    const res = await fetch(`${BASE_URL}/post-feed/tags/top`, {
+    const res = await fetch(`${BaseUrl}/post-feed/tags/top`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const json = await res.json();
@@ -107,7 +106,7 @@ export function PostList() {
 
   try {
     const res = await fetch(
-      `${BASE_URL}/admin-post-feed?${queryParams.toString()}`,
+      `${BaseUrl}/admin-post-feed?${queryParams.toString()}`,
       {
         headers: {
           "Content-Type": "application/json",
@@ -125,7 +124,7 @@ export function PostList() {
           try {
             // ✅ Fix dùng post.id thay vì post._id
             const commentRes = await fetch(
-              `${BASE_URL}/admin-comment-post/post/${post.id}`,
+              `${BaseUrl}/admin-comment-post/post/${post.id}`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
@@ -213,7 +212,7 @@ export function PostList() {
 
 
       const res = await fetch(
-        `${BASE_URL}/admin-post-feed/${selectedPost.id}`,
+        `${BaseUrl}/admin-post-feed/${selectedPost.id}`,
         {
           method: "PUT",
           headers: {
@@ -266,7 +265,7 @@ export function PostList() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${BASE_URL}/admin-post-feed/${id}`, {
+      const res = await fetch(`${BaseUrl}/admin-post-feed/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -399,7 +398,7 @@ export function PostList() {
                 <td className="p-3 border">
                   {post.images?.length > 0 ? (
                     <img
-                      src={`${BASE_URL}${post.images[0]}`}
+                      src={`${BaseUrl}${post.images[0]}`}
                       alt="Hình ảnh"
                       className="w-10 h-10 object-cover rounded"
                     />

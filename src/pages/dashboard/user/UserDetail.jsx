@@ -5,8 +5,8 @@ import {
   Avatar, Input
 } from "@material-tailwind/react";
 import { useParams } from "react-router-dom";
-import PostLikeUserDialog from "./listpostlikeUser";
-const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+import PostLikeUserDialog from "./listpostlikeUser"
+import { BaseUrl } from "@/ipconfig";
 export default function UserDetail() {
   const { id } = useParams();
   const [user, setUser] = useState(null);
@@ -291,9 +291,9 @@ const handleOpenFarms = async () => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms`, config);
+      const allFarms = await fetchPaginatedData(`${BaseUrl}/adminfarms`, config);
       setFarms(allFarms); 
-      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
+      const allVideos = await fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config);
 
       const counts = {};
       allVideos.forEach((video) => {
@@ -326,7 +326,7 @@ const handleOpenPosts = async () => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allPosts = await fetchPaginatedData(`${BASE_URL}/admin-post-feed`, config);
+      const allPosts = await fetchPaginatedData(`${BaseUrl}/admin-post-feed`, config);
       setPosts(allPosts); 
 
       const statsPromises = allPosts.map(async (post) => {
@@ -367,7 +367,7 @@ const handleOpenVideos = async () => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
+      const allVideos = await fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config);
 
       setVideos(allVideos);
 
@@ -1219,7 +1219,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       {post.authorId ? (
                         <>
                           <Avatar
-                            src={post.authorId.avatar ? `${BASE_URL}${post.authorId.avatar}` : "/default-avatar.png"}
+                            src={post.authorId.avatar ? `${BaseUrl}${post.authorId.avatar}` : "/default-avatar.png"}
                             size="sm"
                           />
                           <div className="flex flex-col">
