@@ -67,11 +67,11 @@ export default function UserDetail() {
     let hasMore = true;
 
     while (hasMore) {
-      const res = await axios.get(`${url}?page=${page}&limit=10`, config);
+      const res = await axios.get(`${url}?page=${page}&limit=50`, config);
       const pageData = res.data?.data || [];
       allData = [...allData, ...pageData];
 
-      hasMore = pageData.length > 0 && pageData.length === 10;
+      hasMore = pageData.length > 0 && pageData.length === 50;
       page++;
     }
 
@@ -471,9 +471,9 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   return videos.filter((v) => v.farmId?.id === farmId).length;
 };
 
-  const userFarms = farms.filter((f) => String(f.ownerId) === String(user?._id) || String(f.createBy) === String(user?._id));
-  const userPosts = posts.filter(p => p.authorId?.id === user?._id);
-  const userVideos = videos.filter(v => v.uploadedBy?.id === user?._id);
+  const userFarms = farms.filter((f) => String(f.ownerId) === String(user?.id) || String(f.createBy) === String(user?.id));
+  const userPosts = posts.filter(p => p.authorId?.id === user?.id);
+  const userVideos = videos.filter(v => v.uploadedBy?.id === user?.id);
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen"><Spinner className="h-12 w-12" /></div>;
