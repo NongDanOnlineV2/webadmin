@@ -42,6 +42,7 @@ export function Farms() {
   const [totalPages, setTotalPage] = useState(1);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingFarmId, setDeletingFarmId] = useState(null);
+  const [farmDetailCache, setFarmDetailCache] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -138,9 +139,19 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
     }
   };
 
-  const handleOpenDetail = (id) => {
+  const handleOpenDetail = async (id) => {
     setSelectedFarmId(id);
     setOpenDetail(true);
+    if (farmDetailCache[id]) return;
+    try {
+      const res = await axios.get(`${BASE_URL}/adminfarms/${id}`, getOpts());
+      setFarmDetailCache((prev) => ({
+      ...prev,
+      [id]: res.data?.data || {},
+    }));
+    } catch (err) {
+      console.error("Lỗi fetch farm chi tiết:", err.message);
+    }
   };
   
 
@@ -448,7 +459,7 @@ useEffect(() => {
           <IconButton variant="text" onClick={() => setOpenDetail(false)} className="ml-auto">✕</IconButton>
         </DialogHeader>
         <DialogBody className="p-4">
-          <FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} />
+          <FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} farmData={farmDetailCache[selectedFarmId]}/>
         </DialogBody>
       </Dialog>
 
