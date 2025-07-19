@@ -28,64 +28,72 @@ const getOpts = () => ({
 
 export function Farms() {
   const [farms, setFarms] = useState([]);
-  const [allFarms, setAllFarms] = useState([]);
+  const [searchInput, setSearchInput] = useState(""); 
+  const [searchQuery, setSearchQuery] = useState(""); 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const [tab, setTab] = useState("all");
   const [search, setSearch] = useState("");
-
   const [openForm, setOpenForm] = useState(false);
   const [editingFarm, setEditingFarm] = useState(null);
-
   const [openMenuId, setOpenMenuId] = useState(null);
   const [openDetail, setOpenDetail] = useState(false);
   const [selectedFarmId, setSelectedFarmId] = useState(null);
-
+  const [totalPages, setTotalPage] = useState(1);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingFarmId, setDeletingFarmId] = useState(null);
-
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-const fetchFarms = async () => {
+const fetchFarms = async (page = 1) => {
   setLoading(true);
   try {
     const res = await axios.get(`${BASE_URL}/adminfarms`, {
       ...getOpts(),
-      params: { limit: 100 },
+      params: { 
+        limit: itemsPerPage, 
+        page,
+        status: tab === "all" ? undefined : tab,
+        name: searchQuery || undefined,
+      },
     });
 
     const farms = (res.data?.data || []).sort(
   (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
 );
-
-    // Gán danh sách trước (chưa có videoCount)
-    setAllFarms(farms);
-    // Gọi videoCount cho từng farm
-    farms.forEach(async (farm) => {
-      try {
-        const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
-        const videos = videoRes.data?.data || [];
-
-        // Cập nhật farm với videoCount
-        setAllFarms((prevFarms) =>
-          prevFarms.map((f) =>
-            f._id === farm._id ? { ...f, videoCount: videos.length } : f
-          )
-        );
-      } catch (err) {
-        console.error(`Lỗi videoCount của farm ${farm._id}:`, err.message);
-      }
-    });
+    const total = res.data?.total || 0;
+    const farmsWithVideoCounts = await Promise.all(
+      farms.map(async (farm) => {
+        try {
+          const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
+          const videos = videoRes.data?.data || [];
+          return { ...farm, videoCount: videos.length };
+        } catch (err) {
+          console.error(`Lỗi videoCount của farm ${farm._id}:`, err.message);
+          return { ...farm, videoCount: 0 };
+        }
+      })
+    );
+    setFarms(farmsWithVideoCounts);
+    setTotalPage(Math.ceil(total / itemsPerPage));
   } catch (err) {
     setError(err.response?.data?.message || err.message);
   } finally {
     setLoading(false);
   }
 };
+const handleSearch = () => {
+  if (searchQuery !== searchInput) {
+    setSearchQuery(searchInput);
+    setCurrentPage(1);
+  }
+};
 
 
+
+const handlePageChange = (newPage) => {
+  setCurrentPage(newPage);
+};
 
   const addFarm = async (data) => {
     try {
@@ -136,35 +144,21 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
     setOpenDetail(true);
   };
 
-  // ✅ Lọc client-side
   useEffect(() => {
-    const keyword = search.toLowerCase();
-    const filtered = allFarms
-      .filter((farm) => (tab === "all" || farm.status === tab))
-      .filter((farm) => {
-        return (
-          farm.name?.toLowerCase().includes(keyword) ||
-          farm.code?.toLowerCase().includes(keyword) ||
-          farm.ownerInfo?.name?.toLowerCase().includes(keyword) ||
-          farm.phone?.toLowerCase().includes(keyword) ||
-          farm.location?.toLowerCase().includes(keyword) ||
-          farm.province?.toLowerCase().includes(keyword) ||
-          farm.district?.toLowerCase().includes(keyword) ||
-          farm.ward?.toLowerCase().includes(keyword) ||
-          farm.street?.toLowerCase().includes(keyword) ||
-          String(farm.area).includes(keyword)
-        );
-      });
-    setFarms(filtered);
-    setCurrentPage(1);
-  }, [search, tab, allFarms]);
+  let ignore = false;
 
-  useEffect(() => {
-    fetchFarms();
-  }, []);
+  const fetchData = async () => {
+    if (!ignore) await fetchFarms(currentPage);
+  };
 
-  const paginatedFarms = farms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(farms.length / itemsPerPage);
+  fetchData();
+
+  return () => {
+    ignore = true; 
+  };
+}, [currentPage, tab, searchQuery]);
+ 
+
 
   return (
     <>
@@ -176,12 +170,12 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <Input
             label="Tìm kiếm theo tên, mã, chủ sở hữu..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="col-span-2"
           />
-          <Button onClick={fetchFarms} className="w-full md:w-fit bg-black text-white">
-            TẢI LẠI
+          <Button onClick={handleSearch} className="w-full md:w-fit bg-black text-white">
+            TÌM KIẾM
           </Button>
         </div>
 
@@ -191,7 +185,7 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
               <Tab value="all" onClick={() => setTab("all")}>Tất cả</Tab>
               <Tab value="pending" onClick={() => setTab("pending")}>Chờ duyệt</Tab>
               <Tab value="active" onClick={() => setTab("active")}>Đang hoạt động</Tab>
-<Tab value="inactive" onClick={() => setTab("inactive")}>Đã khoá</Tab>
+              <Tab value="inactive" onClick={() => setTab("inactive")}>Đã khoá</Tab>
             </TabsHeader>
           </Tabs>
         </div>
@@ -218,7 +212,7 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
                 </tr>
               </thead>
               <tbody>
-                {paginatedFarms.map((farm) => (
+                {farms.map((farm) => (
                   <tr
                     key={farm._id}
                     className="border-b hover:bg-indigo-50 transition text-base cursor-pointer"
@@ -332,11 +326,11 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
                   variant="outlined"
                   className="rounded-md px-4 py-1"
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() => handlePageChange(currentPage - 1)}
                 >
-                  <span className={currentPage === 1 ? "text-gray-400 font-semibold" : "font-semibold"}>
+
                     TRANG TRƯỚC
-                  </span>
+                  
                 </Button>
 
                 <Typography variant="small" className="text-black font-medium">
@@ -348,11 +342,9 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
                   variant="outlined"
                   className="rounded-md px-4 py-1"
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  onClick={() => handlePageChange(currentPage + 1)}
                 >
-                  <span className={currentPage === totalPages ? "text-gray-400 font-semibold" : "font-semibold"}>
                     TRANG SAU
-                  </span>
                 </Button>
               </div>
             )}
@@ -389,7 +381,7 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
       <Dialog open={deleteConfirmOpen} handler={setDeleteConfirmOpen} size="sm">
         <DialogHeader>Xác nhận xoá</DialogHeader>
         <DialogBody>
-Bạn có chắc chắn muốn xoá nông trại này? Hành động này không thể hoàn tác.
+          Bạn có chắc chắn muốn xoá nông trại này? Hành động này không thể hoàn tác.
         </DialogBody>
         <div className="flex justify-end gap-2 p-4">
           <Button color="gray" onClick={() => setDeleteConfirmOpen(false)}>Huỷ</Button>
