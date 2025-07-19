@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import {
   Card, CardHeader, CardBody, Typography, Spinner, Collapse, Dialog, DialogBody, DialogFooter, DialogHeader, Button, Chip,
@@ -6,6 +6,7 @@ import {
 } from "@material-tailwind/react";
 import { useParams } from "react-router-dom";
 import PostLikeUserDialog from "./listpostlikeUser";
+import { Audio } from "react-loader-spinner";
 const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
 export default function UserDetail() {
   const { id } = useParams();
@@ -47,13 +48,9 @@ export default function UserDetail() {
   const [visibleFarms, setVisibleFarms] = useState(6);
   const [visibleVideos, setVisibleVideos] = useState(6);
   const [visiblePosts, setVisiblePosts] = useState(6);
+  const [hasLoadedFarms, setHasLoadedFarms] = useState(false);
+  const [hasLoadedVideos, setHasLoadedVideos] = useState(false);
   const [videoCountsByFarm, setVideoCountsByFarm] = useState({});
-  const [pageFarms, setPageFarms] = useState(1);
-  const [pageVideos, setPageVideos] = useState(1);
-  const [pagePosts, setPagePosts] = useState(1);
-  const [hasMoreFarms, setHasMoreFarms] = useState(true);
-  const [hasMoreVideos, setHasMoreVideos] = useState(true);
-  const [hasMorePosts, setHasMorePosts] = useState(true);
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -279,38 +276,44 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
     fetchData();
   }, [id]);
 
+
 const handleOpenFarms = async () => {
   if (openFarms) {
-    setOpenFarms(false); 
+    setOpenFarms(false);
     return;
   }
-  setOpenFarms(true); 
-  if (farms.length === 0 && !loadingFarms) {
-    setLoadingFarms(true); 
-    try {
-      const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms`, config);
-      setFarms(allFarms); 
-      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
+  setOpenFarms(true);
 
-      const counts = {};
-      allVideos.forEach((video) => {
-        const farmId = video.farmId?._id; 
-        if (farmId) {
-          counts[farmId] = (counts[farmId] || 0) + 1;
-        }
-      });
-      setVideoCountsByFarm(counts);
-      setVideos(allVideos);
-      const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
-      await Promise.allSettled(statsPromises);
-    } catch (err) {
-      console.error("Lỗi khi fetch farms:", err);
-    } finally {
-      if (openFarms) setLoadingFarms(false); 
-    }
+  if (farms.length > 0 || loadingFarms) return;
+
+  setLoadingFarms(true);
+  try {
+    const token = localStorage.getItem("token");
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+
+    const [allFarms, allVideos] = await Promise.all([
+      fetchPaginatedData(`${BASE_URL}/adminfarms`, config),
+      fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config),
+    ]);
+
+    setFarms(allFarms);
+    setVideos(allVideos);
+
+    const counts = allVideos.reduce((acc, video) => {
+      const farmId = video.farmId?._id;
+      if (farmId) acc[farmId] = (acc[farmId] || 0) + 1;
+      return acc;
+    }, {});
+    setVideoCountsByFarm(counts);
+
+    // 3. Gọi stats cho từng video (nếu cần)
+    
+    setHasLoadedFarms(true);
+  } catch (err) {
+    console.error("Lỗi khi fetch farms:", err);
+  } finally {
+    setLoadingFarms(false);
   }
 };
 
@@ -357,29 +360,34 @@ const handleOpenPosts = async () => {
 
 const handleOpenVideos = async () => {
   if (openVideos) {
-    setOpenVideos(false); 
+    setOpenVideos(false);
     return;
   }
-  setOpenVideos(true); 
-  if (videos.length === 0 && !loadingVideos) {
-    setLoadingVideos(true);
-    try {
-      const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
+  setOpenVideos(true);
 
-      setVideos(allVideos);
+  // Chỉ fetch nếu chưa có dữ liệu và chưa từng loading
+  if (videos.length > 0 || loadingVideos) return;
 
-      const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
-      await Promise.allSettled(statsPromises);
-    } catch (err) {
-      console.error("Lỗi khi load videos:", err);
-    } finally {
-      if (openVideos) setLoadingVideos(false); 
-    }
+  setLoadingVideos(true);
+  try {
+    const token = localStorage.getItem("token");
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+
+    const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
+    setVideos(allVideos);
+
+    // Không cần set lại nếu openVideos đã false trong lúc chờ
+    const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
+    await Promise.allSettled(statsPromises);
+    setHasLoadedVideos(true);
+  } catch (err) {
+    console.error("Lỗi khi load videos:", err);
+  } finally {
+    if (openVideos) setLoadingVideos(false);
   }
 };
+
 
 const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   if (videoLikesCache[videoId]) {
@@ -459,21 +467,31 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     console.error(`Error fetching stats for video ${videoId}:`, err);
   }
 };
+  const fetchedVideoStats = useRef({});
 
   const showFarmVideos = async (farmId, farmName) => {           
     const relatedVideos = videos.filter((v) => v.farmId?.id === farmId);
+     const statsPromises = relatedVideos
+    .filter((video) => !fetchedVideoStats.current[video._id])
+    .map(async (video) => {
+      await fetchVideoStats(video._id); // Gọi API lấy likes & comments
+      fetchedVideoStats.current[video._id] = true;
+    });
+
+  await Promise.allSettled(statsPromises);
     setSelectedFarmVideos(relatedVideos);
     setSelectedFarmName(farmName);
     setOpenVideoDialog(true);
 
   };
+
   const countVideosByFarm = (farmId) => {
   return videos.filter((v) => v.farmId?.id === farmId).length;
 };
 
-  const userFarms = farms.filter((f) => String(f.ownerId) === String(user?.id) || String(f.createBy) === String(user?.id));
-  const userPosts = posts.filter(p => p.authorId?.id === user?.id);
-  const userVideos = videos.filter(v => v.uploadedBy?.id === user?.id);
+  const userFarms = farms.filter((f) => String(f.ownerId) === String(user?._id) || String(f.createBy) === String(user?._id));
+  const userPosts = posts.filter(p => p.authorId?.id === user?._id);
+  const userVideos = videos.filter(v => v.uploadedBy?.id === user?._id);
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen"><Spinner className="h-12 w-12" /></div>;
@@ -667,172 +685,8 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
         </Button>
       </DialogFooter>
     </Dialog>
-
-      {/* Thông tin Farms của user */}
-      <Card>
-  <div
-    onClick={() => handleOpenFarms(!openFarms)}
-    className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
-  >
-    <Typography variant="h5">
-      Danh sách Farms 
-    </Typography>
-    <Typography
-      variant="h5"
-      className={`transform transition-transform duration-300 ${
-        openFarms ? "rotate-180" : ""
-      }`}
-    >
-      ▼
-    </Typography>
-  </div>
-
-  <Collapse open={openFarms}>
-    {openFarms && (
-      <div className="overflow-hidden transition-all duration-300">
-        <CardBody>
-          {userFarms.length === 0 ? (
-            <Typography>Chưa có Farm nào.</Typography>
-          ) : (
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-              {userFarms.slice(0, visibleFarms).map((farm) => (
-                <div
-                  key={farm._id}
-                  className="border p-4 rounded shadow space-y-2 bg-white"
-                >
-                  <Typography
-                    variant="h6"
-                    className="text-blue-600 font-semibold"
-                  >
-                    {farm.name}
-                  </Typography>
-
-                  <div className="space-y-1">
-                    <Typography>
-                      <b>Mã nông trại:</b> {farm.code}
-                    </Typography>
-                    <Typography>
-                      <b>Tags:</b>{" "}
-                      {(farm.tags || []).join(", ") || "—"}
-                    </Typography>
-                    <Typography>
-                      <b>Trạng thái:</b>{" "}
-                      {farm.status === "pending"
-                        ? "Chờ duyệt"
-                        : farm.status === "active"
-                        ? "Đang hoạt động"
-                        : "Đã khóa"}
-                    </Typography>
-                    <Typography>
-                      <b>Tỉnh/Thành phố:</b> {farm.province}
-                    </Typography>
-                    <Typography>
-                      <b>Quận/Huyện:</b> {farm.district}
-                    </Typography>
-                    <Typography>
-                      <b>Phường/Xã:</b> {farm.ward}
-                    </Typography>
-                    <Typography>
-                      <b>Đường:</b> {farm.street}
-                    </Typography>
-                    <Typography>
-                      <b>Vị trí tổng quát:</b> {farm.location}
-                    </Typography>
-                    <Typography>
-                      <b>Tổng diện tích (m²):</b> {farm.area}
-                    </Typography>
-                    <Typography>
-                      <b>Đất canh tác (m²):</b> {farm.cultivatedArea}
-                    </Typography>
-                    <Typography>
-                      <b>Dịch vụ:</b>{" "}
-                      {(farm.services || []).join(", ") || "—"}
-                    </Typography>
-                    <Typography>
-                      <b>Tính năng:</b>{" "}
-                      {(farm.features || []).join(", ") || "—"}
-                    </Typography>
-                    {farm.ownerInfo && (
-                      <>
-                        <Typography>
-                          <b>Chủ sở hữu:</b> {farm.ownerInfo.name}
-                        </Typography>
-                        <Typography>
-                          <b>Số điện thoại:</b>{" "}
-                          {farm.ownerInfo.phone}
-                        </Typography>
-                        <Typography>
-                          <b>Email:</b> {farm.ownerInfo.email}
-                        </Typography>
-                      </>
-                    )}
-                    {farm.description && (
-                      <div>
-                        <Typography>
-                          <b>Mô tả:</b>
-                        </Typography>
-                        <Typography className="italic text-gray-700">
-                          {farm.description}
-                        </Typography>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Số lượng video và nút xem chi tiết */}
-                  <div className="flex gap-3 items-center mt-2">
-                    <Typography color="deep-purple">
-                      <b>Số lượng video:</b>{" "}
-                      {countVideosByFarm(farm._id)}
-                    </Typography>
-                    <Button
-                      size="sm"
-                      color="blue"
-                      onClick={() =>
-                        showFarmVideos(farm._id, farm.name)
-                      }
-                    >
-                      Xem chi tiết
-                    </Button>
-                  </div>
-
-                  {/* Hình ảnh */}
-                  {farm.pictures?.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {farm.pictures.map((img, idx) => (
-                        <img
-                          key={idx}
-                          src={`https://api-ndolv2.nongdanonline.cc${
-                            img.url || img.path || img.image
-                          }`}
-                          alt={`Hình ${idx + 1}`}
-                          className="w-full h-32 object-cover rounded"
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          {visibleFarms < userFarms.length && (
-            <div className="flex justify-center mt-4">
-              <Button
-                color="blue"
-                variant="outlined"
-                onClick={handleShowMoreFarms}
-              >
-                Xem thêm Farms
-              </Button>
-            </div>
-          )}
-        </CardBody>
-      </div>
-    )}
-  </Collapse>
-</Card>
-
-      {/* Danh sách video */}
-      <Card>
+    {/* Danh sách video */}
+    <Card>
   <div
     onClick={handleOpenVideos}
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
@@ -980,6 +834,179 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     )}
   </Collapse>
 </Card>
+
+      {/* Thông tin Farms của user */}
+      <Card>
+  <div
+    onClick={() => handleOpenFarms(!openFarms)}
+    className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
+  >
+    <Typography variant="h5">
+      Danh sách Farms 
+    </Typography>
+    <Typography
+      variant="h5"
+      className={`transform transition-transform duration-300 ${
+        openFarms ? "rotate-180" : ""
+      }`}
+    >
+      ▼
+    </Typography>
+  </div>
+
+  <Collapse open={openFarms}>
+    {openFarms && (
+      <div className="overflow-hidden transition-all duration-300">
+        <CardBody>
+          {loadingFarms ? (
+          // 👉 Hiển thị loading trong khi đang tải farms
+          <div className="flex justify-center items-center py-6">
+            <Spinner className="h-6 w-6 mr-3" color="blue" />
+            <Typography className="italic text-blue-gray-700">Đang tải danh sách farms...</Typography>
+          </div>
+        ) :
+          userFarms.length === 0 ? (
+            <Typography>Chưa có Farm nào.</Typography>
+          ) : (
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+              {userFarms.slice(0, visibleFarms).map((farm) => (
+                <div
+                  key={farm._id}
+                  className="border p-4 rounded shadow space-y-2 bg-white"
+                >
+                  <Typography
+                    variant="h6"
+                    className="text-blue-600 font-semibold"
+                  >
+                    {farm.name}
+                  </Typography>
+
+                  <div className="space-y-1">
+                    <Typography>
+                      <b>Mã nông trại:</b> {farm.code}
+                    </Typography>
+                    <Typography>
+                      <b>Tags:</b>{" "}
+                      {(farm.tags || []).join(", ") || "—"}
+                    </Typography>
+                    <Typography>
+                      <b>Trạng thái:</b>{" "}
+                      {farm.status === "pending"
+                        ? "Chờ duyệt"
+                        : farm.status === "active"
+                        ? "Đang hoạt động"
+                        : "Đã khóa"}
+                    </Typography>
+                    <Typography>
+                      <b>Tỉnh/Thành phố:</b> {farm.province}
+                    </Typography>
+                    <Typography>
+                      <b>Quận/Huyện:</b> {farm.district}
+                    </Typography>
+                    <Typography>
+                      <b>Phường/Xã:</b> {farm.ward}
+                    </Typography>
+                    <Typography>
+                      <b>Đường:</b> {farm.street}
+                    </Typography>
+                    <Typography>
+                      <b>Vị trí tổng quát:</b> {farm.location}
+                    </Typography>
+                    <Typography>
+                      <b>Tổng diện tích (m²):</b> {farm.area}
+                    </Typography>
+                    <Typography>
+                      <b>Đất canh tác (m²):</b> {farm.cultivatedArea}
+                    </Typography>
+                    <Typography>
+                      <b>Dịch vụ:</b>{" "}
+                      {(farm.services || []).join(", ") || "—"}
+                    </Typography>
+                    <Typography>
+                      <b>Tính năng:</b>{" "}
+                      {(farm.features || []).join(", ") || "—"}
+                    </Typography>
+                    {farm.ownerInfo && (
+                      <>
+                        <Typography>
+                          <b>Chủ sở hữu:</b> {farm.ownerInfo.name}
+                        </Typography>
+                        <Typography>
+                          <b>Số điện thoại:</b>{" "}
+                          {farm.ownerInfo.phone}
+                        </Typography>
+                        <Typography>
+                          <b>Email:</b> {farm.ownerInfo.email}
+                        </Typography>
+                      </>
+                    )}
+                    {farm.description && (
+                      <div>
+                        <Typography>
+                          <b>Mô tả:</b>
+                        </Typography>
+                        <Typography className="italic text-gray-700">
+                          {farm.description}
+                        </Typography>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Số lượng video và nút xem chi tiết */}
+                  <div className="flex gap-3 items-center mt-2">
+                    <Typography color="deep-purple">
+                      <b>Số lượng video:</b>{" "}
+                      {countVideosByFarm(farm._id)}
+                    </Typography>
+                    <Button
+                      size="sm"
+                      color="blue"
+                      onClick={() =>
+                        showFarmVideos(farm._id, farm.name)
+                      }
+                    >
+                      Xem chi tiết
+                    </Button>
+                  </div>
+
+                  {/* Hình ảnh */}
+                  {farm.pictures?.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {farm.pictures.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={`https://api-ndolv2.nongdanonline.cc${
+                            img.url || img.path || img.image
+                          }`}
+                          alt={`Hình ${idx + 1}`}
+                          className="w-full h-32 object-cover rounded"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {visibleFarms < userFarms.length && (
+            <div className="flex justify-center mt-4">
+              <Button
+                color="blue"
+                variant="outlined"
+                onClick={handleShowMoreFarms}
+              >
+                Xem thêm Farms
+              </Button>
+            </div>
+          )}
+        </CardBody>
+      </div>
+    )}
+  </Collapse>
+</Card>
+
+      
+      
 
       <Dialog
   open={openVideoDialog}
