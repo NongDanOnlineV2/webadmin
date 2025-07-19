@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Card,
   Input,
@@ -14,28 +14,8 @@ function ResetPassword() {
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
   const { token } = useParams();
-  const [isTokenValid, setIsTokenValid] = useState(false);
 
   const BASE_URL = localStorage.getItem("apiBaseUrl") || "https://api-ndolv2.nongdanonline.cc";
-
-  useEffect(() => {
-    // Có verify token không? Có → gọi API verify riêng
-    const checkTokenValidity = async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/auth/verify-reset-token/${token}`);
-        if (res.ok) {
-          setIsTokenValid(true);
-        } else {
-          setIsTokenValid(false);
-          setError("Token không hợp lệ hoặc đã hết hạn.");
-        }
-      } catch {
-        setIsTokenValid(false);
-        setError("Lỗi khi xác minh token.");
-      }
-    };
-    if (token) checkTokenValidity();
-  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,17 +32,22 @@ function ResetPassword() {
       return;
     }
 
+    if (!token) {
+      setError("Token không hợp lệ.");
+      return;
+    }
+
     try {
       const res = await fetch(`${BASE_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: token, newPassword: password }),
+        body: JSON.stringify({ token, newPassword: password }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setSuccess("Đặt lại mật khẩu thành công! Chuyển hướng về trang đăng nhập...");
+        setSuccess("Đặt lại mật khẩu thành công! Đang chuyển hướng...");
         setTimeout(() => navigate("/auth/sign-in"), 3000);
       } else {
         setError(data.message || "Lỗi khi đặt lại mật khẩu.");
@@ -72,11 +57,12 @@ function ResetPassword() {
     }
   };
 
-  if (!isTokenValid) {
+  // Nếu không có token từ URL → chặn truy cập
+  if (!token) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Typography variant="h5" color="red">
-          {error || "Đang xác minh token..."}
+          Không tìm thấy token hợp lệ.
         </Typography>
       </div>
     );

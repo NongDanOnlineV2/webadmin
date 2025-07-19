@@ -147,14 +147,14 @@ export function SignIn() {
           <Button className="mt-6" type="submit" fullWidth>Sign In</Button>
 
           <div className="flex items-center justify-between gap-2 mt-6">
-            <Checkbox
+            {/* <Checkbox
               label={
                 <Typography variant="small" color="gray" className="flex items-center justify-start font-medium">
                   Subscribe me to newsletter
                 </Typography>
               }
               containerProps={{ className: "-ml-2.5" }}
-            />
+            /> */}
       <div className="text-center mt-2">
   <Typography variant="small" className="font-medium text-gray-900">
     <Link to="/auth/forgot-password" className="text-sm text-blue-500 hover:underline">
@@ -162,6 +162,9 @@ export function SignIn() {
     </Link>
   </Typography>
 </div>
+ <Typography variant="small" className="font-medium text-gray-900"> 
+  <Link to="/auth/reset-password/demo-token-123" className="text-sm text-blue-500 hover:underline"> Đổi mật khẩu </Link> 
+  </Typography> 
 
           </div>
         </form>
