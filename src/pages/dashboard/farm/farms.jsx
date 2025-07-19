@@ -89,8 +89,6 @@ const handleSearch = () => {
   }
 };
 
-
-
 const handlePageChange = (newPage) => {
   setCurrentPage(newPage);
 };

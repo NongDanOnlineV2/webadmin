@@ -48,7 +48,12 @@ export default function UserDetail() {
   const [visibleVideos, setVisibleVideos] = useState(6);
   const [visiblePosts, setVisiblePosts] = useState(6);
   const [videoCountsByFarm, setVideoCountsByFarm] = useState({});
-
+  const [pageFarms, setPageFarms] = useState(1);
+  const [pageVideos, setPageVideos] = useState(1);
+  const [pagePosts, setPagePosts] = useState(1);
+  const [hasMoreFarms, setHasMoreFarms] = useState(true);
+  const [hasMoreVideos, setHasMoreVideos] = useState(true);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -56,20 +61,17 @@ export default function UserDetail() {
     province: ""
   });
 
-  const fetchPaginatedData = async (url, config, controller) => {
+  const fetchPaginatedData = async (url, config) => {
     let allData = [];
     let page = 1;
     let hasMore = true;
 
     while (hasMore) {
-      const res = await axios.get(`${url}?page=${page}&limit=10`, {
-        ...config,
-        signal: controller?.signal
-      });
+      const res = await axios.get(`${url}?page=${page}&limit=50`, config);
       const pageData = res.data?.data || [];
       allData = [...allData, ...pageData];
 
-      hasMore = pageData.length > 0 && pageData.length === 10;
+      hasMore = pageData.length > 0 && pageData.length === 50;
       page++;
     }
 
@@ -88,9 +90,9 @@ export default function UserDetail() {
     setVisiblePosts((prev) => prev + 6);
   };
 
-  const fetchPostCommentsUsers = async (postId, postTitle, controller) => {
+  const fetchPostCommentsUsers = async (postId, postTitle) => {
   const token = localStorage.getItem("token");
-  const config = { headers: { Authorization: `Bearer ${token}` }, signal: controller?.signal, };
+  const config = { headers: { Authorization: `Bearer ${token}` } };
 
   try {
     const res = await axios.get(
@@ -112,12 +114,11 @@ export default function UserDetail() {
   }
 };
 
-const fetchCommentCount = async (postId, controller) => {
+const fetchCommentCount = async (postId) => {
   const token = localStorage.getItem("token");
   const config = { 
     headers: { Authorization: `Bearer ${token}` },
     validateStatus: (status) => status >= 200 && status < 500,
-    signal: controller?.signal,
   };
 
   try {
@@ -138,9 +139,9 @@ const fetchCommentCount = async (postId, controller) => {
   }
 };
 
-const fetchLikeCount = async (postId, controller) => {
+const fetchLikeCount = async (postId) => {
   const token = localStorage.getItem("token");
-  const config = { headers: { Authorization: `Bearer ${token}` }, signal: controller?.signal, };
+  const config = { headers: { Authorization: `Bearer ${token}` } };
 
   try {
     const res = await axios.get(
@@ -165,7 +166,7 @@ const handleOpenEditAddress = (addr) => {
   setEditAddressOpen(true);
 };
 
-const handleUpdateAddress = async (controller) => {
+const handleUpdateAddress = async () => {
   if (!editingAddress || !editingAddress._id) {
     console.error("Không tìm thấy ID địa chỉ để cập nhật", editingAddress);
     alert("Không thể cập nhật địa chỉ vì thiếu ID.");
@@ -182,14 +183,14 @@ const handleUpdateAddress = async (controller) => {
     await axios.put(
       `https://api-ndolv2.nongdanonline.cc/admin/user-address/${editingAddress._id}`,
       payload,
-      { headers: { Authorization: `Bearer ${token}` }, signal: controller?.signal, }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
 
     alert("Cập nhật địa chỉ thành công!");
 
     const res = await axios.get(
       `https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`,
-      { headers: { Authorization: `Bearer ${token}` }, signal: controller?.signal, }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
 
     setAddresses(res.data || []);
@@ -200,7 +201,7 @@ const handleUpdateAddress = async (controller) => {
   }
 };
 
-const handleDeleteAddress = async (addressId, controller) => {
+const handleDeleteAddress = async (addressId) => {
   const confirmDelete = window.confirm("Bạn có chắc chắn muốn xoá địa chỉ này?");
   if (!confirmDelete) return;
 
@@ -208,7 +209,7 @@ const handleDeleteAddress = async (addressId, controller) => {
   try {
     await axios.delete(
       `https://api-ndolv2.nongdanonline.cc/admin/user-address/${addressId}`,
-      { headers: { Authorization: `Bearer ${token}` }, signal: controller?.signal, }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
 
     alert("Xoá địa chỉ thành công!");
@@ -216,7 +217,7 @@ const handleDeleteAddress = async (addressId, controller) => {
     // Cập nhật lại danh sách địa chỉ
     const res = await axios.get(
       `https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`,
-      { headers: { Authorization: `Bearer ${token}` }, signal: controller?.signal, }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
     setAddresses(res.data || []);
   } catch (err) {
@@ -225,7 +226,7 @@ const handleDeleteAddress = async (addressId, controller) => {
   }
 };
 
-const fetchPostLikesUsers = async (postId, postTitle, controller) => {
+const fetchPostLikesUsers = async (postId, postTitle) => {
   if (postLikesCache[postId]) {
     setSelectedPostTitle(postTitle);
     setSelectedPostLikes(postLikesCache[postId]);
@@ -234,7 +235,7 @@ const fetchPostLikesUsers = async (postId, postTitle, controller) => {
   }
 
   const token = localStorage.getItem("token");
-  const config = { headers: { Authorization: `Bearer ${token}` }, signal: controller?.signal, };
+  const config = { headers: { Authorization: `Bearer ${token}` } };
 
   try {
     const res = await axios.get(
@@ -256,15 +257,14 @@ const fetchPostLikesUsers = async (postId, postTitle, controller) => {
 };
 
   useEffect(() => {
-    const controller = new AbortController();
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const config = { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal, };
+        const config = { headers: { Authorization: `Bearer ${token}` } };
 
         const [userRes, addressRes ] = await Promise.all([
-          axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, {...config, signal: controller.signal,}), 
-          axios.get(`https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`, {...config, signal: controller.signal,}), 
+          axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, config), 
+          axios.get(`https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`, config), 
         ]);
 
         setUser(userRes.data);
@@ -277,10 +277,9 @@ const fetchPostLikesUsers = async (postId, postTitle, controller) => {
     };
 
     fetchData();
-    return () => controller.abort();
   }, [id]);
 
-const handleOpenFarms = async (controller) => {
+const handleOpenFarms = async () => {
   if (openFarms) {
     setOpenFarms(false); 
     return;
@@ -290,14 +289,11 @@ const handleOpenFarms = async (controller) => {
     setLoadingFarms(true); 
     try {
       const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` },signal: controller?.signal, };
+      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms`, {
-        ...config,
-        signal: controller?.signal,
-      });
+      const allFarms = await fetchPaginatedData(`${BASE_URL}/adminfarms`, config);
       setFarms(allFarms); 
-      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, {...config, signal: controller?.signal,});
+      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
 
       const counts = {};
       allVideos.forEach((video) => {
@@ -318,7 +314,7 @@ const handleOpenFarms = async (controller) => {
   }
 };
 
-const handleOpenPosts = async (controller) => {
+const handleOpenPosts = async () => {
   if (openPosts) {
     setOpenPosts(false); 
     return;
@@ -328,9 +324,9 @@ const handleOpenPosts = async (controller) => {
     setLoadingPosts(true);
     try {
       const token = localStorage.getItem("token");
-      const config = { headers: { Authorization: `Bearer ${token}` }, signal: controller?.signal, };
+      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allPosts = await fetchPaginatedData(`${BASE_URL}/admin-post-feed`, {...config, signal: controller?.signal,});
+      const allPosts = await fetchPaginatedData(`${BASE_URL}/admin-post-feed`, config);
       setPosts(allPosts); 
 
       const statsPromises = allPosts.map(async (post) => {
@@ -359,7 +355,7 @@ const handleOpenPosts = async (controller) => {
   }
 };
 
-const handleOpenVideos = async (controller) => {
+const handleOpenVideos = async () => {
   if (openVideos) {
     setOpenVideos(false); 
     return;
@@ -371,7 +367,7 @@ const handleOpenVideos = async (controller) => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, {...config, signal: controller?.signal,});
+      const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
 
       setVideos(allVideos);
 
@@ -385,7 +381,7 @@ const handleOpenVideos = async (controller) => {
   }
 };
 
-const fetchVideoLikesUsers = async (videoId, videoTitle, controller) => {
+const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   if (videoLikesCache[videoId]) {
     setSelectedVideoTitle(videoTitle);
     setSelectedVideoLikes(videoLikesCache[videoId]);
@@ -398,9 +394,9 @@ const fetchVideoLikesUsers = async (videoId, videoTitle, controller) => {
 
   try {
     const res = await axios.get(
-      `https://api-ndolv2.nongdanonline.cc/video-like/${videoId}/users`, {
-      ...config, signal: controller?.signal,
-  });
+      `https://api-ndolv2.nongdanonline.cc/video-like/${videoId}/users`,
+      config
+    );
     setVideoLikesCache((prev) => ({
       ...prev,
       [videoId]: res.data?.users || [],
@@ -413,7 +409,7 @@ const fetchVideoLikesUsers = async (videoId, videoTitle, controller) => {
   }
 };
 
-const fetchVideoCommentsUsers = async (videoId, videoTitle, controller) => {
+const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   if (videoCommentsCache[videoId]) {
     setSelectedVideoTitle(videoTitle);
     setSelectedVideoComments(videoCommentsCache[videoId]);
@@ -422,7 +418,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle, controller) => {
   }
 
   const token = localStorage.getItem("token");
-  const config = { headers: { Authorization: `Bearer ${token}` }, signal: controller?.signal, };
+  const config = { headers: { Authorization: `Bearer ${token}` } };
 
   try {
     const res = await axios.get(
@@ -441,14 +437,14 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle, controller) => {
   }
 };
 
-  const fetchVideoStats = async (videoId, controller) => {
+  const fetchVideoStats = async (videoId) => {
   const token = localStorage.getItem("token");
   const config = { headers: { Authorization: `Bearer ${token}` } };
 
   try {
     const [likeRes, commentRes] = await Promise.all([
-      axios.get(`https://api-ndolv2.nongdanonline.cc/video-like/${videoId}/users`, {...config, signal: controller?.signal,}),
-      axios.get(`https://api-ndolv2.nongdanonline.cc/video-comment/${videoId}/comments`, {...config, signal: controller?.signal,}),
+      axios.get(`https://api-ndolv2.nongdanonline.cc/video-like/${videoId}/users`, config),
+      axios.get(`https://api-ndolv2.nongdanonline.cc/video-comment/${videoId}/comments`, config),
     ]);
 
     setVideoLikes((prev) => ({
@@ -475,9 +471,9 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle, controller) => {
   return videos.filter((v) => v.farmId?.id === farmId).length;
 };
 
-  const userFarms = farms.filter((f) => String(f.ownerId) === String(user?._id) || String(f.createBy) === String(user?._id));
-  const userPosts = posts.filter(p => p.authorId?.id === user?._id);
-  const userVideos = videos.filter(v => v.uploadedBy?.id === user?._id);
+  const userFarms = farms.filter((f) => String(f.ownerId) === String(user?.id) || String(f.createBy) === String(user?.id));
+  const userPosts = posts.filter(p => p.authorId?.id === user?.id);
+  const userVideos = videos.filter(v => v.uploadedBy?.id === user?.id);
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen"><Spinner className="h-12 w-12" /></div>;
