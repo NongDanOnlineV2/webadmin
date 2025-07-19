@@ -144,20 +144,68 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
     setOpenDetail(true);
   };
 
-  useEffect(() => {
-  let ignore = false;
+useEffect(() => {
+  const controller = new AbortController();
+  const { signal } = controller;
 
-  const fetchData = async () => {
-    if (!ignore) await fetchFarms(currentPage);
+  const fetchFarms = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${BASE_URL}/adminfarms`, {
+        ...getOpts(),
+        params: {
+          limit: itemsPerPage,
+          page: currentPage,
+          status: tab === "all" ? undefined : tab,
+          name: searchQuery || undefined,
+        },
+        signal, // 👈 Gắn signal để có thể hủy request
+      });
+
+      const farms = (res.data?.data || []).sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      const total = res.data?.total || 0;
+
+      const farmsWithVideoCounts = await Promise.all(
+        farms.map(async (farm) => {
+          try {
+            const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, {
+              ...getOpts(),
+              signal, // 👈 Gắn signal để hủy request video nếu cần
+            });
+            const videos = videoRes.data?.data || [];
+            return { ...farm, videoCount: videos.length };
+          } catch (err) {
+            if (err.name === "CanceledError") {
+              console.log(`🔄 Request bị hủy cho farm ${farm._id}`);
+              return null; // bỏ qua farm bị huỷ
+            }
+            console.error(`❌ Lỗi videoCount farm ${farm._id}:`, err.message);
+            return { ...farm, videoCount: 0 };
+          }
+        })
+      );
+
+      setFarms(farmsWithVideoCounts.filter(Boolean)); // Bỏ các farm null do bị huỷ
+      setTotalPage(Math.ceil(total / itemsPerPage));
+    } catch (err) {
+      if (axios.isCancel(err) || err.name === "CanceledError") {
+        console.log("⛔ Request chính bị hủy");
+      } else {
+        setError(err.response?.data?.message || err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  fetchData();
+  fetchFarms();
 
   return () => {
-    ignore = true; 
+    controller.abort(); // 🔪 Huỷ mọi request khi useEffect chạy lại
   };
 }, [currentPage, tab, searchQuery]);
- 
 
 
   return (
