@@ -59,6 +59,7 @@ const fetchFarms = async (page = 1) => {
       },
     });
 
+
     const farms = (res.data?.data || []).sort(
   (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
 );
@@ -177,9 +178,7 @@ useEffect(() => {
     try {
       const res = await axios.get(`${BASE_URL}/adminfarms`, {
         ...getOpts(),
-        params: {
-          limit: itemsPerPage,
-          page: currentPage,
+       params: {
           status: tab === "all" ? undefined : tab,
           name: searchQuery || undefined,
         },
@@ -187,10 +186,9 @@ useEffect(() => {
       });
 
       const farms = (res.data?.data || []).sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       const total = res.data?.total || 0;
-
       const farmsWithVideoCounts = await Promise.all(
         farms.map(async (farm) => {
           // Tạo controller cho từng request video
