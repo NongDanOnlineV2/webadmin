@@ -20,7 +20,8 @@ import {
 
 import FarmForm from "../user/FarmForm";
 import FarmDetail from "./FarmDetail";
-import { BaseUrl } from "@/ipconfig";
+
+const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
 const getOpts = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 });
@@ -48,7 +49,7 @@ export function Farms() {
 const fetchFarms = async (page = 1) => {
   setLoading(true);
   try {
-    const res = await axios.get(`${BaseUrl}/adminfarms`, {
+    const res = await axios.get(`${BASE_URL}/adminfarms`, {
       ...getOpts(),
       params: { 
         limit: itemsPerPage, 
@@ -66,7 +67,7 @@ const fetchFarms = async (page = 1) => {
     const farmsWithVideoCounts = await Promise.all(
       farms.map(async (farm) => {
         try {
-          const videoRes = await axios.get(`${BaseUrl}/admin-video-farm/farm/${farm._id}`, getOpts());
+          const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
           const videos = videoRes.data?.data || [];
           return { ...farm, videoCount: videos.length };
         } catch (err) {
@@ -96,7 +97,7 @@ const handlePageChange = (newPage) => {
 const clearCache = () => setFarmCache({});
   const addFarm = async (data) => {
     try {
-      await axios.post(`${BaseUrl}/adminfarms`, data, getOpts());
+      await axios.post(`${BASE_URL}/adminfarms`, data, getOpts());
       clearCache();
       await fetchFarms();
       alert("Tạo farm thành công!");
@@ -107,7 +108,7 @@ const clearCache = () => setFarmCache({});
 
   const editFarm = async (id, data) => {
     try {
-      await axios.put(`${BaseUrl}/adminfarms/${id}`, data, getOpts());
+      await axios.put(`${BASE_URL}/adminfarms/${id}`, data, getOpts());
       await fetchFarms();
     } catch (err) {
       alert("Lỗi sửa: " + (err.response?.data?.message || err.message));
@@ -116,7 +117,7 @@ const clearCache = () => setFarmCache({});
 
   const deleteFarm = async (id) => {
     try {
-await axios.delete(`${BaseUrl}/adminfarms/${id}`, getOpts());
+await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
       await fetchFarms();
     } catch (err) {
       alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
@@ -132,7 +133,7 @@ await axios.delete(`${BaseUrl}/adminfarms/${id}`, getOpts());
     if (!window.confirm(`Bạn có chắc chắn muốn ${actionMap[action] || action} farm này không?`)) return;
 
     try {
-      await axios.patch(`${BaseUrl}/adminfarms/${id}/${action}`, null, getOpts());
+      await axios.patch(`${BASE_URL}/adminfarms/${id}/${action}`, null, getOpts());
       await fetchFarms();
     } catch (err) {
       alert(`Lỗi ${actionMap[action] || action}: ` + (err.response?.data?.message || err.message));
@@ -175,7 +176,7 @@ useEffect(() => {
   const fetchFarms = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${BaseUrl}/adminfarms`, {
+      const res = await axios.get(`${BASE_URL}/adminfarms`, {
         ...getOpts(),
        params: {
           status: tab === "all" ? undefined : tab,
@@ -196,7 +197,7 @@ useEffect(() => {
 
           try {
             const videoRes = await axios.get(
-              `${BaseUrl}/admin-video-farm/farm/${farm._id}`,
+              `${BASE_URL}/admin-video-farm/farm/${farm._id}`,
               {
                 ...getOpts(),
                 signal: videoController.signal,
