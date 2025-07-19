@@ -45,18 +45,18 @@ export function Farms() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-// const fetchFarms = async (page = 1) => {
-//   setLoading(true);
-//   try {
-//     const res = await axios.get(`${BASE_URL}/adminfarms`, {
-//       ...getOpts(),
-//       params: { 
-//         limit: itemsPerPage, 
-//         page,
-//         status: tab === "all" ? undefined : tab,
-//         name: searchQuery || undefined,
-//       },
-//     });
+const fetchFarms = async (page = 1) => {
+  setLoading(true);
+  try {
+    const res = await axios.get(`${BASE_URL}/adminfarms`, {
+      ...getOpts(),
+      params: { 
+        limit: itemsPerPage, 
+        page,
+        status: tab === "all" ? undefined : tab,
+        name: searchQuery || undefined,
+      },
+    });
 
     const farms = (res.data?.data || []).sort(
   (a, b) => new Date(b.createdAt) - new Date(a.createdAt)

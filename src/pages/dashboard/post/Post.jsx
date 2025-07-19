@@ -26,7 +26,6 @@ export function PostList() {
   const [users, setUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;
-
   const [filterUserId, setFilterUserId] = useState("");
   const [filterTitle, setFilterTitle] = useState("");
   const [filterSortLikes, setFilterSortLikes] = useState("");

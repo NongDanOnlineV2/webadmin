@@ -6,7 +6,6 @@ import {
 } from "@material-tailwind/react";
 import { useParams } from "react-router-dom";
 import PostLikeUserDialog from "./listpostlikeUser";
-import { Audio } from "react-loader-spinner";
 const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
 export default function UserDetail() {
   const { id } = useParams();
@@ -48,9 +47,6 @@ export default function UserDetail() {
   const [visibleFarms, setVisibleFarms] = useState(6);
   const [visibleVideos, setVisibleVideos] = useState(6);
   const [visiblePosts, setVisiblePosts] = useState(6);
-  const [hasLoadedFarms, setHasLoadedFarms] = useState(false);
-  const [hasLoadedVideos, setHasLoadedVideos] = useState(false);
-  const [videoCountsByFarm, setVideoCountsByFarm] = useState({});
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -446,6 +442,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 };
 
   const fetchVideoStats = async (videoId) => {
+  if (fetchedVideoStats.current[videoId]) return;
   const token = localStorage.getItem("token");
   const config = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -463,6 +460,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       ...prev,
       [videoId]: Array.isArray(commentRes.data) ? commentRes.data.length : 0,
     }));
+    fetchedVideoStats.current[videoId] = true;
   } catch (err) {
     console.error(`Error fetching stats for video ${videoId}:`, err);
   }
