@@ -17,8 +17,7 @@ import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import axios from "axios";
 import AnswerEditForm from "./AnswerEditForm";
 import { Audio } from "react-loader-spinner";
-
-const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+import { BaseUrl } from "@/ipconfig";
 
 export default function AnswersTable() {
   const [answers, setAnswers] = useState([]);
@@ -30,7 +29,7 @@ export default function AnswersTable() {
 
   const fetchAnswers = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/answers`);
+      const res = await axios.get(`${BaseUrl}/answers`);
       setAnswers(res.data);
     } catch (error) {
       console.error("Lỗi khi lấy danh sách câu trả lời:", error);
@@ -67,7 +66,7 @@ export default function AnswersTable() {
 
     try {
       setUploading(true);
-      const res = await axios.post(`${BASE_URL}/upload`, formData);
+      const res = await axios.post(`${BaseUrl}/upload`, formData);
       const url = res.data.url;
       setForm((prev) => ({
         ...prev,
@@ -89,7 +88,7 @@ export default function AnswersTable() {
     try {
       setIsSubmitting(true);
       console.log("Gửi update cho answer ID:", form._id);
-      await axios.put(`${BASE_URL}/answers/${form._id}`, {
+      await axios.put(`${BaseUrl}/answers/${form._id}`, {
         selectedOptions: form.selectedOptions,
         otherText: form.otherText,
         uploadedFiles: form.uploadedFiles,

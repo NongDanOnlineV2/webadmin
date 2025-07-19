@@ -205,7 +205,6 @@ const filteredComments = React.useMemo(() => {
   });
 }, [comment, allComments, searchTitle, postMap]);
 
-
   return (
     <div>
       <div className="mb-4 p-4 bg-white rounded shadow">
@@ -278,15 +277,14 @@ filteredComments.length === 0 ? (
       <tbody className="divide-y divide-gray-200">
         {filteredComments.map((item) => {
           const postInfo = postMap[String(item.postId).trim()];
-          const title = postInfo?.title?.trim() 
-            
-          
-          const sortedComments = item.comments
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-          
+          const title = postInfo?.title?.trim();
+          // Chỉ đếm comment gốc + reply 1 cấp, không cộng nhầm khi replies là mảng rỗng hoặc undefined
+          const sortedComments = item.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
           const latestComment = sortedComments[0];
-          const totalComments = item.comments.length + 
-            item.comments.reduce((sum, cmt) => sum + (cmt.replies?.length || 0), 0);
+          const totalComments = item.comments.reduce((sum, cmt) => {
+            const replyCount = Array.isArray(cmt.replies) ? cmt.replies.length : 0;
+            return sum + 1 + replyCount;
+          }, 0);
 
           return (
             <tr key={item.postId} className="hover:bg-gray-50 cursor-pointer"

@@ -5,9 +5,8 @@ import {
   Avatar, Input
 } from "@material-tailwind/react";
 import { useParams } from "react-router-dom";
-import PostLikeUserDialog from "./listpostlikeUser";
-import { Audio } from "react-loader-spinner";
-const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+import PostLikeUserDialog from "./listpostlikeUser"
+import { BaseUrl } from "@/ipconfig";
 export default function UserDetail() {
   const { id } = useParams();
   const [user, setUser] = useState(null);
@@ -283,7 +282,9 @@ const handleOpenFarms = async () => {
     return;
   }
 
-  setOpenFarms(true);
+      const allFarms = await fetchPaginatedData(`${BaseUrl}/adminfarms`, config);
+      setFarms(allFarms); 
+      const allVideos = await fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config);
 
   if (farms.length > 0 || loadingFarms) return;
 
@@ -329,7 +330,7 @@ const handleOpenPosts = async () => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allPosts = await fetchPaginatedData(`${BASE_URL}/admin-post-feed`, config);
+      const allPosts = await fetchPaginatedData(`${BaseUrl}/admin-post-feed`, config);
       setPosts(allPosts); 
 
       const statsPromises = allPosts.map(async (post) => {
@@ -364,7 +365,7 @@ const handleOpenVideos = async () => {
     return;
   }
 
-  setOpenVideos(true);
+      const allVideos = await fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config);
 
   // Chỉ fetch nếu chưa có dữ liệu và chưa từng loading
   if (videos.length > 0 || loadingVideos) return;
@@ -1246,7 +1247,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       {post.authorId ? (
                         <>
                           <Avatar
-                            src={post.authorId.avatar ? `${BASE_URL}${post.authorId.avatar}` : "/default-avatar.png"}
+                            src={post.authorId.avatar ? `${BaseUrl}${post.authorId.avatar}` : "/default-avatar.png"}
                             size="sm"
                           />
                           <div className="flex flex-col">

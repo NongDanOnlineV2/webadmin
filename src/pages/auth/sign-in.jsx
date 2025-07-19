@@ -39,24 +39,23 @@ export function SignIn() {
     }
 
     try {
-            const BASE_URL = useDefaultApi
+      const BASE_URL = useDefaultApi
         ? "https://api-ndolv2.nongdanonline.cc"
         : customApiUrl.trim();
-
       if (!BASE_URL) {
         alert("Vui lòng nhập URL API tùy chỉnh.");
         return;
       }
       localStorage.setItem("apiBaseUrl", BASE_URL);
-
+     
       const res = await fetch(`${BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
 
+const data = await res.json();
       if (res.ok) {
         localStorage.setItem("token", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken);
