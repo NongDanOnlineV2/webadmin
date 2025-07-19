@@ -155,9 +155,14 @@ export function SignIn() {
               }
               containerProps={{ className: "-ml-2.5" }}
             />
-            <Typography variant="small" className="font-medium text-gray-900">
-              <Link to="/auth/forgot-password">Forgot Password</Link>
-            </Typography>
+      <div className="text-center mt-2">
+  <Typography variant="small" className="font-medium text-gray-900">
+    <Link to="/auth/forgot-password" className="text-sm text-blue-500 hover:underline">
+      Quên mật khẩu?
+    </Link>
+  </Typography>
+</div>
+
           </div>
         </form>
       </div>
