@@ -33,7 +33,7 @@ export function Farms() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
-  const [farmCache, setFarmCache] = useState({});
+  const [search, setSearch] = useState("");
   const [openForm, setOpenForm] = useState(false);
   const [editingFarm, setEditingFarm] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -42,11 +42,18 @@ export function Farms() {
   const [totalPages, setTotalPage] = useState(1);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingFarmId, setDeletingFarmId] = useState(null);
-  const [farmDetailCache, setFarmDetailCache] = useState({});
+  const [farmCache, setFarmCache] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
 const fetchFarms = async (page = 1) => {
+  const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
+  if (farmCache[cacheKey]) {
+    setFarms(farmCache[cacheKey].farms);
+    setTotalPage(farmCache[cacheKey].totalPages);
+    setLoading(false);
+    return;
+  }
   setLoading(true);
   try {
     const res = await axios.get(`${BASE_URL}/adminfarms`, {
@@ -58,7 +65,6 @@ const fetchFarms = async (page = 1) => {
         name: searchQuery || undefined,
       },
     });
-
 
     const farms = (res.data?.data || []).sort(
   (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -78,6 +84,13 @@ const fetchFarms = async (page = 1) => {
     );
     setFarms(farmsWithVideoCounts);
     setTotalPage(Math.ceil(total / itemsPerPage));
+    setFarmCache((prevCache) => ({
+      ...prevCache,
+      [cacheKey]: {
+        farms: cleanedFarms,
+        totalPages: Math.ceil(total / itemsPerPage),
+      },
+    }));
   } catch (err) {
     setError(err.response?.data?.message || err.message);
   } finally {
@@ -94,11 +107,10 @@ const handleSearch = () => {
 const handlePageChange = (newPage) => {
   setCurrentPage(newPage);
 };
-const clearCache = () => setFarmCache({});
+
   const addFarm = async (data) => {
     try {
       await axios.post(`${BASE_URL}/adminfarms`, data, getOpts());
-      clearCache();
       await fetchFarms();
       alert("Tạo farm thành công!");
     } catch (err) {
@@ -140,45 +152,32 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
     }
   };
 
-  const handleOpenDetail = async (id) => {
+  const handleOpenDetail = (id) => {
     setSelectedFarmId(id);
     setOpenDetail(true);
-    if (farmDetailCache[id]) return;
-    try {
-      const res = await axios.get(`${BASE_URL}/adminfarms/${id}`, getOpts());
-      setFarmDetailCache((prev) => ({
-      ...prev,
-      [id]: res.data?.data || {},
-    }));
-    } catch (err) {
-      console.error("Lỗi fetch farm chi tiết:", err.message);
-    }
   };
-  
 
 useEffect(() => {
   const controller = new AbortController();
   const { signal } = controller;
-
-  // Tạo mảng lưu các controller cho video count
-  let videoControllers = [];
-
-  const key = `${currentPage}-${tab}-${searchQuery}`;
-
-  // Nếu đã có trong cache thì không fetch lại
-  if (farmCache[key]) {
-    setFarms(farmCache[key].farms);
-    setTotalPage(farmCache[key].totalPages);
+const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
+  if (farmCache[cacheKey]) {
+    setFarms(farmCache[cacheKey].farms);
+    setTotalPage(farmCache[cacheKey].totalPages);
     setLoading(false);
     return;
   }
+  // Tạo mảng lưu các controller cho video count
+  let videoControllers = [];
 
   const fetchFarms = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${BASE_URL}/adminfarms`, {
         ...getOpts(),
-       params: {
+        params: {
+          limit: itemsPerPage,
+          page: currentPage,
           status: tab === "all" ? undefined : tab,
           name: searchQuery || undefined,
         },
@@ -186,9 +185,10 @@ useEffect(() => {
       });
 
       const farms = (res.data?.data || []).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
       const total = res.data?.total || 0;
+
       const farmsWithVideoCounts = await Promise.all(
         farms.map(async (farm) => {
           // Tạo controller cho từng request video
@@ -213,13 +213,13 @@ useEffect(() => {
           }
         })
       );
-      const cleanedFarms = farmsWithVideoCounts.filter(Boolean);
+
       setFarms(farmsWithVideoCounts.filter(Boolean));
       setTotalPage(Math.ceil(total / itemsPerPage));
       setFarmCache((prev) => ({
         ...prev,
-        [key]: {
-          farms: cleanedFarms,
+        [cacheKey]: {
+          farms: farmsWithVideoCounts,
           totalPages: Math.ceil(total / itemsPerPage),
         },
       }));
@@ -457,7 +457,7 @@ useEffect(() => {
           <IconButton variant="text" onClick={() => setOpenDetail(false)} className="ml-auto">✕</IconButton>
         </DialogHeader>
         <DialogBody className="p-4">
-          <FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} farmData={farmDetailCache[selectedFarmId]}/>
+          <FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} />
         </DialogBody>
       </Dialog>
 
