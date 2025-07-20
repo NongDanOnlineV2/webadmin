@@ -18,7 +18,7 @@ import ChinhSach from "@/pages/dashboard/ChinhSach";
 import ChinhSachBaoMat from "@/pages/dashboard/ChinhSachBaoMat";
 import ChinhSachCookie from "@/pages/dashboard/ChinhSachCookie";
 import DieuKhoanDieuKien from "@/pages/dashboard/DieuKhoanDieuKien";
-import ResetPassword from "./components/ResetPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 
 import { ViewfinderCircleIcon,VideoCameraIcon,ChatBubbleOvalLeftEllipsisIcon  } from "@heroicons/react/24/outline";
