@@ -42,10 +42,18 @@ export function Farms() {
   const [totalPages, setTotalPage] = useState(1);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingFarmId, setDeletingFarmId] = useState(null);
+  const [farmCache, setFarmCache] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
 const fetchFarms = async (page = 1) => {
+  const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
+  if (farmCache[cacheKey]) {
+    setFarms(farmCache[cacheKey].farms);
+    setTotalPage(farmCache[cacheKey].totalPages);
+    setLoading(false);
+    return;
+  }
   setLoading(true);
   try {
     const res = await axios.get(`${BASE_URL}/adminfarms`, {
@@ -76,6 +84,13 @@ const fetchFarms = async (page = 1) => {
     );
     setFarms(farmsWithVideoCounts);
     setTotalPage(Math.ceil(total / itemsPerPage));
+    setFarmCache((prevCache) => ({
+      ...prevCache,
+      [cacheKey]: {
+        farms: cleanedFarms,
+        totalPages: Math.ceil(total / itemsPerPage),
+      },
+    }));
   } catch (err) {
     setError(err.response?.data?.message || err.message);
   } finally {
@@ -88,8 +103,6 @@ const handleSearch = () => {
     setCurrentPage(1);
   }
 };
-
-
 
 const handlePageChange = (newPage) => {
   setCurrentPage(newPage);
@@ -147,6 +160,15 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
 useEffect(() => {
   const controller = new AbortController();
   const { signal } = controller;
+const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
+  if (farmCache[cacheKey]) {
+    setFarms(farmCache[cacheKey].farms);
+    setTotalPage(farmCache[cacheKey].totalPages);
+    setLoading(false);
+    return;
+  }
+  // Tạo mảng lưu các controller cho video count
+  let videoControllers = [];
 
   const fetchFarms = async () => {
     setLoading(true);
@@ -159,7 +181,7 @@ useEffect(() => {
           status: tab === "all" ? undefined : tab,
           name: searchQuery || undefined,
         },
-        signal, // 👈 Gắn signal để có thể hủy request
+        signal,
       });
 
       const farms = (res.data?.data || []).sort(
@@ -169,29 +191,41 @@ useEffect(() => {
 
       const farmsWithVideoCounts = await Promise.all(
         farms.map(async (farm) => {
+          // Tạo controller cho từng request video
+          const videoController = new AbortController();
+          videoControllers.push(videoController);
+
           try {
-            const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, {
-              ...getOpts(),
-              signal, // 👈 Gắn signal để hủy request video nếu cần
-            });
+            const videoRes = await axios.get(
+              `${BASE_URL}/admin-video-farm/farm/${farm._id}`,
+              {
+                ...getOpts(),
+                signal: videoController.signal,
+              }
+            );
             const videos = videoRes.data?.data || [];
             return { ...farm, videoCount: videos.length };
           } catch (err) {
-            if (err.name === "CanceledError") {
-              console.log(`🔄 Request bị hủy cho farm ${farm._id}`);
-              return null; // bỏ qua farm bị huỷ
+            if (axios.isCancel(err) || err.name === "CanceledError") {
+              return null;
             }
-            console.error(`❌ Lỗi videoCount farm ${farm._id}:`, err.message);
             return { ...farm, videoCount: 0 };
           }
         })
       );
 
-      setFarms(farmsWithVideoCounts.filter(Boolean)); // Bỏ các farm null do bị huỷ
+      setFarms(farmsWithVideoCounts.filter(Boolean));
       setTotalPage(Math.ceil(total / itemsPerPage));
+      setFarmCache((prev) => ({
+        ...prev,
+        [cacheKey]: {
+          farms: farmsWithVideoCounts,
+          totalPages: Math.ceil(total / itemsPerPage),
+        },
+      }));
     } catch (err) {
       if (axios.isCancel(err) || err.name === "CanceledError") {
-        console.log("⛔ Request chính bị hủy");
+        // Bị huỷ
       } else {
         setError(err.response?.data?.message || err.message);
       }
@@ -203,7 +237,9 @@ useEffect(() => {
   fetchFarms();
 
   return () => {
-    controller.abort(); // 🔪 Huỷ mọi request khi useEffect chạy lại
+    controller.abort();
+    // Huỷ tất cả các request video count
+    videoControllers.forEach((vc) => vc.abort());
   };
 }, [currentPage, tab, searchQuery]);
 

@@ -9,8 +9,7 @@ import {
   DialogFooter,
 } from "@material-tailwind/react";
 import { PlayIcon } from "@heroicons/react/24/outline";
-
-const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+import { BaseUrl } from "@/ipconfig";
 
 const Info = ({ label, value }) => (
   <div className="flex flex-col gap-1">
@@ -81,7 +80,7 @@ const [answers, setAnswers] = useState([]);
   const fetchDetail = async () => {
   if (!farmId) return;
   try {
-    const res = await axios.get(`${BASE_URL}/adminfarms/${farmId}`, getOpts());
+    const res = await axios.get(`${BaseUrl}/adminfarms/${farmId}`, getOpts());
     const farmData = res.data?.data || res.data;
 
     const pictures = farmData.pictures || [];
@@ -93,7 +92,7 @@ const [answers, setAnswers] = useState([]);
     setFarm({
       ...farmData,
       imageUrl: defaultImg
-        ? `${BASE_URL}${defaultImg.imageUrl}`
+        ? `${BaseUrl}${defaultImg.imageUrl}`
         : null,
     });
 
@@ -101,7 +100,7 @@ const [answers, setAnswers] = useState([]);
     setImages(
       pictures.map((p) => ({
         ...p,
-        url: `${BASE_URL}${p.imageUrl}`,
+        url: `${BaseUrl}${p.imageUrl}`,
         isAvatar: p.isDefault,
       }))
     );
@@ -115,7 +114,7 @@ const [answers, setAnswers] = useState([]);
 
   const fetchFarmVideos = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farmId}`, getOpts());
+      const res = await axios.get(`${BaseUrl}/admin-video-farm/farm/${farmId}`, getOpts());
       setVideos(res.data?.data || []);
       setVideoCount((res.data?.data || []).length);
     } catch (err) {
@@ -128,7 +127,7 @@ const [answers, setAnswers] = useState([]);
   const fetchQuestions = async () => {
     setLoadingQuestions(true);
     try {
-      const res = await axios.get(`${BASE_URL}/admin-questions?limit=100`, getOpts());
+      const res = await axios.get(`${BaseUrl}/admin-questions?limit=100`, getOpts());
       setQuestions(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
       console.error("Lỗi câu hỏi:", err);
@@ -141,7 +140,7 @@ const [answers, setAnswers] = useState([]);
   const fetchAnswers = async () => {
     setLoadingAnswers(true);
     try {
-      const res = await axios.get(`${BASE_URL}/answers/by-farm/${farmId}`, getOpts());
+      const res = await axios.get(`${BaseUrl}/answers/by-farm/${farmId}`, getOpts());
       setAnswers(res.data || []);
     } catch (err) {
       console.error("Lỗi câu trả lời:", err);
@@ -309,7 +308,7 @@ const [answers, setAnswers] = useState([]);
     : selectedVideo.localFilePath
     ? selectedVideo.localFilePath.startsWith("http")
       ? selectedVideo.localFilePath
-      : `${BASE_URL}${selectedVideo.localFilePath}`
+      : `${BaseUrl}${selectedVideo.localFilePath}`
     : null;
 
     if (videoSrc) {

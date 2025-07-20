@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Typography } from "@material-tailwind/react";
-
-const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+import { BaseUrl } from "@/ipconfig";
 
 export default function FarmPictures({ farmId }) {
   const [pictures, setPictures] = useState([]);
@@ -15,7 +14,7 @@ export default function FarmPictures({ farmId }) {
     const fetchPictures = async () => {
   try {
     const id = farmId?.trim(); // loại bỏ \n
-    const res = await axios.get(`${BASE_URL}/farm-pictures/${id}`);
+    const res = await axios.get(`${BaseUrl}/farm-pictures/${id}`);
     const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
     setPictures(list);
   } catch (err) {
@@ -30,7 +29,7 @@ export default function FarmPictures({ farmId }) {
     fetchPictures();
   }, [farmId]);
 
-  const getImgSrc = (imgUrl) => `${BASE_URL}${imgUrl}`;
+  const getImgSrc = (imgUrl) => `${BaseUrl}${imgUrl}`;
 
   if (loading) return <Typography>Đang tải ảnh...</Typography>;
   if (error) return <Typography color="red">Lỗi: {error}</Typography>;

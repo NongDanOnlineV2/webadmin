@@ -40,6 +40,14 @@ export default function Users() {
   // Fetch users + counts
   const fetchUsers = async () => {
     if (!token) return;
+    const cached = cacheUsers.find(entry => entry.page === page && entry.role === filterRole && entry.status === filterStatus);
+    if (cached) {
+      setUsers(cached.users);
+      setTotalPages(cached.totalPages || 1);
+      setCounts(cached.counts || {});
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const params = { page, limit };
@@ -88,6 +96,17 @@ usersData.forEach(user => {
   };
 });
 setCounts(countsObj);
+setCacheUsers(prev => [
+      ...prev,
+      {
+        page,
+        role: filterRole,
+        status: filterStatus,
+        users: usersData,
+        totalPages: res.data.totalPages || 1,
+        counts: countsObj,
+      },
+    ]);
 
     } catch (err) {
       console.error("Lỗi khi tải users:", err);
