@@ -43,7 +43,8 @@ export default function UserDetail() {
   const [postLikesCache, setPostLikesCache] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
   const [loadingPosts, setLoadingPosts] = useState(false);
-  const [loadingVideos, setLoadingVideos] = useState(false);  
+  const [loadingVideos, setLoadingVideos] = useState(false); 
+  const [videoCountsByFarm, setVideoCountsByFarm] = useState({}); 
   const [visibleFarms, setVisibleFarms] = useState(6);
   const [visibleVideos, setVisibleVideos] = useState(6);
   const [visiblePosts, setVisiblePosts] = useState(6);
@@ -279,20 +280,16 @@ const handleOpenFarms = async () => {
     return;
   }
 
-      const allFarms = await fetchPaginatedData(`${BaseUrl}/adminfarms`, config);
-      setFarms(allFarms); 
-      const allVideos = await fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config);
-
   if (farms.length > 0 || loadingFarms) return;
 
-  setLoadingFarms(true);
+  setOpenFarms(true);
   try {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
     const [allFarms, allVideos] = await Promise.all([
-      fetchPaginatedData(`${BASE_URL}/adminfarms`, config),
-      fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config),
+      fetchPaginatedData(`${BaseUrl}/adminfarms`, config),
+      fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config),
     ]);
 
     setFarms(allFarms);
@@ -306,8 +303,6 @@ const handleOpenFarms = async () => {
     setVideoCountsByFarm(counts);
 
     // 3. Gọi stats cho từng video (nếu cần)
-    
-    setHasLoadedFarms(true);
   } catch (err) {
     console.error("Lỗi khi fetch farms:", err);
   } finally {
@@ -362,23 +357,20 @@ const handleOpenVideos = async () => {
     return;
   }
 
-      const allVideos = await fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config);
-
   // Chỉ fetch nếu chưa có dữ liệu và chưa từng loading
   if (videos.length > 0 || loadingVideos) return;
 
-  setLoadingVideos(true);
+  setOpenVideos(true);
   try {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
-    const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
+    const allVideos = await fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config);
     setVideos(allVideos);
 
     // Không cần set lại nếu openVideos đã false trong lúc chờ
     const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
     await Promise.allSettled(statsPromises);
-    setHasLoadedVideos(true);
   } catch (err) {
     console.error("Lỗi khi load videos:", err);
   } finally {
