@@ -11,7 +11,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
-import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost  } from "@/pages/dashboard";
+import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports, CommentPost, ResetPasswordPage } from "@/pages/dashboard";
 import { SignIn, SignUp } from "@/pages/auth";
 
 import { ViewfinderCircleIcon,VideoCameraIcon,ChatBubbleOvalLeftEllipsisIcon  } from "@heroicons/react/24/outline";
@@ -96,6 +96,10 @@ export const routes = [
         element: <SignIn />,
       },
     ],
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
   },
 ];
 
