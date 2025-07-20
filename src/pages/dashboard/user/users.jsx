@@ -8,6 +8,7 @@ import {
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import CreatableSelect from 'react-select/creatable';
+import { apiFetch } from "../apiClient";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
