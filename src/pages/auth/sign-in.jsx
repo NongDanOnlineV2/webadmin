@@ -53,14 +53,18 @@ export function SignIn() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
-
-const data = await res.json();
+      const data = await res.json();
       if (res.ok) {
-        localStorage.setItem("token", data.accessToken);
-        localStorage.setItem("refreshToken", data.refreshToken);
-        setAuthStatus(dispatch, true);
-        navigate("/dashboard/home");
+        const roles = data.user?.role || [];
+        const isAllowed = roles.includes("Admin") || roles.includes("Staff");
+        if(isAllowed){
+          localStorage.setItem("token", data.accessToken);
+          localStorage.setItem("refreshToken", data.refreshToken);
+          setAuthStatus(dispatch, true);
+          navigate("/dashboard/home");
+        }else {
+        alert("Bạn không có quyền đăng nhập.");
+      } 
       } else {
         alert(data.message || "Đăng nhập thất bại");
       }
