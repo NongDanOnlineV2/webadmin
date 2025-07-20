@@ -37,6 +37,7 @@ function App() {
 
   return (
  <Routes>
+  <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/dashboard/*" element={<Dashboard />}>
         <Route path="VideoFarmById/:farmId" element={<VideoFarmById />} />
         <Route path="video-like/:videoId" element={<VideoLikeList />} />
