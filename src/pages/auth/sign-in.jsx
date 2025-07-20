@@ -163,7 +163,7 @@ export function SignIn() {
   </Typography>
 </div>
  <Typography variant="small" className="font-medium text-gray-900"> 
-  <Link to="/auth/reset-password/:token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NjRlZDEzNjRmMTRjZWVlN2JlNTFmOSIsImlhdCI6MTc1Mjk0MDE0MCwiZXhwIjoxNzUyOTQxMDQwfQ.oYsMC9qP9Ce01Scxxui_jBfBGo4siEoMijIJb1960OA" className="text-sm text-blue-500 hover:underline"> Đổi mật khẩu </Link> 
+  <Link to="/auth/reset-password" className="text-sm text-blue-500 hover:underline"> Đổi mật khẩu </Link> 
   </Typography> 
 
           </div>
