@@ -61,8 +61,6 @@ try {
 
 if(res.status===200){
 setPost(res.data)
-setIdUser(res.data.authorId)
-// Lấy thông tin user ngay sau khi có authorId
 if(res.data.authorId) {
   getUserByAuthorId(res.data.authorId);
 }

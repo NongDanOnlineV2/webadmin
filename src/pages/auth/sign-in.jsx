@@ -47,7 +47,7 @@ export function SignIn() {
         return;
       }
       localStorage.setItem("apiBaseUrl", BASE_URL);
-     
+     console.log(BASE_URL)
       const res = await fetch(`${BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
