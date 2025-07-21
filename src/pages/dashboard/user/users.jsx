@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/utils/axiosInstance"; // thay axios = api
+import axios from 'axios';
+
 import {
   Typography, IconButton, Menu, MenuHandler, MenuList, MenuItem,
   Dialog, DialogHeader, DialogBody, DialogFooter,
@@ -73,12 +75,9 @@ const fetchAllData = async () => {
       if (filterRole) params.role = filterRole;
       if (filterStatus) params.isActive = filterStatus === "Active";
 
-      const res = await axios.get(`${apiUrl}/admin-users`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params
-      });
+    const res = await api.get(`/admin-users`, { params }); // ✅ Sửa đúng
+    const usersData = res.data?.data || [];
 
-      const usersData = res.data?.data || [];
       const postMap = {};
       allPosts.current.forEach(p => {
         const uid = p.userId || p.authorId?.id;
@@ -118,10 +117,18 @@ const fetchAllData = async () => {
     }
   };
 
-  useEffect(() => {
-    if (!token) return;
-    fetchAllData().then(fetchUsers);
-  }, []);
+ useEffect(() => {
+  if (!token) return;
+
+  fetchAllData()
+    .then(fetchUsers)
+    .catch((err) => {
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
+    });
+}, []);
   // Search
   const handleSearch = async () => {
     if (!token) return;
