@@ -54,19 +54,23 @@ const featureOptions = [
   { label: "Tưới dựa vào cảm biến đất", value: "soil_based_irrigation" },
   { label: "Cảm biến IoT", value: "iot_sensors" },
   { label: "Giám sát độ ẩm đất", value: "soil_moisture_monitoring" },
-  { label: "Cảm biến chất lượng không khí", value: "air_quality_sensor" }
+  { label: "Cảm biến chất lượng không khí", value: "air_quality_sensor" },
 ];
 
 export default function FarmDetail({ open, onClose, farmId }) {
-  const [selectedVideo, setSelectedVideo] = useState(null);
   const [farm, setFarm] = useState(null);
   const [error, setError] = useState(null);
   const [images, setImages] = useState([]);
-  const [videos, setVideos] = useState([]);
   const [videoCount, setVideoCount] = useState(0);
+
+  const [showVideos, setShowVideos] = useState(false);
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [videos, setVideos] = useState([]);
+  const [selectedVideo, setSelectedVideo] = useState(null);
+
   const [showChanges, setShowChanges] = useState(false);
   const [questions, setQuestions] = useState([]);
-const [answers, setAnswers] = useState([]);
+  const [answers, setAnswers] = useState([]);
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [loadingAnswers, setLoadingAnswers] = useState(true);
 
@@ -78,41 +82,35 @@ const [answers, setAnswers] = useState([]);
   });
 
   const fetchDetail = async () => {
-  if (!farmId) return;
-  try {
-    const res = await axios.get(`${BaseUrl}/adminfarms/${farmId}`, getOpts());
-    const farmData = res.data?.data || res.data;
+    if (!farmId) return;
+    try {
+      const res = await axios.get(`${BaseUrl}/adminfarms/${farmId}`, getOpts());
+      const farmData = res.data?.data || res.data;
+      const pictures = farmData.pictures || [];
 
-    const pictures = farmData.pictures || [];
+      const defaultImg =
+        pictures.find((pic) => pic.isDefault) || (pictures.length > 0 ? pictures[0] : null);
 
-    const defaultImg =
-      pictures.find((pic) => pic.isDefault) ||
-      (pictures.length > 0 ? pictures[0] : null);
+      setFarm({
+        ...farmData,
+        imageUrl: defaultImg ? `${BaseUrl}${defaultImg.imageUrl}` : null,
+      });
 
-    setFarm({
-      ...farmData,
-      imageUrl: defaultImg
-        ? `${BaseUrl}${defaultImg.imageUrl}`
-        : null,
-    });
-
-    // Gán ảnh luôn cho images
-    setImages(
-      pictures.map((p) => ({
-        ...p,
-        url: `${BaseUrl}${p.imageUrl}`,
-        isAvatar: p.isDefault,
-      }))
-    );
-  } catch (err) {
-    setError(err.response?.data?.message || err.message);
-    setFarm(null);
-  }
-};
-
-
+      setImages(
+        pictures.map((p) => ({
+          ...p,
+          url: `${BaseUrl}${p.imageUrl}`,
+          isAvatar: p.isDefault,
+        }))
+      );
+    } catch (err) {
+      setError(err.response?.data?.message || err.message);
+      setFarm(null);
+    }
+  };
 
   const fetchFarmVideos = async () => {
+    setLoadingVideos(true);
     try {
       const res = await axios.get(`${BaseUrl}/admin-video-farm/farm/${farmId}`, getOpts());
       setVideos(res.data?.data || []);
@@ -121,7 +119,16 @@ const [answers, setAnswers] = useState([]);
       console.error("Lỗi video:", err);
       setVideos([]);
       setVideoCount(0);
+    } finally {
+      setLoadingVideos(false);
     }
+  };
+
+  const handleOpenVideoDialog = async () => {
+    if (!showVideos) {
+      await fetchFarmVideos();
+    }
+    setShowVideos(true);
   };
 
   const fetchQuestions = async () => {
@@ -160,7 +167,6 @@ const [answers, setAnswers] = useState([]);
   useEffect(() => {
     if (open && farmId) {
       fetchDetail();
-      fetchFarmVideos();
     }
   }, [open, farmId]);
 
@@ -173,17 +179,23 @@ const [answers, setAnswers] = useState([]);
 
         {!farm ? (
           <Typography color="red">Không tìm thấy dữ liệu</Typography>
-) : (
+        ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <Info label="Chủ sở hữu" value={farm.ownerInfo?.name} />
               <Info label="Tên nông trại" value={farm.name} />
               <Info label="Mã nông trại" value={farm.code} />
               <Info label="Tags" value={(farm.tags || []).join(", ")} />
-              <Info label="Trạng thái" value={
-                farm.status === "pending" ? "Chờ duyệt" :
-                farm.status === "active" ? "Đang hoạt động" : "Đã khóa"
-              } />
+              <Info
+                label="Trạng thái"
+                value={
+                  farm.status === "pending"
+                    ? "Chờ duyệt"
+                    : farm.status === "active"
+                    ? "Đang hoạt động"
+                    : "Đã khóa"
+                }
+              />
               <Info label="Tỉnh/Thành phố" value={farm.province} />
               <Info label="Quận/Huyện" value={farm.district} />
               <Info label="Phường/Xã" value={farm.ward} />
@@ -195,19 +207,28 @@ const [answers, setAnswers] = useState([]);
               <Info label="Tính năng" value={mapToLabel(farm.features, featureOptions)} />
               <Info label="Số điện thoại" value={farm.phone} />
               <Info label="Zalo" value={farm.zalo} />
-              <Info label="Số video nông trại" value={videoCount} />
+              
             </div>
+              <div className="flex flex-col gap-1">
+                <Typography className="text-sm font-medium text-gray-800">Video nông trại</Typography>
+                <Button
+                  onClick={handleOpenVideoDialog}
+                  variant="outlined"
+                  size="sm"
+                  color="blue"
+                  className="w-fit px-4 py-2 text-sm"
+                >
+                  Xem danh sách video ({videoCount})
+                </Button>
+              </div>
 
             {farm.description && (
               <div>
                 <Typography variant="h6" className="mb-2 text-blue-gray-900">Mô tả</Typography>
-                <Typography className="text-sm text-blue-gray-700 whitespace-pre-wrap">
-                  {farm.description}
-                </Typography>
+                <Typography className="text-sm text-blue-gray-700 whitespace-pre-wrap">{farm.description}</Typography>
               </div>
             )}
-                  
-                  {/* hình ảnh  */}
+
             <div>
               <Typography variant="h6" className="mb-2 text-blue-gray-900">Hình ảnh</Typography>
               {images.length > 0 ? (
@@ -215,12 +236,12 @@ const [answers, setAnswers] = useState([]);
                   {images.map((img, idx) => (
                     <div key={idx}>
                       <img
-                        src={img.url} 
+                        src={img.url}
                         alt={img.isAvatar ? "Ảnh đại diện" : `Ảnh ${idx + 1}`}
                         className="w-full h-40 object-cover rounded-lg border shadow-sm"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = "/fallback.jpg"; // ✅ fallback khi lỗi ảnh
+                          e.target.src = "/fallback.jpg";
                         }}
                       />
                       {img.isAvatar && (
@@ -234,123 +255,121 @@ const [answers, setAnswers] = useState([]);
               )}
             </div>
 
-
-            <div className="mt-6">
-<Typography variant="h6" className="mb-2 text-blue-gray-900">Danh sách video</Typography>
-              {videos.length > 0 ? (
-                <div className="border border-gray-200 rounded-md max-h-[400px] overflow-y-auto">
-                  <table className="min-w-full table-auto text-sm text-left">
-                    <thead className="bg-gray-100 sticky top-0 z-10">
-                      <tr>
-                        <th className="border px-3 py-2">#</th>
-                        <th className="border px-3 py-2">Tiêu đề</th>
-                        <th className="border px-3 py-2">Người đăng</th>
-                        <th className="border px-3 py-2">Ngày đăng</th>
-                        <th className="border px-3 py-2">Trạng thái</th>
-                        <th className="border px-3 py-2">Xem</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {videos.map((video, idx) => (
-                        <tr key={video._id || idx} className="hover:bg-gray-50">
-                          <td className="border px-3 py-2">{idx + 1}</td>
-                          <td className="border px-3 py-2">{video.title}</td>
-                          <td className="border px-3 py-2">{video.uploadedBy?.fullName || video.uploadedBy?.name || "—"}</td>
-                          <td className="border px-3 py-2">{new Date(video.createdAt).toLocaleDateString()}</td>
-                          <td className="border px-3 py-2">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold
-                            ${video.status === "active" ? "text-green-700 bg-green-100"
-                              : video.status === "pending" ? "text-yellow-700 bg-yellow-100"
-                              : video.status === "deleted" ? "text-red-700 bg-red-100"
-                              : "text-gray-700 bg-gray-100"}`}>
-                            {video.status === "uploaded"
-                              ? "uploaded"
-                              : video.status === "pending"
-                              ? "pending"
-                              : video.status === "deleted"
-                              ? "deleted"
-                              : video.status === "failed"
-                              ? "failed"
-                              : "lổi video"}
-                          </span>
-                        </td>
-
-                          <td className="border px-3 py-2">
-                            <Button
-                              variant="text"
-                              size="sm"
-                              color="blue"
-                              onClick={() => setSelectedVideo(video)}
-                              className="flex items-center gap-1"
-                            >
-                              <PlayIcon className="h-4 w-4" />
-                              Xem
-                            </Button>
-</td>
+            <Dialog open={showVideos} handler={() => setShowVideos(false)} size="lg">
+              <DialogHeader>Danh sách video</DialogHeader>
+              <DialogBody className="max-h-[70vh] overflow-y-auto">
+                {loadingVideos ? (
+                  <Typography className="text-sm text-blue-500">Đang tải danh sách video...</Typography>
+                ) : videos.length === 0 ? (
+                  <Typography className="text-sm italic text-gray-500">Chưa có video nào</Typography>
+                ) : (
+                  <div className="border border-gray-200 rounded-md">
+                    <table className="min-w-full table-auto text-sm text-left">
+                      <thead className="bg-gray-100 sticky top-0 z-10">
+                        <tr>
+                          <th className="border px-3 py-2">#</th>
+                          <th className="border px-3 py-2">Tiêu đề</th>
+                          <th className="border px-3 py-2">Người đăng</th>
+                          <th className="border px-3 py-2">Ngày đăng</th>
+                          <th className="border px-3 py-2">Trạng thái</th>
+                          <th className="border px-3 py-2">Xem</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <Typography className="text-sm italic text-gray-500">Chưa có video nào</Typography>
-              )}
-            </div>
+                      </thead>
+                      <tbody>
+                        {videos.map((video, idx) => (
+                          <tr key={video._id || idx} className="hover:bg-gray-50">
+                            <td className="border px-3 py-2">{idx + 1}</td>
+                            <td className="border px-3 py-2">{video.title}</td>
+                            <td className="border px-3 py-2">
+                              {video.uploadedBy?.fullName || video.uploadedBy?.name || "—"}
+                            </td>
+                            <td className="border px-3 py-2">
+                              {new Date(video.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="border px-3 py-2">
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-semibold
+                                  ${video.status === "active"
+                                    ? "text-green-700 bg-green-100"
+                                    : video.status === "pending"
+                                    ? "text-yellow-700 bg-yellow-100"
+                                    : video.status === "deleted"
+                                    ? "text-red-700 bg-red-100"
+                                    : "text-gray-700 bg-gray-100"}`}
+                              >
+                                {video.status || "Không rõ"}
+                              </span>
+                            </td>
+                            <td className="border px-3 py-2">
+                              <Button
+                                variant="text"
+                                size="sm"
+                                color="blue"
+                                onClick={() => setSelectedVideo(video)}
+                                className="flex items-center gap-1"
+                              >
+                                <PlayIcon className="h-4 w-4" />
+                                Xem
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </DialogBody>
+              <DialogFooter>
+                <Button onClick={() => setShowVideos(false)} color="blue">Đóng</Button>
+              </DialogFooter>
+            </Dialog>
 
-<Dialog open={!!selectedVideo} handler={() => setSelectedVideo(null)} size="lg">
-  <DialogHeader>{selectedVideo?.title || "Xem video"}</DialogHeader>
+            <Dialog open={!!selectedVideo} handler={() => setSelectedVideo(null)} size="lg">
+              <DialogHeader>{selectedVideo?.title || "Xem video"}</DialogHeader>
+              <DialogBody divider className="flex justify-center">
+                {selectedVideo ? (() => {
+                  const videoSrc =
+                    selectedVideo.youtubeLink?.endsWith(".mp4")
+                      ? selectedVideo.youtubeLink
+                      : selectedVideo.localFilePath
+                      ? selectedVideo.localFilePath.startsWith("http")
+                        ? selectedVideo.localFilePath
+                        : `${BaseUrl}${selectedVideo.localFilePath}`
+                      : null;
 
-  <DialogBody divider className="flex justify-center">
-  {selectedVideo ? (() => {
-    const videoSrc =
-  selectedVideo.youtubeLink?.endsWith(".mp4")
-    ? selectedVideo.youtubeLink
-    : selectedVideo.localFilePath
-    ? selectedVideo.localFilePath.startsWith("http")
-      ? selectedVideo.localFilePath
-      : `${BaseUrl}${selectedVideo.localFilePath}`
-    : null;
+                  if (videoSrc) {
+                    return (
+                      <video controls className="max-h-[70vh] w-full rounded shadow">
+                        <source src={videoSrc} type="video/mp4" />
+                        Trình duyệt của bạn không hỗ trợ phát video.
+                      </video>
+                    );
+                  }
 
-    if (videoSrc) {
-      return (
-        <video
-          controls
-          className="max-h-[70vh] w-full rounded shadow"
-        >
-          <source src={videoSrc} type="video/mp4" />
-          Trình duyệt của bạn không hỗ trợ phát video.
-        </video>
-      );
-    }
+                  if (selectedVideo.youtubeLink) {
+                    const youtubeId = selectedVideo.youtubeLink.match(/(?:v=|\/embed\/|\.be\/)([^\s&?]+)/)?.[1];
+                    return (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${youtubeId}`}
+                        title="YouTube video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="h-[360px] rounded shadow w-full"
+                      ></iframe>
+                    );
+                  }
 
-    if (selectedVideo.youtubeLink) {
-      const youtubeId = selectedVideo.youtubeLink.match(/(?:v=|\/embed\/|\.be\/)([^\s&?]+)/)?.[1];
-      return (
-        <iframe
-          src={`https://www.youtube.com/embed/${youtubeId}`}
-          title="YouTube video"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="h-[360px] rounded shadow w-full"
-        ></iframe>
-      );
-    }
-
-      return <Typography className="text-red-500">Không tìm thấy video.</Typography>;
-  })() : (
-    <Typography className="text-red-500">Không tìm thấy video.</Typography>
-  )}
-</DialogBody>
-
-
-  <DialogFooter>
-    <Button color="blue" onClick={() => setSelectedVideo(null)}>
-      Đóng
-    </Button>
-  </DialogFooter>
-</Dialog>
-
-
+                  return <Typography className="text-red-500">Không tìm thấy video.</Typography>;
+                })() : (
+                  <Typography className="text-red-500">Không tìm thấy video.</Typography>
+                )}
+              </DialogBody>
+              <DialogFooter>
+                <Button color="blue" onClick={() => setSelectedVideo(null)}>
+                  Đóng
+                </Button>
+              </DialogFooter>
+            </Dialog>
 
             <div className="mt-6">
               <Button onClick={handleToggleChanges} color="blue" variant="outlined" size="sm">
@@ -370,13 +389,15 @@ const [answers, setAnswers] = useState([]);
                     const match = answers.find((a) => a.question?._id === q._id);
                     const ans = match?.answer;
                     return (
-<div key={q._id} className="border p-3 rounded-lg bg-gray-50">
+                      <div key={q._id} className="border p-3 rounded-lg bg-gray-50">
                         <Typography className="text-sm font-semibold text-gray-800">
                           {idx + 1}. {q.text}
                         </Typography>
                         {ans ? (
                           <div className="mt-1 space-y-1 text-sm text-blue-gray-700">
-                            {ans.selectedOptions?.length > 0 && <div>Chọn: {ans.selectedOptions.join(", ")}</div>}
+                            {ans.selectedOptions?.length > 0 && (
+                              <div>Chọn: {ans.selectedOptions.join(", ")}</div>
+                            )}
                             {ans.otherText && <div>Khác: {ans.otherText}</div>}
                             {ans.uploadedFiles?.length > 0 && (
                               <div className="space-y-1">
