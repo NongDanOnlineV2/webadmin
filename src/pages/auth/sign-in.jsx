@@ -166,7 +166,7 @@ export function SignIn() {
   </Typography>
 </div>
  <Typography variant="small" className="font-medium text-gray-900"> 
-  <Link to="/auth/reset-password/demo-token-123" className="text-sm text-blue-500 hover:underline"> Đổi mật khẩu </Link> 
+  <Link to="/auth/reset-password" className="text-sm text-blue-500 hover:underline"> Đổi mật khẩu </Link> 
   </Typography> 
 
           </div>

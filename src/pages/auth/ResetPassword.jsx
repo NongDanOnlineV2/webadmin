@@ -1,21 +1,29 @@
-import React, { useState } from "react";
-import {
-  Card,
-  Input,
-  Button,
-  Typography,
-} from "@material-tailwind/react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Card, Input, Button, Typography } from "@material-tailwind/react";
 
 function ResetPassword() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [token, setToken] = useState("");
+  const [isTokenValid, setIsTokenValid] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const navigate = useNavigate();
-  const { token } = useParams();
 
   const BASE_URL = localStorage.getItem("apiBaseUrl") || "https://api-ndolv2.nongdanonline.cc";
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const tokenFromUrl = queryParams.get("token");
+    if (tokenFromUrl) {
+      setToken(tokenFromUrl);
+      setIsTokenValid(true); // Nếu không có API verify riêng, tạm cho phép dùng
+    } else {
+      setError("Token không hợp lệ hoặc đã hết hạn.");
+    }
+  }, [location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,14 +34,8 @@ function ResetPassword() {
       setError("Vui lòng nhập đầy đủ mật khẩu.");
       return;
     }
-
     if (password !== confirmPassword) {
       setError("Mật khẩu không khớp.");
-      return;
-    }
-
-    if (!token) {
-      setError("Token không hợp lệ.");
       return;
     }
 
@@ -45,25 +47,22 @@ function ResetPassword() {
       });
 
       const data = await res.json();
-
       if (res.ok) {
-        setSuccess("Đặt lại mật khẩu thành công! Đang chuyển hướng...");
+        setSuccess("✅ Đặt lại mật khẩu thành công. Bạn sẽ được chuyển sang trang đăng nhập.");
         setTimeout(() => navigate("/auth/sign-in"), 3000);
       } else {
-        setError(data.message || "Lỗi khi đặt lại mật khẩu.");
+        setError(data.message || "❌ Lỗi khi đặt lại mật khẩu.");
       }
     } catch (err) {
-      setError("Lỗi kết nối đến máy chủ.");
+      console.error("Reset password error:", err);
+      setError("❌ Lỗi kết nối máy chủ.");
     }
   };
 
-  // Nếu không có token từ URL → chặn truy cập
-  if (!token) {
+  if (!isTokenValid) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Typography variant="h5" color="red">
-          Không tìm thấy token hợp lệ.
-        </Typography>
+      <div className="flex items-center justify-center min-h-screen">
+        <Typography color="red" variant="h5">{error}</Typography>
       </div>
     );
   }
@@ -71,49 +70,33 @@ function ResetPassword() {
   return (
     <section className="flex justify-center items-center min-h-screen bg-gray-100">
       <Card className="p-6 w-full max-w-md">
-        <Typography variant="h4" color="blue-gray" className="text-center mb-4">
-          Đặt lại mật khẩu
-        </Typography>
+        <Typography variant="h4" className="text-center mb-4">Đặt lại mật khẩu</Typography>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label htmlFor="password" className="block mb-1 font-medium">
-              Mật khẩu mới
-            </label>
+            <label htmlFor="password" className="block mb-1 font-medium">Mật khẩu mới</label>
             <Input
               id="password"
-              name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              name="password"
             />
           </div>
           <div>
-            <label htmlFor="confirmPassword" className="block mb-1 font-medium">
-              Xác nhận mật khẩu
-            </label>
+            <label htmlFor="confirmPassword" className="block mb-1 font-medium">Xác nhận mật khẩu</label>
             <Input
               id="confirmPassword"
-              name="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              name="confirmPassword"
             />
           </div>
-          {error && (
-            <Typography variant="small" color="red" className="text-center">
-              {error}
-            </Typography>
-          )}
-          {success && (
-            <Typography variant="small" color="green" className="text-center">
-              {success}
-            </Typography>
-          )}
-          <Button type="submit" fullWidth>
-            Đặt lại mật khẩu
-          </Button>
+          {error && <Typography variant="small" color="red">{error}</Typography>}
+          {success && <Typography variant="small" color="green">{success}</Typography>}
+          <Button type="submit" fullWidth>Đặt lại mật khẩu</Button>
         </form>
       </Card>
     </section>
