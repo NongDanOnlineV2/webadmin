@@ -1,6 +1,6 @@
 import { BaseUrl } from '@/ipconfig'
 import axios from 'axios'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState,useRef,useMemo } from 'react'
 import { Audio } from 'react-loader-spinner'
 import { Navigate, useNavigate } from 'react-router-dom'
 import CommentPostbyIdPost from './CommentPostbyIdPost'
@@ -19,7 +19,8 @@ export const CommentPost = () => {
   const limit = 10;
   const [comment,setComment]=useState([])
   const [post,setPost]=useState([])
-  const [nonExistentPostIds, setNonExistentPostIds] = useState(new Set()); // Cache cho post không tồn tại
+  const [allCommentsLoaded, setAllCommentsLoaded] = useState(false);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
 const gotoCommentId=(id)=>{
 navigate(`/dashboard/CommentPostbyId/${id}`)
 }
@@ -48,163 +49,167 @@ const clearSearch = () => {
   setPage(1)
 }
 
-const callApiCommentPost=async()=>{
-try {
+ 
 
-const res= await axios.get(`${BaseUrl}/admin-comment-post/?page=${page}&limit=${limit}`,{
-    headers:{Authorization:`Bearer ${tokenUser}`}
-})
 
-if(res.status===200){
-setComment(res.data.data)
-setTotalPages(res.data.totalPages)
- setLoading(false) 
-}
-} catch (error) {
-    // console.log("Lỗi nè",error)
-    setLoading(false)
-}
+  const pageCache = useRef(new Map());
 
-}
-const loadAllComments = async () => {
-  try {
-    const allCommentsData = [];
-    
-    const firstRes = await axios.get(`${BaseUrl}/admin-comment-post/?page=1&limit=${limit}`, {
-      headers: { Authorization: `Bearer ${tokenUser}` }
-    });
-    
-    if (firstRes.status === 200) {
+ 
+  const loadAllComments = async () => {
+    console.log("🚀 Bắt đầu tải tất cả comment cho chức năng search...");
+    try {
+      const firstRes = await axios.get(`${BaseUrl}/admin-comment-post/?page=1&limit=10`, {
+        headers: { Authorization: `Bearer ${tokenUser}` },
+      });
+
+      if (firstRes.status !== 200) return;
+
       const totalPages = firstRes.data.totalPages;
-      allCommentsData.push(...firstRes.data.data);
-      
-
+      const allCommentsData = [...firstRes.data.data];
       const promises = [];
+
       for (let i = 2; i <= totalPages; i++) {
         promises.push(
-          axios.get(`${BaseUrl}/admin-comment-post/?page=${i}&limit=${limit}`, {
-            headers: { Authorization: `Bearer ${tokenUser}` }
+          axios.get(`${BaseUrl}/admin-comment-post/?page=${i}&limit=10`, {
+            headers: { Authorization: `Bearer ${tokenUser}` },
           })
         );
       }
-      
+
       const results = await Promise.all(promises);
-      results.forEach(res => {
+      results.forEach((res) => {
         if (res.status === 200) {
           allCommentsData.push(...res.data.data);
         }
       });
-      
+
       setAllComments(allCommentsData);
+      console.log("✅ Đã tải xong tất cả comment.");
+    } catch (error) {
+      console.error("Lỗi khi tải tất cả comment:", error);
     }
-  } catch (error) {
-    // console.error("Lỗi load all comments:", error);
-    return false
-  }
-}
-useEffect(()=>{
-  setLoading(true)
-  callApiCommentPost()
-  loadAllComments() 
-},[page])
+  };
 
-useEffect(() => {
- getPost()
-}, [comment, allComments]); 
+  // 2. Hàm lấy thông tin bài viết dựa trên các comment đã có
+  const getPost = async () => {
+    if (isLoadingPosts) return;
+    setIsLoadingPosts(true);
 
-const postMap = React.useMemo(() => {
-  const map = {};
-  post.forEach(p => {
-    const key = String(p.id ?? p._id).trim();
-    map[key] = p;
-  });
-  return map;
-}, [post]);
+    try {
+      const currentPageIds = comment.map((item) => item.postId);
+      const allCommentsIds = allComments.map((item) => item.postId);
+      const uniqueIds = [...new Set([...currentPageIds, ...allCommentsIds])].filter(Boolean);
 
-const getPost = async () => {
-  try {
-    const currentPageIds = comment.map(item => item.postId);
-    const allCommentsIds = allComments.map(item => item.postId);
-    const uniqueIds = [...new Set([...currentPageIds, ...allCommentsIds])]; 
-    
-    if (uniqueIds.length === 0) return;
-
-    // Lọc bỏ những ID đã biết không tồn tại để tránh spam API
-    const validIds = uniqueIds.filter(id => 
-      id && 
-      String(id).trim() && 
-      !nonExistentPostIds.has(String(id).trim())
-    );
-    
-    if (validIds.length === 0) {
-      setLoading(false);
-      return;
-    }
-
-    const res = await axios.get(`${BaseUrl}/admin-post-feed?ids=${validIds.join(',')}`, {
-      headers: { Authorization: `Bearer ${tokenUser}` }
-    });
-
-    let posts = [];
-    if (res.status === 200) {
-      posts = res.data.data;
-      
-      const foundIds = posts.map(p => String(p.id || p._id));
-      const missingIds = validIds.filter(id => !foundIds.includes(String(id)));
-      
-      if (missingIds.length > 0) {
-        const individualPromises = missingIds.map(async (postId) => {
-          try {
-            const individualRes = await axios.get(`${BaseUrl}/admin-post-feed/${postId}`, {
-              headers: { Authorization: `Bearer ${tokenUser}` }
-            });
-            if (individualRes?.status === 200) {
-              return individualRes.data;
-            }
-            return null;
-          } catch (error) {
-            return null;
-          }
-        });
-        const individualResults = await Promise.all(individualPromises);
-        const foundIndividualPosts = individualResults.filter(p => p !== null);
-        posts = [...posts, ...foundIndividualPosts];
+      if (uniqueIds.length === 0) {
+        setIsLoadingPosts(false);
+        return;
       }
+      
+      const newIdsToFetch = uniqueIds.filter(id => !postMap[id]);
+      if (newIdsToFetch.length === 0) {
+        setIsLoadingPosts(false);
+        return;
+      }
+
+      const res = await axios.get(`${BaseUrl}/admin-post-feed?ids=${newIdsToFetch.join(',')}`, {
+        headers: { Authorization: `Bearer ${tokenUser}` },
+      });
+
+      if (res.status === 200 && res.data.data) {
+        setPost(prevPosts => [...prevPosts, ...res.data.data]);
+      }
+    } catch (error) {
+      console.error("Lỗi getPost:", error);
+    } finally {
+      setIsLoadingPosts(false);
+    }
+  };
+
+  // --- CÁC useEffect QUẢN LÝ VÒNG ĐỜI ---
+
+  // useEffect chính: Tải dữ liệu cho trang hiện tại (có cache)
+  useEffect(() => {
+    const fetchCurrentPageData = async () => {
+      const cacheKey = `page-${page}`;
+      if (pageCache.current.has(cacheKey)) {
+        console.log(`✅ Dùng cache cho trang ${page}`);
+        const cachedData = pageCache.current.get(cacheKey);
+        setComment(cachedData.data);
+        setTotalPages(cachedData.totalPages);
+        setLoading(false);
+        return;
+      }
+
+      console.log(`🔄 Gọi API cho trang ${page}`);
+      setLoading(true);
+      try {
+        const res = await axios.get(`${BaseUrl}/admin-comment-post/?page=${page}&limit=${limit}`, {
+          headers: { Authorization: `Bearer ${tokenUser}` },
+        });
+        if (res.status === 200) {
+          const responseData = {
+            data: res.data.data,
+            totalPages: res.data.totalPages,
+          };
+          pageCache.current.set(cacheKey, responseData);
+          setComment(responseData.data);
+          setTotalPages(responseData.totalPages);
+        }
+      } catch (error) {
+        console.error("Lỗi gọi API trang:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Nếu đang tìm kiếm thì không cần fetch theo trang
+    if (!searchTitle.trim()) {
+      fetchCurrentPageData();
+    }
+  }, [page, searchTitle]); // Chạy lại khi page hoặc trạng thái tìm kiếm thay đổi
+
+  // useEffect: Tải tất cả comment cho việc tìm kiếm (chỉ chạy 1 lần)
+  useEffect(() => {
+    if (!allCommentsLoaded) {
+      loadAllComments();
+      setAllCommentsLoaded(true);
+    }
+  }, [allCommentsLoaded]); // Mảng rỗng đảm bảo nó chỉ chạy 1 lần
+
+  // useEffect: Lấy thông tin bài viết khi có comment mới
+  useEffect(() => {
+    getPost();
+  }, [comment, allComments]);
+
+  // --- LOGIC TÍNH TOÁN VÀ HIỂN THỊ ---
+
+  const postMap = useMemo(() => {
+    const map = {};
+    post.forEach((p) => {
+      if (p) {
+        const key = String(p.id ?? p._id).trim();
+        map[key] = p;
+      }
+    });
+    return map;
+  }, [post]);
+
+  const filteredComments = useMemo(() => {
+    const dataSource = searchTitle.trim() ? allComments : comment;
+    
+    let result = dataSource;
+    if (searchTitle.trim()) {
+      result = dataSource.filter((item) => {
+        const postInfo = postMap[String(item.postId).trim()];
+        const title = postInfo?.title ?? '';
+        return title.toLowerCase().includes(searchTitle.toLowerCase());
+      });
     }
 
-    setPost(posts);
-    setLoading(false);
-  } catch (error) {
-    setLoading(false);
-    // console.error("Lỗi getPost:", error);
-  }
-};
-
-const filteredComments = React.useMemo(() => {
-  
-  const dataSource = searchTitle.trim() ? allComments : comment;
-  
-  let result;
-  if (!searchTitle.trim()) {
-    result = comment; 
-  } else {
-    result = dataSource.filter(item => {
-      const postInfo = postMap[String(item.postId).trim()];
-      const title = postInfo && postInfo.title && postInfo.title.trim()
-        ? postInfo.title
-        : "";
-      
-      return title.toLowerCase().includes(searchTitle.toLowerCase());
-    });
-  }
-
-  return result.sort((a, b) => {
-    const dateA = new Date(a.createdAt);
-    const dateB = new Date(b.createdAt);
-    return dateB - dateA; 
-  });
-}, [comment, allComments, searchTitle, postMap]);
-
+    // Sắp xếp kết quả cuối cùng theo ngày tạo mới nhất
+    return result.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [comment, allComments, searchTitle, postMap]);
+console.log("posst nef:",post)
   return (
     <div>
       <div className="mb-4 p-4 bg-white rounded shadow">
@@ -291,10 +296,11 @@ filteredComments.length === 0 ? (
                 onClick={() => handleOpenDialogComments(item)}>
               <td className="px-4 py-4 border-b max-w-xs">
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-900 break-words line-clamp-2 overflow-hidden text-ellipsis">
-                    {title}
+                    <span className="text-sm font-medium text-gray-900 break-words line-clamp-2 overflow-hidden text-ellipsis">
+                    {title || (isLoadingPosts ? 'Đang tải tiêu đề...' : '')}
                   </span>
-                  {!postInfo && (
+                  
+                 {!postInfo && !isLoadingPosts && (
                     <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded mt-1 inline-block w-fit">
                       Bài viết đã bị xóa
                     </span>

@@ -1,3 +1,2 @@
-  const url = localStorage.getItem('apiBaseUrl')
 
-export const BaseUrl= `${url}`
+export const BaseUrl = localStorage.getItem('apiBaseUrl') 
