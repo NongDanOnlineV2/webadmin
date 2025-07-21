@@ -127,7 +127,7 @@ const [answers, setAnswers] = useState([]);
   const fetchQuestions = async () => {
     setLoadingQuestions(true);
     try {
-      const res = await axios.get(`${BaseUrl}/admin-questions?limit=100`, getOpts());
+      const res = await axios.get(`${BaseUrl}/admin-questions?limit=10`, getOpts());
       setQuestions(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
       console.error("Lỗi câu hỏi:", err);

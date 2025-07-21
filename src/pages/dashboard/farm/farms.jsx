@@ -20,7 +20,8 @@ import {
 
 import FarmForm from "../user/FarmForm";
 import FarmDetail from "./FarmDetail";
-import { BaseUrl } from "@/ipconfig";
+
+const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
 const getOpts = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 });
@@ -32,7 +33,7 @@ export function Farms() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
-  const [farmCache, setFarmCache] = useState({});
+  const [search, setSearch] = useState("");
   const [openForm, setOpenForm] = useState(false);
   const [editingFarm, setEditingFarm] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -41,48 +42,11 @@ export function Farms() {
   const [totalPages, setTotalPage] = useState(1);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingFarmId, setDeletingFarmId] = useState(null);
-  const [farmDetailCache, setFarmDetailCache] = useState({});
+  const [farmCache, setFarmCache] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-const fetchFarms = async (page = 1) => {
-  setLoading(true);
-  try {
-    const res = await axios.get(`${BaseUrl}/adminfarms`, {
-      ...getOpts(),
-      params: { 
-        limit: itemsPerPage, 
-        page,
-        status: tab === "all" ? undefined : tab,
-        name: searchQuery || undefined,
-      },
-    });
 
-
-    const farms = (res.data?.data || []).sort(
-  (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-);
-    const total = res.data?.total || 0;
-    const farmsWithVideoCounts = await Promise.all(
-      farms.map(async (farm) => {
-        try {
-          const videoRes = await axios.get(`${BaseUrl}/admin-video-farm/farm/${farm._id}`, getOpts());
-          const videos = videoRes.data?.data || [];
-          return { ...farm, videoCount: videos.length };
-        } catch (err) {
-          console.error(`Lỗi videoCount của farm ${farm._id}:`, err.message);
-          return { ...farm, videoCount: 0 };
-        }
-      })
-    );
-    setFarms(farmsWithVideoCounts);
-    setTotalPage(Math.ceil(total / itemsPerPage));
-  } catch (err) {
-    setError(err.response?.data?.message || err.message);
-  } finally {
-    setLoading(false);
-  }
-};
 const handleSearch = () => {
   if (searchQuery !== searchInput) {
     setSearchQuery(searchInput);
@@ -93,11 +57,10 @@ const handleSearch = () => {
 const handlePageChange = (newPage) => {
   setCurrentPage(newPage);
 };
-const clearCache = () => setFarmCache({});
+
   const addFarm = async (data) => {
     try {
-      await axios.post(`${BaseUrl}/adminfarms`, data, getOpts());
-      clearCache();
+      await axios.post(`${BASE_URL}/adminfarms`, data, getOpts());
       await fetchFarms();
       alert("Tạo farm thành công!");
     } catch (err) {
@@ -107,7 +70,7 @@ const clearCache = () => setFarmCache({});
 
   const editFarm = async (id, data) => {
     try {
-      await axios.put(`${BaseUrl}/adminfarms/${id}`, data, getOpts());
+      await axios.put(`${BASE_URL}/adminfarms/${id}`, data, getOpts());
       await fetchFarms();
     } catch (err) {
       alert("Lỗi sửa: " + (err.response?.data?.message || err.message));
@@ -116,7 +79,7 @@ const clearCache = () => setFarmCache({});
 
   const deleteFarm = async (id) => {
     try {
-await axios.delete(`${BaseUrl}/adminfarms/${id}`, getOpts());
+await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
       await fetchFarms();
     } catch (err) {
       alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
@@ -132,52 +95,39 @@ await axios.delete(`${BaseUrl}/adminfarms/${id}`, getOpts());
     if (!window.confirm(`Bạn có chắc chắn muốn ${actionMap[action] || action} farm này không?`)) return;
 
     try {
-      await axios.patch(`${BaseUrl}/adminfarms/${id}/${action}`, null, getOpts());
+      await axios.patch(`${BASE_URL}/adminfarms/${id}/${action}`, null, getOpts());
       await fetchFarms();
     } catch (err) {
       alert(`Lỗi ${actionMap[action] || action}: ` + (err.response?.data?.message || err.message));
     }
   };
 
-  const handleOpenDetail = async (id) => {
+  const handleOpenDetail = (id) => {
     setSelectedFarmId(id);
     setOpenDetail(true);
-    if (farmDetailCache[id]) return;
-    try {
-      const res = await axios.get(`${BASE_URL}/adminfarms/${id}`, getOpts());
-      setFarmDetailCache((prev) => ({
-      ...prev,
-      [id]: res.data?.data || {},
-    }));
-    } catch (err) {
-      console.error("Lỗi fetch farm chi tiết:", err.message);
-    }
   };
-  
 
 useEffect(() => {
   const controller = new AbortController();
   const { signal } = controller;
-
-  // Tạo mảng lưu các controller cho video count
-  let videoControllers = [];
-
-  const key = `${currentPage}-${tab}-${searchQuery}`;
-
-  // Nếu đã có trong cache thì không fetch lại
-  if (farmCache[key]) {
-    setFarms(farmCache[key].farms);
-    setTotalPage(farmCache[key].totalPages);
+const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
+  if (farmCache[cacheKey]) {
+    setFarms(farmCache[cacheKey].farms);
+    setTotalPage(farmCache[cacheKey].totalPages);
     setLoading(false);
     return;
   }
+  // Tạo mảng lưu các controller cho video count
+  let videoControllers = [];
 
   const fetchFarms = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${BaseUrl}/adminfarms`, {
+      const res = await axios.get(`${BASE_URL}/adminfarms`, {
         ...getOpts(),
-       params: {
+        params: {
+          limit: itemsPerPage,
+          page: currentPage,
           status: tab === "all" ? undefined : tab,
           name: searchQuery || undefined,
         },
@@ -185,40 +135,16 @@ useEffect(() => {
       });
 
       const farms = (res.data?.data || []).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
       const total = res.data?.total || 0;
-      const farmsWithVideoCounts = await Promise.all(
-        farms.map(async (farm) => {
-          // Tạo controller cho từng request video
-          const videoController = new AbortController();
-          videoControllers.push(videoController);
 
-          try {
-            const videoRes = await axios.get(
-              `${BaseUrl}/admin-video-farm/farm/${farm._id}`,
-              {
-                ...getOpts(),
-                signal: videoController.signal,
-              }
-            );
-            const videos = videoRes.data?.data || [];
-            return { ...farm, videoCount: videos.length };
-          } catch (err) {
-            if (axios.isCancel(err) || err.name === "CanceledError") {
-              return null;
-            }
-            return { ...farm, videoCount: 0 };
-          }
-        })
-      );
-      const cleanedFarms = farmsWithVideoCounts.filter(Boolean);
-      setFarms(farmsWithVideoCounts.filter(Boolean));
+      setFarms(farms.filter(Boolean));
       setTotalPage(Math.ceil(total / itemsPerPage));
       setFarmCache((prev) => ({
         ...prev,
-        [key]: {
-          farms: cleanedFarms,
+        [cacheKey]: {
+          farms: farms,
           totalPages: Math.ceil(total / itemsPerPage),
         },
       }));
@@ -289,7 +215,6 @@ useEffect(() => {
                   <th className="px-2 py-2 font-semibold uppercase">SĐT</th>
                   <th className="px-2 py-2 font-semibold uppercase">Địa chỉ</th>
                   <th className="px-2 py-2 font-semibold uppercase">Diện tích</th>
-                  <th className="px-2 py-2 font-semibold uppercase">Số video</th>
                   <th className="px-2 py-2 font-semibold uppercase">Trạng thái</th>
                   <th className="px-2 py-2 font-semibold uppercase">Thao tác</th>
                 </tr>
@@ -319,13 +244,7 @@ useEffect(() => {
                       {farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
                     </td>
                     <td className="px-2 py-2">{farm.area} m²</td>
-                    <td className="px-2 py-2">
-                      {farm.videoCount !== undefined ? (
-                        farm.videoCount
-                      ) : (
-                        <span className="text-gray-400 italic">Đang tải...</span>
-                      )}
-                    </td>
+        
 <td className="px-2 py-2">
                       <Chip
                         value={
@@ -456,7 +375,7 @@ useEffect(() => {
           <IconButton variant="text" onClick={() => setOpenDetail(false)} className="ml-auto">✕</IconButton>
         </DialogHeader>
         <DialogBody className="p-4">
-          <FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} farmData={farmDetailCache[selectedFarmId]}/>
+          <FarmDetail open={openDetail} onClose={() => setOpenDetail(false)} farmId={selectedFarmId} />
         </DialogBody>
       </Dialog>
 

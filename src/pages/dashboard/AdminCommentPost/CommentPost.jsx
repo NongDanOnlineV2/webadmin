@@ -84,7 +84,6 @@ const clearSearch = () => {
       });
 
       setAllComments(allCommentsData);
-      console.log("✅ Đã tải xong tất cả comment.");
     } catch (error) {
       console.error("Lỗi khi tải tất cả comment:", error);
     }
@@ -125,9 +124,36 @@ const clearSearch = () => {
     }
   };
 
-  // --- CÁC useEffect QUẢN LÝ VÒNG ĐỜI ---
+const callApiCommentPost=async()=>{
+try {
 
-  // useEffect chính: Tải dữ liệu cho trang hiện tại (có cache)
+const res= await axios.get(`${BaseUrl}/admin-comment-post/?page=${page}&limit=${limit}`,{
+    headers:{Authorization:`Bearer ${tokenUser}`}
+})
+
+if(res.status===200){
+setComment(res.data.data)
+setTotalPages(res.data.totalPages)
+ setLoading(false) 
+}
+} catch (error) {
+    // console.log("Lỗi nè",error)
+    setLoading(false)
+}
+
+}
+
+useEffect(()=>{
+  setLoading(true)
+  callApiCommentPost() 
+},[page])
+
+
+useEffect(() => {
+  if (comment.length > 0) {
+    getPost();
+  }
+}, [comment]);
   useEffect(() => {
     const fetchCurrentPageData = async () => {
       const cacheKey = `page-${page}`;
