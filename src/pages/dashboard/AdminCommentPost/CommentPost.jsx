@@ -14,12 +14,16 @@ export const CommentPost = () => {
   const [openDialogComments, setOpenDialogComments] = useState(false)
   const [CommentsDialog, setCommentsDialog] = useState(null);
   const [searchTitle, setSearchTitle] = useState('')
+  const [actualSearchTerm, setActualSearchTerm] = useState('') 
+  const [isSearching, setIsSearching] = useState(false)
   const [allComments, setAllComments] = useState([]) 
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
   const [comment,setComment]=useState([])
   const [post,setPost]=useState([])
-  const [nonExistentPostIds, setNonExistentPostIds] = useState(new Set()); // Cache cho post không tồn tại
+  const [nonExistentPostIds, setNonExistentPostIds] = useState(new Set());
+  const [pageCache, setPageCache] = useState(new Map()); // Thêm cache cho pagination
+
 const gotoCommentId=(id)=>{
 navigate(`/dashboard/CommentPostbyId/${id}`)
 }
@@ -40,32 +44,64 @@ navigate(`/dashboard/CommentPostbyIdPost/${postId}`)
 
 const handleSearch = (value) => {
   setSearchTitle(value)
-  setPage(1) 
+}
+
+const performSearch = () => {
+  setPage(1)
+  setActualSearchTerm(searchTitle) 
+  setIsSearching(true)
+  if (searchTitle.trim()) {
+    if (allComments.length === 0) {
+      loadAllComments();
+    }
+  }
 }
 
 const clearSearch = () => {
   setSearchTitle('')
+  setActualSearchTerm('')
+  setIsSearching(false)
   setPage(1)
+ 
 }
 
-const callApiCommentPost=async()=>{
-try {
+const callApiCommentPost = async () => {
+  try {
+    // Kiểm tra cache trước
+    const cacheKey = `page-${page}`;
+    if (pageCache.has(cacheKey)) {
+      console.log(`✅ Sử dụng cache cho trang ${page}`);
+      const cachedData = pageCache.get(cacheKey);
+      setComment(cachedData.data);
+      setTotalPages(cachedData.totalPages);
+      setLoading(false);
+      return;
+    }
 
-const res= await axios.get(`${BaseUrl}/admin-comment-post/?page=${page}&limit=${limit}`,{
-    headers:{Authorization:`Bearer ${tokenUser}`}
-})
+    console.log(`🔄 Gọi API cho trang ${page}`);
+    const res = await axios.get(`${BaseUrl}/admin-comment-post/?page=${page}&limit=${limit}`, {
+      headers: { Authorization: `Bearer ${tokenUser}` }
+    });
 
-if(res.status===200){
-setComment(res.data.data)
-setTotalPages(res.data.totalPages)
- setLoading(false) 
-}
-} catch (error) {
-    // console.log("Lỗi nè",error)
-    setLoading(false)
-}
-
-}
+    if (res.status === 200) {
+      // Lưu vào cache
+      const newCache = new Map(pageCache);
+      newCache.set(cacheKey, {
+        data: res.data.data,
+        totalPages: res.data.totalPages,
+        timestamp: Date.now() // Thêm timestamp để có thể expire cache nếu cần
+      });
+      setPageCache(newCache);
+      
+      setComment(res.data.data);
+      setTotalPages(res.data.totalPages);
+      setLoading(false);
+    }
+  } catch (error) {
+    console.error("Lỗi gọi API:", error);
+    setLoading(false);
+  }
+};
 const loadAllComments = async () => {
   try {
     const allCommentsData = [];
@@ -184,20 +220,18 @@ const getPost = async () => {
 };
 
 const filteredComments = React.useMemo(() => {
+  let result = comment;
   
-  const dataSource = searchTitle.trim() ? allComments : comment;
-  
-  let result;
-  if (!searchTitle.trim()) {
-    result = comment; 
-  } else {
-    result = dataSource.filter(item => {
+ 
+  if (isSearching && actualSearchTerm.trim()) {
+    const searchSource = allComments.length > 0 ? allComments : comment;
+    result = searchSource.filter(item => {
       const postInfo = postMap[String(item.postId).trim()];
       const title = postInfo && postInfo.title && postInfo.title.trim()
         ? postInfo.title
         : "";
       
-      return title.toLowerCase().includes(searchTitle.toLowerCase());
+      return title.toLowerCase().includes(actualSearchTerm.toLowerCase());
     });
   }
 
@@ -206,7 +240,7 @@ const filteredComments = React.useMemo(() => {
     const dateB = new Date(b.createdAt);
     return dateB - dateA; 
   });
-}, [comment, allComments, searchTitle, postMap]);
+}, [comment, allComments, actualSearchTerm, postMap, isSearching]);
 
   return (
     <div>
@@ -214,11 +248,24 @@ const filteredComments = React.useMemo(() => {
         <div className="flex gap-2 items-center">
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên bài viết..."
+            placeholder="Nhập tên bài viết để tìm kiếm..."
             value={searchTitle}
             onChange={(e) => handleSearch(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                performSearch();
+              }
+            }}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <Button
+            size="sm"
+            color="blue"
+            onClick={performSearch}
+            disabled={!searchTitle.trim()}
+          >
+            Tìm kiếm
+          </Button>
           {searchTitle && (
             <Button
               size="sm"
@@ -230,9 +277,9 @@ const filteredComments = React.useMemo(() => {
             </Button>
           )}
         </div>
-        {searchTitle && (
+        {searchTitle && isSearching && (
           <p className="text-sm text-gray-600 mt-2">
-            Đang tìm kiếm: "{searchTitle}"
+            Kết quả tìm kiếm cho: "{actualSearchTerm}"
           </p>
         )}
       </div>
@@ -251,7 +298,7 @@ const filteredComments = React.useMemo(() => {
 filteredComments.length === 0 ? (
   <div className="text-center py-8">
     <p className="text-gray-500">
-      {searchTitle ? `Không tìm thấy bài viết nào với từ khóa "${searchTitle}"` : "Không có bài viết nào"}
+      {isSearching && actualSearchTerm ? `Không tìm thấy bài viết nào với từ khóa "${actualSearchTerm}"` : "Không có bài viết nào"}
     </p>
   </div>
 ) : (
@@ -360,6 +407,7 @@ filteredComments.length === 0 ? (
         )
         
         }
+        {!isSearching && (
           <div className="flex justify-center items-center gap-2 mt-4">
             <Button
               size="sm"
@@ -379,6 +427,7 @@ filteredComments.length === 0 ? (
               Trang sau
             </Button>
           </div>
+        )}
                  { openDialogComments&&(
 <Dialog open={openDialogComments} handler={handleCloseDialogComments} size="xl">
   <div className="max-h-[80vh] overflow-y-auto">

@@ -35,6 +35,7 @@ export const ListVideo = () => {
   const [allVideos, setAllVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
+  const [actualSearchTerm, setActualSearchTerm] = useState(''); // Từ khóa thực tế để search
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
   const [openLikeDialog, setOpenLikeDialog] = useState(false);
@@ -62,19 +63,34 @@ export const ListVideo = () => {
     }
   };
 
+  const handleSearch = (value) => {
+    setSearchText(value);
+  };
+
+  const performSearch = () => {
+    setActualSearchTerm(searchText);
+    setPage(1);
+  };
+
+  const clearSearch = () => {
+    setSearchText('');
+    setActualSearchTerm('');
+    setPage(1);
+  };
+
  const filteredVideos = useMemo(() => {
   const filtered = filterStatus
     ? allVideos.filter(v => v.status === filterStatus)
     : allVideos;
 
   const searched = filtered.filter(v =>
-    v.title?.toLowerCase().includes(searchText.toLowerCase()) ||
-    v.playlistName?.toLowerCase().includes(searchText.toLowerCase())
+    v.title?.toLowerCase().includes(actualSearchTerm.toLowerCase()) ||
+    v.playlistName?.toLowerCase().includes(actualSearchTerm.toLowerCase())
   );
 
  
   return searched.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-}, [allVideos, filterStatus, searchText]);
+}, [allVideos, filterStatus, actualSearchTerm]); // Sử dụng actualSearchTerm thay vì searchText
 
 
   const paginatedVideos = useMemo(() => {
@@ -280,31 +296,62 @@ const handleOpenStatusFilter = async () => {
       </Typography>
 
       <div className="flex justify-end mb-4 gap-2">
-        <Input
-          type="text"
-          placeholder="Tìm kiếm video..."
-          value={searchText}
-          onChange={e => {
-            setSearchText(e.target.value);
+        <div className="flex gap-2 items-center">
+          <Input
+            type="text"
+            placeholder="Nhập tên video để tìm kiếm..."
+            value={searchText}
+            onChange={e => handleSearch(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                performSearch();
+              }
+            }}
+            className="min-w-[300px]"
+          />
+          <Button
+            size="sm"
+            color="blue"
+            onClick={performSearch}
+            disabled={!searchText.trim()}
+          >
+            Tìm kiếm
+          </Button>
+          {searchText && (
+            <Button
+              size="sm"
+              color="gray"
+              variant="outlined"
+              onClick={clearSearch}
+            >
+              Xóa
+            </Button>
+          )}
+        </div>
+        
+        <select
+          onClick={handleOpenStatusFilter} 
+          className="border rounded px-3 py-1"
+          value={filterStatus}
+          onChange={(e) => {
+            setFilterStatus(e.target.value);
             setPage(1);
           }}
-        />
-     <select
-  onClick={handleOpenStatusFilter} 
-  className="border rounded px-3 py-1"
-  value={filterStatus}
-  onChange={(e) => {
-    setFilterStatus(e.target.value);
-    setPage(1);
-  }}
->
-  <option value="">Tất cả</option>
-  {statusList.map((status) => (
-    <option key={status} value={status}>{getStatusInVietnamese(status)}</option>
-  ))}
-</select>
-
+        >
+          <option value="">Tất cả</option>
+          {statusList.map((status) => (
+            <option key={status} value={status}>{getStatusInVietnamese(status)}</option>
+          ))}
+        </select>
       </div>
+
+      {actualSearchTerm && (
+        <div className="mb-4 p-2 bg-blue-50 rounded">
+          <p className="text-sm text-blue-700">
+            Kết quả tìm kiếm cho: "<strong>{actualSearchTerm}</strong>"
+          </p>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center items-center w-full h-40">
