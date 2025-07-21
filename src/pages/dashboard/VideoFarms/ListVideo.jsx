@@ -44,6 +44,7 @@ export const ListVideo = () => {
   const [videoStats, setVideoStats] = useState({});
   const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', video: null });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [playingVideos, setPlayingVideos] = useState({});
   const limit = 9;
 
   const getStatusInVietnamese = (status) => {
@@ -81,6 +82,12 @@ export const ListVideo = () => {
     return filteredVideos.slice(start, start + limit);
   }, [filteredVideos, page]);
 
+  const togglePlayVideo = (videoId) => { 
+    setPlayingVideos((prev) => ({
+      ...prev,
+      [videoId]: !prev[videoId]
+    }));
+  };
 
 const handleOpenLikeDialog = (video) => {
   setSelectedVideoForLike(video);
@@ -310,7 +317,11 @@ const handleOpenStatusFilter = async () => {
           {paginatedVideos.map((item) => (
             <div key={item._id} className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow">
               {/* Video Display */}
-              <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center">
+              <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center relative cursor-pointer"
+               onClick={() => togglePlayVideo(item._id)}
+               >
+                {playingVideos[item._id] ? (
+                  <>
                 {/* Phát đúng loại: youtube, mp4, m3u8 */}
                 {item.youtubeLink ? (
                   item.youtubeLink.endsWith('.m3u8') ? (
@@ -368,6 +379,12 @@ const handleOpenStatusFilter = async () => {
                     Video không tồn tại
                   </div>
                 )}
+                </>
+              ) : (
+                <div className="flex justify-center items-center h-full text-gray-500">
+                    <span className="text-sm"> ▶ Nhấn để phát video</span> 
+                  </div>
+              )}
               </div>
               <div className="p-4">
 

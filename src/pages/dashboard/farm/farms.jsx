@@ -46,57 +46,7 @@ export function Farms() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-const fetchFarms = async (page = 1) => {
-  const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
-  if (farmCache[cacheKey]) {
-    setFarms(farmCache[cacheKey].farms);
-    setTotalPage(farmCache[cacheKey].totalPages);
-    setLoading(false);
-    return;
-  }
-  setLoading(true);
-  try {
-    const res = await axios.get(`${BASE_URL}/adminfarms`, {
-      ...getOpts(),
-      params: { 
-        limit: itemsPerPage, 
-        page,
-        status: tab === "all" ? undefined : tab,
-        name: searchQuery || undefined,
-      },
-    });
 
-    const farms = (res.data?.data || []).sort(
-  (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-);
-    const total = res.data?.total || 0;
-    const farmsWithVideoCounts = await Promise.all(
-      farms.map(async (farm) => {
-        try {
-          const videoRes = await axios.get(`${BASE_URL}/admin-video-farm/farm/${farm._id}`, getOpts());
-          const videos = videoRes.data?.data || [];
-          return { ...farm, videoCount: videos.length };
-        } catch (err) {
-          console.error(`Lỗi videoCount của farm ${farm._id}:`, err.message);
-          return { ...farm, videoCount: 0 };
-        }
-      })
-    );
-    setFarms(farmsWithVideoCounts);
-    setTotalPage(Math.ceil(total / itemsPerPage));
-    setFarmCache((prevCache) => ({
-      ...prevCache,
-      [cacheKey]: {
-        farms: cleanedFarms,
-        totalPages: Math.ceil(total / itemsPerPage),
-      },
-    }));
-  } catch (err) {
-    setError(err.response?.data?.message || err.message);
-  } finally {
-    setLoading(false);
-  }
-};
 const handleSearch = () => {
   if (searchQuery !== searchInput) {
     setSearchQuery(searchInput);
@@ -189,37 +139,12 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
       );
       const total = res.data?.total || 0;
 
-      const farmsWithVideoCounts = await Promise.all(
-        farms.map(async (farm) => {
-          // Tạo controller cho từng request video
-          const videoController = new AbortController();
-          videoControllers.push(videoController);
-
-          try {
-            const videoRes = await axios.get(
-              `${BASE_URL}/admin-video-farm/farm/${farm._id}`,
-              {
-                ...getOpts(),
-                signal: videoController.signal,
-              }
-            );
-            const videos = videoRes.data?.data || [];
-            return { ...farm, videoCount: videos.length };
-          } catch (err) {
-            if (axios.isCancel(err) || err.name === "CanceledError") {
-              return null;
-            }
-            return { ...farm, videoCount: 0 };
-          }
-        })
-      );
-
-      setFarms(farmsWithVideoCounts.filter(Boolean));
+      setFarms(farms.filter(Boolean));
       setTotalPage(Math.ceil(total / itemsPerPage));
       setFarmCache((prev) => ({
         ...prev,
         [cacheKey]: {
-          farms: farmsWithVideoCounts,
+          farms: farms,
           totalPages: Math.ceil(total / itemsPerPage),
         },
       }));
@@ -290,7 +215,6 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
                   <th className="px-2 py-2 font-semibold uppercase">SĐT</th>
                   <th className="px-2 py-2 font-semibold uppercase">Địa chỉ</th>
                   <th className="px-2 py-2 font-semibold uppercase">Diện tích</th>
-                  <th className="px-2 py-2 font-semibold uppercase">Số video</th>
                   <th className="px-2 py-2 font-semibold uppercase">Trạng thái</th>
                   <th className="px-2 py-2 font-semibold uppercase">Thao tác</th>
                 </tr>
@@ -320,13 +244,7 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
                       {farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
                     </td>
                     <td className="px-2 py-2">{farm.area} m²</td>
-                    <td className="px-2 py-2">
-                      {farm.videoCount !== undefined ? (
-                        farm.videoCount
-                      ) : (
-                        <span className="text-gray-400 italic">Đang tải...</span>
-                      )}
-                    </td>
+        
 <td className="px-2 py-2">
                       <Chip
                         value={
