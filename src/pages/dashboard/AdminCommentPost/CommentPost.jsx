@@ -102,15 +102,18 @@ const loadAllComments = async () => {
     return false
   }
 }
+
 useEffect(()=>{
   setLoading(true)
-  callApiCommentPost()
-  loadAllComments() 
+  callApiCommentPost() 
 },[page])
 
+
 useEffect(() => {
- getPost()
-}, [comment, allComments]); 
+  if (comment.length > 0) {
+    getPost();
+  }
+}, [comment]);
 
 const postMap = React.useMemo(() => {
   const map = {};
