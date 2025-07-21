@@ -9,7 +9,9 @@ import FarmDetail from "./pages/dashboard/farm/FarmDetail";
 import { Farms } from "./pages/dashboard/farm/farms";
 import UserDetail from "./pages/dashboard/user/UserDetail";
 import VideoById from "./pages/dashboard/VideoFarms/VideoById";
-
+import ResetPasswordWrapper from "@/pages/auth/ResetPasswordWrapper";
+import ResetPassword from "./pages/auth/ResetPassword";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 function App() {
   const navigate = useNavigate();
 
@@ -49,7 +51,8 @@ function App() {
 
       {/* ✅ Auth layout: quên mật khẩu chạy mượt */}
       <Route path="/auth/*" element={<Auth />} />
-
+      <Route path="/auth/reset-password" element={<ResetPassword />} />
+  <Route path="/reset-password" element={<ResetPasswordWrapper />} />
       <Route path="/admin/Farms" element={<Farms />} />
       <Route path="/admin/farms/:id" element={<FarmDetail />} />
 

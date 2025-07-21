@@ -39,29 +39,32 @@ export function SignIn() {
     }
 
     try {
-            const BASE_URL = useDefaultApi
+      const BASE_URL = useDefaultApi
         ? "https://api-ndolv2.nongdanonline.cc"
         : customApiUrl.trim();
-
       if (!BASE_URL) {
         alert("Vui lòng nhập URL API tùy chỉnh.");
         return;
       }
       localStorage.setItem("apiBaseUrl", BASE_URL);
-
+     console.log(BASE_URL)
       const res = await fetch(`${BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
-
       if (res.ok) {
-        localStorage.setItem("token", data.accessToken);
-        localStorage.setItem("refreshToken", data.refreshToken);
-        setAuthStatus(dispatch, true);
-        navigate("/dashboard/home");
+        const roles = data.user?.role || [];
+        const isAllowed = roles.includes("Admin") || roles.includes("Staff");
+        if(isAllowed){
+          localStorage.setItem("token", data.accessToken);
+          localStorage.setItem("refreshToken", data.refreshToken);
+          setAuthStatus(dispatch, true);
+          navigate("/dashboard/home");
+        }else {
+        alert("Bạn không có quyền đăng nhập.");
+      } 
       } else {
         alert(data.message || "Đăng nhập thất bại");
       }
@@ -163,7 +166,7 @@ export function SignIn() {
   </Typography>
 </div>
  <Typography variant="small" className="font-medium text-gray-900"> 
-  <Link to="/auth/reset-password/demo-token-123" className="text-sm text-blue-500 hover:underline"> Đổi mật khẩu </Link> 
+  <Link to="/auth/reset-password" className="text-sm text-blue-500 hover:underline"> Đổi mật khẩu </Link> 
   </Typography> 
 
           </div>

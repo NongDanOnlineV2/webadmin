@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/utils/axiosInstance"; // thay axios = api
+import axios from 'axios';
+
 import {
   Typography, IconButton, Menu, MenuHandler, MenuList, MenuItem,
   Dialog, DialogHeader, DialogBody, DialogFooter,
@@ -8,7 +10,9 @@ import {
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import CreatableSelect from 'react-select/creatable';
-
+const allFarms = { current: [] };
+const allVideos = { current: [] };
+const allPosts = { current: [] };
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -36,67 +40,95 @@ export default function Users() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const apiUrl = "https://api-ndolv2.nongdanonline.cc";
+const fetchAllData = async () => {
+    try {
+      const getAllPages = async (endpoint) => {
+        let page = 1;
+        let items = [];
+        while (true) {
+          const res = await axios.get(`${apiUrl}/${endpoint}?page=${page}&limit=100`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = res.data?.data || [];
+          if (!data.length) break;
+          items = [...items, ...data];
+          page++;
+        }
+        return items;
+      };
 
+      [allFarms.current, allVideos.current, allPosts.current] = await Promise.all([
+        getAllPages("adminfarms"),
+        getAllPages("admin-video-farm"),
+        getAllPages("admin-post-feed")
+      ]);
+    } catch (err) {
+      console.error("Lỗi tải toàn bộ farms/videos/posts:", err);
+    }
+  };
   // Fetch users + counts
-  const fetchUsers = async () => {
+    const fetchUsers = async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const params = { page, limit };
+      const params = { page, limit: 10 };
       if (filterRole) params.role = filterRole;
       if (filterStatus) params.isActive = filterStatus === "Active";
 
-      const res = await axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params });
-      const usersData = Array.isArray(res.data.data) ? res.data.data : [];
+    const res = await api.get(`/admin-users`, { params }); // ✅ Sửa đúng
+    const usersData = res.data?.data || [];
+
+      const postMap = {};
+      allPosts.current.forEach(p => {
+        const uid = p.userId || p.authorId?.id;
+        if (uid) postMap[uid] = (postMap[uid] || 0) + 1;
+      });
+
+      const countsMap = {};
+      usersData.forEach(u => {
+        countsMap[u.id] = {
+          posts: postMap[u.id] || 0,
+          farms: allFarms.current.filter(f => f.ownerId === u.id).length,
+          videos: allVideos.current.filter(v => v.uploadedBy?.id === u.id).length
+        };
+      });
+
       setUsers(usersData);
-
-      // Tự động lấy danh sách role duy nhất từ users
-      const uniqueRoles = Array.from(
-  new Set(
-    usersData
-      .flatMap(user => Array.isArray(user.role) ? user.role : [user.role])
-      .map(role => role.toLowerCase()) // chuẩn hóa về lowercase
-  )
-).map(role => role.charAt(0).toUpperCase() + role.slice(1)); // Viết hoa chữ cái đầu
-setRoles(uniqueRoles);
-
+      setCounts(countsMap);
       setTotalPages(res.data.totalPages || 1);
+      setCacheUsers(prev => [...prev, {
+        page,
+        role: filterRole,
+        status: filterStatus,
+        users: usersData,
+        totalPages: res.data.totalPages || 1,
+        counts: countsMap
+      }]);
 
-      // counts
-      const [farmsRes, videosRes, postsRes] = await Promise.all([
-        axios.get(`${apiUrl}/adminfarms?page=${page}&limit=100`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${apiUrl}/admin-video-farm?page=${page}&limit=100`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${apiUrl}/admin-post-feed?page=${page}&limit=100`, { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-
-      const farms = farmsRes.data?.data || [];
-      const videos = videosRes.data?.data || [];
-      const posts = postsRes.data?.data || [];
-
-   const postCountsMap = {};
-posts.forEach(p => {
-  const uid = p.userId || p.authorId?.id;
-  if (uid) postCountsMap[uid] = (postCountsMap[uid] || 0) + 1;
-});
-
-const countsObj = {};
-usersData.forEach(user => {
-  countsObj[user.id] = {
-    farms: farms.filter(f => f.ownerId === user.id).length,
-    videos: videos.filter(v => v.uploadedBy?.id === user.id).length,
-    posts: postCountsMap[user.id] || 0
-  };
-});
-setCounts(countsObj);
-
+      const allRoles = Array.from(new Set(
+        usersData.flatMap(u => Array.isArray(u.role) ? u.role : [u.role])
+      )).filter(Boolean);
+      setRoles(allRoles);
     } catch (err) {
-      console.error("Lỗi khi tải users:", err);
-      setError("Lỗi khi tải danh sách người dùng.");
+      console.error("Lỗi fetch users:", err);
+      setError("Không thể tải danh sách người dùng");
     } finally {
       setLoading(false);
     }
   };
 
+ useEffect(() => {
+  if (!token) return;
+
+  fetchAllData()
+    .then(fetchUsers)
+    .catch((err) => {
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
+    });
+}, []);
   // Search
   const handleSearch = async () => {
     if (!token) return;
@@ -125,14 +157,34 @@ setCounts(countsObj);
     }
   };
 
-  useEffect(() => {
-    if (!token) {
-      setError("Không tìm thấy token!");
-      setLoading(false);
-      return;
-    }
-    if (!isSearching) fetchUsers();
-  }, [token, page, filterRole, filterStatus, isSearching]);
+ useEffect(() => {
+  if (!token) {
+    setError("Không tìm thấy token!");
+    setLoading(false);
+    return;
+  }
+
+  if (isSearching) return;
+
+  const cached = cacheUsers.find(
+    (entry) =>
+      entry.page === page &&
+      entry.role === filterRole &&
+      entry.status === filterStatus
+  );
+
+  if (cached) {
+    // ⚡ Load từ cache nếu đã có
+    setUsers(cached.users);
+    setTotalPages(cached.totalPages || 1);
+    setCounts(cached.counts || {});
+    setLoading(false);
+  } else {
+    // 🚀 Nếu chưa cache thì mới fetch
+    fetchUsers();
+  }
+}, [token, page, filterRole, filterStatus, isSearching]);
+
 
   // Edit
   const openEdit = async  (user) => {

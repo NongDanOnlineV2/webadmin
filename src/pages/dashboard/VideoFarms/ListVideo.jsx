@@ -35,6 +35,7 @@ export const ListVideo = () => {
   const [allVideos, setAllVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
+  const [actualSearchTerm, setActualSearchTerm] = useState(''); // Từ khóa thực tế để search
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
   const [openLikeDialog, setOpenLikeDialog] = useState(false);
@@ -44,6 +45,7 @@ export const ListVideo = () => {
   const [videoStats, setVideoStats] = useState({});
   const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', video: null });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [playingVideos, setPlayingVideos] = useState({});
   const limit = 9;
 
   const getStatusInVietnamese = (status) => {
@@ -61,19 +63,34 @@ export const ListVideo = () => {
     }
   };
 
+  const handleSearch = (value) => {
+    setSearchText(value);
+  };
+
+  const performSearch = () => {
+    setActualSearchTerm(searchText);
+    setPage(1);
+  };
+
+  const clearSearch = () => {
+    setSearchText('');
+    setActualSearchTerm('');
+    setPage(1);
+  };
+
  const filteredVideos = useMemo(() => {
   const filtered = filterStatus
     ? allVideos.filter(v => v.status === filterStatus)
     : allVideos;
 
   const searched = filtered.filter(v =>
-    v.title?.toLowerCase().includes(searchText.toLowerCase()) ||
-    v.playlistName?.toLowerCase().includes(searchText.toLowerCase())
+    v.title?.toLowerCase().includes(actualSearchTerm.toLowerCase()) ||
+    v.playlistName?.toLowerCase().includes(actualSearchTerm.toLowerCase())
   );
 
  
   return searched.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-}, [allVideos, filterStatus, searchText]);
+}, [allVideos, filterStatus, actualSearchTerm]); // Sử dụng actualSearchTerm thay vì searchText
 
 
   const paginatedVideos = useMemo(() => {
@@ -81,6 +98,12 @@ export const ListVideo = () => {
     return filteredVideos.slice(start, start + limit);
   }, [filteredVideos, page]);
 
+  const togglePlayVideo = (videoId) => { 
+    setPlayingVideos((prev) => ({
+      ...prev,
+      [videoId]: !prev[videoId]
+    }));
+  };
 
 const handleOpenLikeDialog = (video) => {
   setSelectedVideoForLike(video);
@@ -273,31 +296,62 @@ const handleOpenStatusFilter = async () => {
       </Typography>
 
       <div className="flex justify-end mb-4 gap-2">
-        <Input
-          type="text"
-          placeholder="Tìm kiếm video..."
-          value={searchText}
-          onChange={e => {
-            setSearchText(e.target.value);
+        <div className="flex gap-2 items-center">
+          <Input
+            type="text"
+            placeholder="Nhập tên video để tìm kiếm..."
+            value={searchText}
+            onChange={e => handleSearch(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                performSearch();
+              }
+            }}
+            className="min-w-[300px]"
+          />
+          <Button
+            size="sm"
+            color="blue"
+            onClick={performSearch}
+            disabled={!searchText.trim()}
+          >
+            Tìm kiếm
+          </Button>
+          {searchText && (
+            <Button
+              size="sm"
+              color="gray"
+              variant="outlined"
+              onClick={clearSearch}
+            >
+              Xóa
+            </Button>
+          )}
+        </div>
+        
+        <select
+          onClick={handleOpenStatusFilter} 
+          className="border rounded px-3 py-1"
+          value={filterStatus}
+          onChange={(e) => {
+            setFilterStatus(e.target.value);
             setPage(1);
           }}
-        />
-     <select
-  onClick={handleOpenStatusFilter} 
-  className="border rounded px-3 py-1"
-  value={filterStatus}
-  onChange={(e) => {
-    setFilterStatus(e.target.value);
-    setPage(1);
-  }}
->
-  <option value="">Tất cả</option>
-  {statusList.map((status) => (
-    <option key={status} value={status}>{getStatusInVietnamese(status)}</option>
-  ))}
-</select>
-
+        >
+          <option value="">Tất cả</option>
+          {statusList.map((status) => (
+            <option key={status} value={status}>{getStatusInVietnamese(status)}</option>
+          ))}
+        </select>
       </div>
+
+      {actualSearchTerm && (
+        <div className="mb-4 p-2 bg-blue-50 rounded">
+          <p className="text-sm text-blue-700">
+            Kết quả tìm kiếm cho: "<strong>{actualSearchTerm}</strong>"
+          </p>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center items-center w-full h-40">
@@ -310,7 +364,11 @@ const handleOpenStatusFilter = async () => {
           {paginatedVideos.map((item) => (
             <div key={item._id} className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow">
               {/* Video Display */}
-              <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center">
+              <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center relative cursor-pointer"
+               onClick={() => togglePlayVideo(item._id)}
+               >
+                {playingVideos[item._id] ? (
+                  <>
                 {/* Phát đúng loại: youtube, mp4, m3u8 */}
                 {item.youtubeLink ? (
                   item.youtubeLink.endsWith('.m3u8') ? (
@@ -368,6 +426,12 @@ const handleOpenStatusFilter = async () => {
                     Video không tồn tại
                   </div>
                 )}
+                </>
+              ) : (
+                <div className="flex justify-center items-center h-full text-gray-500">
+                    <span className="text-sm"> ▶ Nhấn để phát video</span> 
+                  </div>
+              )}
               </div>
               <div className="p-4">
 

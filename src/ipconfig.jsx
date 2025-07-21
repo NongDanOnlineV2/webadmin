@@ -1,1 +1,2 @@
-export const BaseUrl= `https://api-ndolv2.nongdanonline.cc`
+
+export const BaseUrl = localStorage.getItem('apiBaseUrl') 

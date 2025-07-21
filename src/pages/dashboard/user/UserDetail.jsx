@@ -5,9 +5,8 @@ import {
   Avatar, Input
 } from "@material-tailwind/react";
 import { useParams } from "react-router-dom";
-import PostLikeUserDialog from "./listpostlikeUser";
-import { Audio } from "react-loader-spinner";
-const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+import PostLikeUserDialog from "./listpostlikeUser"
+import { BaseUrl } from "@/ipconfig";
 export default function UserDetail() {
   const { id } = useParams();
   const [user, setUser] = useState(null);
@@ -44,13 +43,11 @@ export default function UserDetail() {
   const [postLikesCache, setPostLikesCache] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
   const [loadingPosts, setLoadingPosts] = useState(false);
-  const [loadingVideos, setLoadingVideos] = useState(false);  
+  const [loadingVideos, setLoadingVideos] = useState(false); 
+  const [videoCountsByFarm, setVideoCountsByFarm] = useState({}); 
   const [visibleFarms, setVisibleFarms] = useState(6);
   const [visibleVideos, setVisibleVideos] = useState(6);
   const [visiblePosts, setVisiblePosts] = useState(6);
-  const [hasLoadedFarms, setHasLoadedFarms] = useState(false);
-  const [hasLoadedVideos, setHasLoadedVideos] = useState(false);
-  const [videoCountsByFarm, setVideoCountsByFarm] = useState({});
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -283,18 +280,16 @@ const handleOpenFarms = async () => {
     return;
   }
 
-  setOpenFarms(true);
-
   if (farms.length > 0 || loadingFarms) return;
 
-  setLoadingFarms(true);
+  setOpenFarms(true);
   try {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
     const [allFarms, allVideos] = await Promise.all([
-      fetchPaginatedData(`${BASE_URL}/adminfarms`, config),
-      fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config),
+      fetchPaginatedData(`${BaseUrl}/adminfarms`, config),
+      fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config),
     ]);
 
     setFarms(allFarms);
@@ -308,8 +303,6 @@ const handleOpenFarms = async () => {
     setVideoCountsByFarm(counts);
 
     // 3. Gọi stats cho từng video (nếu cần)
-    
-    setHasLoadedFarms(true);
   } catch (err) {
     console.error("Lỗi khi fetch farms:", err);
   } finally {
@@ -329,7 +322,7 @@ const handleOpenPosts = async () => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const allPosts = await fetchPaginatedData(`${BASE_URL}/admin-post-feed`, config);
+      const allPosts = await fetchPaginatedData(`${BaseUrl}/admin-post-feed`, config);
       setPosts(allPosts); 
 
       const statsPromises = allPosts.map(async (post) => {
@@ -364,23 +357,20 @@ const handleOpenVideos = async () => {
     return;
   }
 
-  setOpenVideos(true);
-
   // Chỉ fetch nếu chưa có dữ liệu và chưa từng loading
   if (videos.length > 0 || loadingVideos) return;
 
-  setLoadingVideos(true);
+  setOpenVideos(true);
   try {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
-    const allVideos = await fetchPaginatedData(`${BASE_URL}/admin-video-farm`, config);
+    const allVideos = await fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config);
     setVideos(allVideos);
 
     // Không cần set lại nếu openVideos đã false trong lúc chờ
     const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
     await Promise.allSettled(statsPromises);
-    setHasLoadedVideos(true);
   } catch (err) {
     console.error("Lỗi khi load videos:", err);
   } finally {
@@ -446,6 +436,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 };
 
   const fetchVideoStats = async (videoId) => {
+  if (fetchedVideoStats.current[videoId]) return;
   const token = localStorage.getItem("token");
   const config = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -463,6 +454,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       ...prev,
       [videoId]: Array.isArray(commentRes.data) ? commentRes.data.length : 0,
     }));
+    fetchedVideoStats.current[videoId] = true;
   } catch (err) {
     console.error(`Error fetching stats for video ${videoId}:`, err);
   }
@@ -1246,7 +1238,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       {post.authorId ? (
                         <>
                           <Avatar
-                            src={post.authorId.avatar ? `${BASE_URL}${post.authorId.avatar}` : "/default-avatar.png"}
+                            src={post.authorId.avatar ? `${BaseUrl}${post.authorId.avatar}` : "/default-avatar.png"}
                             size="sm"
                           />
                           <div className="flex flex-col">
