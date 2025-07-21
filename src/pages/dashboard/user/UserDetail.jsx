@@ -40,6 +40,7 @@ export default function UserDetail() {
   const [videoLikesCache, setVideoLikesCache] = useState({});
   const [loadingFarms,setLoadingFarms] = useState(false)
   const [videoCommentsCache, setVideoCommentsCache] = useState({});
+  const [fetchedAddresses, setFetchedAddresses] = useState(false);
   const [postLikesCache, setPostLikesCache] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
   const [loadingPosts, setLoadingPosts] = useState(false);
@@ -256,13 +257,12 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
         const token = localStorage.getItem("token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        const [userRes, addressRes ] = await Promise.all([
+        const [userRes ] = await Promise.all([
           axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, config), 
-          axios.get(`https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`, config), 
+           
         ]);
 
         setUser(userRes.data);
-        setAddresses(addressRes.data || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -272,6 +272,21 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
 
     fetchData();
   }, [id]);
+
+const fetchAddresses = async () => {
+  const token = localStorage.getItem("token");
+  try {
+    const res = await axios.get(
+      `https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setAddresses(res.data || []);
+    setFetchedAddresses(true);
+  } catch (err) {
+    console.error("Lỗi khi fetch địa chỉ:", err);
+    alert("Không thể tải địa chỉ người dùng!");
+  }
+};
 
 
 const handleOpenFarms = async () => {
@@ -361,16 +376,32 @@ const handleOpenVideos = async () => {
   if (videos.length > 0 || loadingVideos) return;
 
   setOpenVideos(true);
+  setLoadingVideos(true);
   try {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
-    const allVideos = await fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config);
-    setVideos(allVideos);
+    const res = await fetchPaginatedData(`${BaseUrl}/video-farm/user/${id}`, config);
+    const userVideos = res.data?.videos || [];
+
+    setVideos(userVideos);
+
+    const likeMap = {};
+    const commentMap = {};
 
     // Không cần set lại nếu openVideos đã false trong lúc chờ
-    const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
-    await Promise.allSettled(statsPromises);
+    userVideos.forEach((video) => {
+      likeMap[video._id] = video.likeCount || 0;
+      commentMap[video._id] = video.commentCount || 0;
+    });
+
+    setVideoLikes(likeMap);
+    setVideoComments(commentMap);
+
+    userVideos.forEach((v) => {
+      fetchedVideoStats.current[v._id] = true;
+    });
+
   } catch (err) {
     console.error("Lỗi khi load videos:", err);
   } finally {
@@ -556,7 +587,14 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
       <Card>
   <div
-    onClick={() => setOpenAddress(!openAddress)}
+    onClick={async () => {
+      const willOpen = !openAddress;
+      setOpenAddress(willOpen);
+      if (willOpen && !fetchedAddresses) {
+        await fetchAddresses();
+      }
+    }
+  }
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5">
@@ -700,13 +738,13 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     {openVideos && (
       <div className="overflow-hidden transition-all duration-300">
         <CardBody className="bg-white rounded-b-md">
-          {userVideos.length === 0 ? (
+          {videos.length === 0 ? (
             <Typography className="text-center text-gray-500 py-6">
               Chưa có video nào.
             </Typography>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {userVideos.slice(0, visibleVideos).map((video) => (
+              {videos.slice(0, visibleVideos).map((video) => (
                 <div
                   key={video._id}
                   className="border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-gray-50"
@@ -814,7 +852,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
               ))}
             </div>
           )}
-                  {visibleVideos < userVideos.length && (
+                  {visibleVideos < videos.length && (
           <div className="flex justify-center mt-4">
             <Button onClick={handleShowMoreVideos} color="blue" variant="outlined">
               Xem thêm videos
