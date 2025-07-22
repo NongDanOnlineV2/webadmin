@@ -5,7 +5,7 @@ import { Audio } from 'react-loader-spinner'
 import { useNavigate } from 'react-router-dom'
 import CommentPostbyIdPost from './CommentPostbyIdPost'
 import { Dialog, Button } from '@material-tailwind/react'
-
+import DialogCommentsByid from './DialogCommentsByid'
 export const CommentPost = () => {
   const tokenUser = localStorage.getItem('token')
   const [loading, setLoading] = useState(true)
@@ -17,16 +17,28 @@ export const CommentPost = () => {
   const limit = 10;
   const [comment, setComment] = useState([])
   const [pageCache, setPageCache] = useState(new Map());
+  const [openCommentDetailDialog, setOpenCommentDetailDialog] = useState(false);
+  const [selectedComment, setSelectedComment] = useState(null);
 
   const handleOpenDialogComments = (cmtDialog) => {
     setCommentsDialog(cmtDialog)
     setOpenDialogComments(true)
   }
-
   const handleCloseDialogComments = () => {
     setCommentsDialog(null)
     setOpenDialogComments(false)
   }
+
+  const handleOpenCommentDetail = (comment, postInfo) => {
+    setSelectedComment(postInfo); 
+    setOpenCommentDetailDialog(true);
+  };
+
+  const handleCloseCommentDetail = () => {
+    setSelectedComment(null);
+    setOpenCommentDetailDialog(false);
+  };
+
   const callApiCommentPost = async () => {
     try {
       const cacheKey = `page-${page}`;
@@ -109,9 +121,6 @@ export const CommentPost = () => {
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                         Ngày đăng
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                        Ngày sửa
-                      </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
                         Thao tác
                       </th>
@@ -140,7 +149,6 @@ export const CommentPost = () => {
                         const replyCount = Array.isArray(cmt.replies) ? cmt.replies.length : 0;
                         return sum + 1 + replyCount;
                       }, 0);
-
                       return (
                         <tr key={item.postId} className="hover:bg-gray-50 transition-colors duration-200">
                           <td className="px-6 py-4">
@@ -160,8 +168,8 @@ export const CommentPost = () => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center space-x-2 mb-1">
-                                    <p  className=" cursor-pointer text-sm font-medium text-gray-900 truncate"
-                                    onClick={()=>  navigate(`/dashboard/users/${latestComment.userId?._id}`)}
+                                    <p className="cursor-pointer text-sm font-medium text-gray-900 truncate"
+                                    onClick={() => navigate(`/dashboard/users/${latestComment.userId?._id}`)}
                                     >
                                       {latestComment.userId.fullName}
                                     </p>
@@ -169,7 +177,10 @@ export const CommentPost = () => {
                                       Mới nhất
                                     </span>
                                   </div>
-                                  <p className="text-sm break-all text-gray-600 line-clamp-2 mb-2">
+                                  <p 
+                                    className="text-sm break-all text-gray-600 line-clamp-2 mb-2 transition-colors"
+                                   
+                                  >
                                     {latestComment.comment}
                                   </p>
                                   <p className="text-xs text-gray-400">
@@ -184,8 +195,9 @@ export const CommentPost = () => {
                           
                           <td className="px-6 py-4">
                             <div className="flex items-center">
-                              <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <div className="bg-blue-100 p-2 rounded-lg mr-3 cursor-pointer hover:text-blue-600">
+                                <svg  onClick={() => handleOpenCommentDetail(latestComment, item)}
+                                    title="Nhấn để xem chi tiết comment" className="  w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                 </svg>
                               </div>
@@ -198,26 +210,13 @@ export const CommentPost = () => {
                           
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900">
-                              {item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN', {
+                              {latestComment ? new Date(latestComment.createdAt).toLocaleDateString('vi-VN', {
                                 year: 'numeric',
                                 month: 'long',
                                 day: 'numeric'
-                              }) : "Chưa cập nhật"}
+                              }) : "Chưa có bình luận"}
                             </div>
-
                           </td>
-                          
-                           <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">
-                              {item.createdAt ? new Date(item.updatedAt).toLocaleDateString('vi-VN', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              }) : "Chưa cập nhật"}
-                            </div>
-
-                          </td>
-                          
                           <td className="px-6 py-4">
                             <button
                               onClick={() => handleOpenDialogComments(item)}
@@ -298,7 +297,6 @@ export const CommentPost = () => {
         </div>
       </div>
 
-      {/* Dialog */}
       {openDialogComments && (
         <Dialog open={openDialogComments} handler={handleCloseDialogComments} size="xl">
           <div className="max-h-[80vh] overflow-y-auto">
@@ -309,6 +307,16 @@ export const CommentPost = () => {
             />
           </div>
         </Dialog>
+      )}
+
+      {openCommentDetailDialog && selectedComment && (
+        <DialogCommentsByid
+          postInfo={{
+            postId: selectedComment.postId,
+          
+          }}
+          onClose={handleCloseCommentDetail}
+        />
       )}
     </div>
   )
