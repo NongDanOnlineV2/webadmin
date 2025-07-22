@@ -121,6 +121,7 @@ const fetchAllData = async () => {
   if (!token) return;
 
   fetchAllData()
+    // .then(fetchUsers)
     .catch((err) => {
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
