@@ -16,7 +16,7 @@ import axios from "axios";
 import AnswersTableDetail from "./answerstabledetail";
 import AnswerAddForm from "./AnswerAddForm";
 import AnswerEditForm from "./AnswerEditForm";
-//import { toast } from "react-toastify";
+// import { toast } from "react-toastify";
 
 const API_URL = "https://api-ndolv2.nongdanonline.cc/answers";
 const FILE_BASE_URL = "https://api-ndolv2.nongdanonline.cc";
@@ -84,6 +84,7 @@ export function AnswersTable() {
 
   const fetchAnswers = async () => {
     try {
+      setLoading(true);
       const res = await fetchWithAuth(API_URL);
       const data = await res.json();
       setAnswers(Array.isArray(data) ? data : []);
@@ -93,12 +94,15 @@ export function AnswersTable() {
   };
 
   const getFarmandQuestion = async () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = currentPage * itemsPerPage;
+    const currentPageItems = answers.slice(startIndex, endIndex);
 
     try {
       const response = await Promise.all(
-        answers.map(async (item) => {
+        currentPageItems.map(async (item) => {
           try {
-const [resQ, resF] = await Promise.all([
+            const [resQ, resF] = await Promise.all([
               axios.get(
                 `https://api-ndolv2.nongdanonline.cc/admin-questions/${item.questionId}`,
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -135,8 +139,10 @@ const [resQ, resF] = await Promise.all([
   }, []);
 
   useEffect(() => {
-    if (answers.length > 0) getFarmandQuestion();
-  }, [answers]);
+    if (answers.length > 0) {
+      getFarmandQuestion();
+    }
+  }, [currentPage, answers]);
 
   const openAddForm = () => {
     setForm({
@@ -213,7 +219,7 @@ const [resQ, resF] = await Promise.all([
 
     try {
       const url =
-formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
+        formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
 
       const method = formType === "edit" ? "PUT" : "POST";
 
@@ -226,7 +232,7 @@ formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || "Không thể lưu dữ liệu");
 
-      toast.success(
+      alert(
         formType === "edit"
           ? "Cập nhật câu trả lời thành công!"
           : "Thêm câu trả lời thành công!"
@@ -235,7 +241,7 @@ formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
       setFormType(null);
       fetchAnswers();
     } catch (error) {
-      toast.error(error.message || "Không thể lưu dữ liệu");
+      alert(error.message || "Không thể lưu dữ liệu");
     }
   };
 
@@ -250,6 +256,8 @@ formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
     }
   };
 
+  const totalPages = Math.ceil(answers.length / itemsPerPage);
+
   const filteredData = questionAnFarmId.filter((item) => {
     const farmName = item.farm?.name?.toLowerCase() || "";
     const questionText = item.question?.text?.toLowerCase() || "";
@@ -261,12 +269,6 @@ formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
       (!filterOption || selected.includes(filterOption.toLowerCase()))
     );
   });
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   return (
     <div className="p-6">
@@ -284,44 +286,38 @@ formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
         </Menu>
       </div>
 
-      
-
-  <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4 mb-4">
-  <div className="sm:w-60">
-    <Input
-      label="Tìm kiếm câu hỏi hoặc farm"
-      value={searchText}
-      onChange={(e) => {
-        setSearchText(e.target.value);
-        setCurrentPage(1);
-      }}
-    />
-  </div>
-  <div className="sm:w-64 mt-4 sm:mt-0">
-    <label className="block text-sm font-medium text-gray-700 mb-1">
-      Lọc theo đáp án
-    </label>
-    <select
-      value={filterOption}
-      onChange={(e) => {
-        setFilterOption(e.target.value);
-        setCurrentPage(1);
-      }}
-      className="border rounded px-2 py-1 text-sm w-full"
-    >
-      <option value="">Tất cả</option>
-{[...new Set(questionAnFarmId.flatMap((item) => item.selectedOptions || []))].map((opt, idx) => (
-
-        <option key={idx} value={opt}>
-
-          {opt}
-        </option>
-      ))}
-    </select>
-  </div>
-</div>
-
-
+      <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4 mb-4">
+        <div className="sm:w-60">
+          <Input
+            label="Tìm kiếm câu hỏi hoặc farm"
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
+        <div className="sm:w-64 mt-4 sm:mt-0">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Lọc theo đáp án
+          </label>
+          <select
+            value={filterOption}
+            onChange={(e) => {
+              setFilterOption(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="border rounded px-2 py-1 text-sm w-full"
+          >
+            <option value="">Tất cả</option>
+            {[...new Set(questionAnFarmId.flatMap((item) => item.selectedOptions || []))].map((opt, idx) => (
+              <option key={idx} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {loading ? (
         <Audio height="80" width="80" color="green" ariaLabel="loading" />
@@ -339,7 +335,7 @@ formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
             </tr>
           </thead>
           <tbody>
-            {paginatedData.map((item, index) => (
+            {filteredData.map((item, index) => (
               <tr
                 key={item._id}
                 className="hover:bg-gray-50 transition cursor-pointer"
@@ -381,10 +377,10 @@ formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
                         onClick={(e) => { e.stopPropagation(); handleDelete(item._id); }}
                         className="text-red-500"
                       >
-Xoá
+                        Xoá
                       </MenuItem>
                     </MenuList>
-</Menu>
+                  </Menu>
                 </td>
               </tr>
             ))}
