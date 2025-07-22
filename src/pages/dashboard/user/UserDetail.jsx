@@ -304,19 +304,9 @@ const handleOpenFarms = async () => {
 
     const [allFarms, allVideos] = await Promise.all([
       fetchPaginatedData(`${BaseUrl}/adminfarms`, config),
-      fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config),
     ]);
 
     setFarms(allFarms);
-    setVideos(allVideos);
-
-    const counts = allVideos.reduce((acc, video) => {
-      const farmId = video.farmId?._id;
-      if (farmId) acc[farmId] = (acc[farmId] || 0) + 1;
-      return acc;
-    }, {});
-    setVideoCountsByFarm(counts);
-
     // 3. Gọi stats cho từng video (nếu cần)
   } catch (err) {
     console.error("Lỗi khi fetch farms:", err);
@@ -475,21 +465,33 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 };
   const fetchedVideoStats = useRef({});
 
-  const showFarmVideos = async (farmId, farmName) => {           
-    const relatedVideos = videos.filter((v) => v.farmId?.id === farmId);
-     const statsPromises = relatedVideos
-    .filter((video) => !fetchedVideoStats.current[video._id])
-    .map(async (video) => {
-      await fetchVideoStats(video._id); // Gọi API lấy likes & comments
-      fetchedVideoStats.current[video._id] = true;
-    });
+  const showFarmVideos = async (farmId, farmName) => {
+  try {
+    const token = localStorage.getItem("token");
+    const config = { headers: { Authorization: `Bearer ${token}` } };
 
-  await Promise.allSettled(statsPromises);
-    setSelectedFarmVideos(relatedVideos);
+    // 👉 Chỉ fetch video của farm được chọn
+    const farmVideos = await fetchPaginatedData(
+      `${BaseUrl}/admin-video-farm?farmId=${farmId}`,
+      config
+    );
+
+    // Gọi API stats nếu cần
+    const statsPromises = farmVideos
+      .filter((video) => !fetchedVideoStats.current[video._id])
+      .map(async (video) => {
+        await fetchVideoStats(video._id);
+        fetchedVideoStats.current[video._id] = true;
+      });
+    await Promise.allSettled(statsPromises);
+
+    setSelectedFarmVideos(farmVideos);
     setSelectedFarmName(farmName);
     setOpenVideoDialog(true);
-
-  };
+  } catch (err) {
+    console.error("Lỗi khi fetch video của farm:", err);
+  }
+};
 
   const countVideosByFarm = (farmId) => {
   return videos.filter((v) => v.farmId?.id === farmId).length;
@@ -965,18 +967,12 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
                   {/* Số lượng video và nút xem chi tiết */}
                   <div className="flex gap-3 items-center mt-2">
-                    <Typography color="deep-purple">
-                      <b>Số lượng video:</b>{" "}
-                      {countVideosByFarm(farm._id)}
-                    </Typography>
                     <Button
                       size="sm"
                       color="blue"
-                      onClick={() =>
-                        showFarmVideos(farm._id, farm.name)
-                      }
+                      onClick={() => showFarmVideos(farm._id, farm.name)}
                     >
-                      Xem chi tiết
+                      Xem số video
                     </Button>
                   </div>
 
@@ -1015,9 +1011,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     )}
   </Collapse>
 </Card>
-
-      
-      
 
       <Dialog
   open={openVideoDialog}
