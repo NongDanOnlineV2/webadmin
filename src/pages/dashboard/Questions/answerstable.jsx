@@ -3,12 +3,11 @@ import {
   Typography,
   Button,
   Dialog,
-  Input,
+  IconButton,
   Menu,
   MenuHandler,
   MenuList,
   MenuItem,
-  IconButton,
 } from "@material-tailwind/react";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { Audio } from "react-loader-spinner";
@@ -16,8 +15,6 @@ import axios from "axios";
 import AnswersTableDetail from "./answerstabledetail";
 import AnswerAddForm from "./AnswerAddForm";
 import AnswerEditForm from "./AnswerEditForm";
-// import { toast } from "react-toastify";
-
 const API_URL = "https://api-ndolv2.nongdanonline.cc/answers";
 const FILE_BASE_URL = "https://api-ndolv2.nongdanonline.cc";
 let token = localStorage.getItem("token");
@@ -62,15 +59,14 @@ const fetchWithAuth = async (url, options = {}) => {
 };
 
 export function AnswersTable() {
-  const [answers, setAnswers] = useState([]);
-  const [questionAnFarmId, setQuestionAndFarmId] = useState([]);
+  const [allAnswers, setAllAnswers] = useState([]); // Tất cả data
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState("");
-  const [filterOption, setFilterOption] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
   const [formType, setFormType] = useState(null);
   const [editData, setEditData] = useState(null);
+  const [allAnswersCache, setAllAnswersCache] = useState(null);
   const [form, setForm] = useState({
     farmId: "",
     questionId: "",
@@ -82,67 +78,54 @@ export function AnswersTable() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
 
-  const fetchAnswers = async () => {
+  // Load tất cả answers 1 lần duy nhất
+  const loadAllAnswers = async () => {
     try {
+      // Kiểm tra cache trước
+      if (allAnswersCache) {
+        console.log("📦 Load all answers từ cache");
+        setAllAnswers(allAnswersCache);
+        setTotalPages(Math.ceil(allAnswersCache.length / itemsPerPage));
+        setLoading(false);
+        return;
+      }
+
+      console.log("🔄 Gọi API load tất cả answers - 1 lần duy nhất");
       setLoading(true);
+
       const res = await fetchWithAuth(API_URL);
       const data = await res.json();
-      setAnswers(Array.isArray(data) ? data : []);
+      const answersData = Array.isArray(data) ? data : [];
+
+      setAllAnswers(answersData);
+      setAllAnswersCache(answersData); // Cache tất cả
+      setTotalPages(Math.ceil(answersData.length / itemsPerPage));
     } catch (err) {
       console.error("Lỗi khi tải dữ liệu:", err);
-    }
-  };
-
-  const getFarmandQuestion = async () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = currentPage * itemsPerPage;
-    const currentPageItems = answers.slice(startIndex, endIndex);
-
-    try {
-      const response = await Promise.all(
-        currentPageItems.map(async (item) => {
-          try {
-            const [resQ, resF] = await Promise.all([
-              axios.get(
-                `https://api-ndolv2.nongdanonline.cc/admin-questions/${item.questionId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              ),
-              axios.get(
-                `https://api-ndolv2.nongdanonline.cc/adminfarms/${item.farmId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-              ),
-            ]);
-
-            return {
-              ...item,
-              question: resQ.data,
-              farm: {
-                ...resF.data,
-                ownerName: resF.data.owner?.fullname || "—",
-              },
-            };
-          } catch {
-            return { ...item };
-          }
-        })
-      );
-      setQuestionAndFarmId(response);
-    } catch {
-      setQuestionAndFarmId([]);
+      setAllAnswers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchAnswers();
-  }, []);
+  // Clear cache function
+  const clearCache = () => {
+    console.log("🗑️ Clear cache");
+    setAllAnswersCache(null);
+  };
 
   useEffect(() => {
-    if (answers.length > 0) {
-      getFarmandQuestion();
-    }
-  }, [currentPage, answers]);
+    loadAllAnswers();
+  }, []);
+
+  // Lấy data cho trang hiện tại - client-side pagination
+  const getCurrentPageData = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return allAnswers.slice(startIndex, endIndex);
+  };
+
+  const currentPageData = getCurrentPageData();
 
   const openAddForm = () => {
     setForm({
@@ -196,84 +179,105 @@ export function AnswersTable() {
   };
 
   const handleSubmit = async () => {
-    const payload =
-      formType === "edit"
-        ? {
-            farmId: form.farmId,
-            questionId: form.questionId,
-            selectedOptions: form.selectedOptions,
-            otherText: form.otherText,
-            uploadedFiles: form.uploadedFiles,
-          }
-        : {
-            farmId: form.farmId,
-            answers: [
-              {
-                questionId: form.questionId,
-                selectedOptions: form.selectedOptions,
-                otherText: form.otherText,
-                uploadedFiles: form.uploadedFiles,
-              },
-            ],
-          };
+    // Validate form
+    if (!form.farmId || !form.questionId) {
+      alert("Vui lòng chọn Farm và Câu hỏi");
+      return;
+    }
+
+    if (
+      form.selectedOptions.length === 0 &&
+      !form.otherText &&
+      form.uploadedFiles.length === 0
+    ) {
+      alert("Vui lòng chọn ít nhất một đáp án hoặc nhập nội dung khác");
+      return;
+    }
 
     try {
-      const url =
-        formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL;
+      if (formType === "edit") {
+        // Sửa đáp án - gọi API PUT
+        const payload = {
+          farmId: form.farmId,
+          questionId: form.questionId,
+          selectedOptions: form.selectedOptions,
+          otherText: form.otherText,
+          uploadedFiles: form.uploadedFiles,
+        };
 
-      const method = formType === "edit" ? "PUT" : "POST";
+        const res = await fetchWithAuth(`${API_URL}/${editData?._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
-      const res = await fetchWithAuth(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || "Không thể cập nhật đáp án");
 
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message || "Không thể lưu dữ liệu");
+        alert("✅ Cập nhật đáp án thành công!");
+      } else {
+        // Thêm đáp án mới - gọi API POST
+        const payload = {
+          farmId: form.farmId,
+          questionId: form.questionId,
+          selectedOptions: form.selectedOptions,
+          otherText: form.otherText,
+          uploadedFiles: form.uploadedFiles,
+        };
 
-      alert(
-        formType === "edit"
-          ? "Cập nhật câu trả lời thành công!"
-          : "Thêm câu trả lời thành công!"
-      );
+        const res = await fetchWithAuth(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || "Không thể thêm đáp án");
+
+        alert("✅ Thêm đáp án thành công!");
+      }
 
       setFormType(null);
-      fetchAnswers();
+      clearCache();
+      await loadAllAnswers();
+
     } catch (error) {
-      alert(error.message || "Không thể lưu dữ liệu");
+      console.error("Submit error:", error);
+      alert(`❌ ${error.message || "Có lỗi xảy ra"}`);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xoá?")) return;
+  const handleDelete = async (id, item) => {
+    const confirmMessage = `Bạn có chắc muốn xóa đáp án này?\n\nFarm ID: ${item.farmId}\nQuestion ID: ${item.questionId}\nĐáp án: ${item.selectedOptions?.join(", ") || "Không có"}`;
+    
+    if (!window.confirm(confirmMessage)) return;
+
     try {
-      const res = await fetchWithAuth(`${API_URL}/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Không thể xoá dữ liệu");
-      fetchAnswers();
-    } catch (err) {
-      alert(err.message);
+      const res = await fetchWithAuth(`${API_URL}/${id}`, { 
+        method: "DELETE" 
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Không thể xóa đáp án (${res.status})`);
+      }
+
+      alert("✅ Xóa đáp án thành công!");
+      clearCache();
+      await loadAllAnswers();
+
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert(`❌ Lỗi khi xóa: ${error.message}`);
     }
   };
-
-  const totalPages = Math.ceil(answers.length / itemsPerPage);
-
-  const filteredData = questionAnFarmId.filter((item) => {
-    const farmName = item.farm?.name?.toLowerCase() || "";
-    const questionText = item.question?.text?.toLowerCase() || "";
-    const selected = item.selectedOptions?.join(", ").toLowerCase() || "";
-
-    return (
-      (farmName.includes(searchText.toLowerCase()) ||
-        questionText.includes(searchText.toLowerCase())) &&
-      (!filterOption || selected.includes(filterOption.toLowerCase()))
-    );
-  });
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <Typography variant="h5">Danh sách câu trả lời</Typography>
+        <Typography variant="h5">
+          Danh sách câu trả lời ({allAnswers.length} items)
+        </Typography>
         <Menu placement="bottom-end">
           <MenuHandler>
             <IconButton variant="text">
@@ -286,48 +290,17 @@ export function AnswersTable() {
         </Menu>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4 mb-4">
-        <div className="sm:w-60">
-          <Input
-            label="Tìm kiếm câu hỏi hoặc farm"
-            value={searchText}
-            onChange={(e) => {
-              setSearchText(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-        </div>
-        <div className="sm:w-64 mt-4 sm:mt-0">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Lọc theo đáp án
-          </label>
-          <select
-            value={filterOption}
-            onChange={(e) => {
-              setFilterOption(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="border rounded px-2 py-1 text-sm w-full"
-          >
-            <option value="">Tất cả</option>
-            {[...new Set(questionAnFarmId.flatMap((item) => item.selectedOptions || []))].map((opt, idx) => (
-              <option key={idx} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
       {loading ? (
-        <Audio height="80" width="80" color="green" ariaLabel="loading" />
+        <div className="flex justify-center items-center py-8">
+          <Audio height="80" width="80" color="green" ariaLabel="loading" />
+        </div>
       ) : (
         <table className="min-w-full">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-3 text-left"></th>
-              <th className="px-4 py-3 text-left">Farm</th>
-              <th className="px-4 py-3 text-left">Câu hỏi</th>
+              <th className="px-4 py-3 text-left">#</th>
+              <th className="px-4 py-3 text-left">Farm ID</th>
+              <th className="px-4 py-3 text-left">Question ID</th>
               <th className="px-4 py-3 text-left">Đáp án chọn</th>
               <th className="px-4 py-3 text-left">Khác</th>
               <th className="px-4 py-3 text-left">Tệp đính kèm</th>
@@ -335,7 +308,7 @@ export function AnswersTable() {
             </tr>
           </thead>
           <tbody>
-            {filteredData.map((item, index) => (
+            {currentPageData.map((item, index) => (
               <tr
                 key={item._id}
                 className="hover:bg-gray-50 transition cursor-pointer"
@@ -344,25 +317,67 @@ export function AnswersTable() {
                   setDetailOpen(true);
                 }}
               >
-                <td className="px-4 py-3">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                <td className="px-4 py-3">{item.farm?.name || <i className="text-gray-400">chưa có</i>}</td>
-                <td className="px-4 py-3">{item.question?.text || <i className="text-gray-400">chưa có</i>}</td>
-                <td className="px-4 py-3">{item.selectedOptions?.join(", ") || "—"}</td>
-                <td className="px-4 py-3">{item.otherText || "—"}</td>
                 <td className="px-4 py-3">
-                  {item.uploadedFiles?.length > 0
-                    ? item.uploadedFiles.map((file, i) => (
+                  {(currentPage - 1) * itemsPerPage + index + 1}
+                </td>
+                <td className="px-4 py-3">
+                  <span className="text-gray-600 text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                    {item.farmId}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="text-gray-600 text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                    {item.questionId}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="max-w-xs">
+                    {item.selectedOptions?.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {item.selectedOptions.map((option, i) => (
+                          <span
+                            key={i}
+                            className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
+                          >
+                            {option}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="max-w-xs truncate">
+                    {item.otherText ? (
+                      <span className="text-gray-700" title={item.otherText}>
+                        {item.otherText}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  {item.uploadedFiles?.length > 0 ? (
+                    <div className="flex flex-col gap-1">
+                      {item.uploadedFiles.map((file, i) => (
                         <a
                           key={i}
                           href={`${FILE_BASE_URL}${file}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 underline block"
+                          className="text-blue-600 hover:text-blue-800 text-xs underline"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          File {i + 1}
+                          📎 File {i + 1}
                         </a>
-                      ))
-                    : "—"}
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <Menu placement="bottom-end">
@@ -372,12 +387,29 @@ export function AnswersTable() {
                       </IconButton>
                     </MenuHandler>
                     <MenuList>
-                      <MenuItem onClick={(e) => { e.stopPropagation(); openEditForm(item); }}>Sửa</MenuItem>
                       <MenuItem
-                        onClick={(e) => { e.stopPropagation(); handleDelete(item._id); }}
-                        className="text-red-500"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditForm(item);
+                        }}
+                        className="flex items-center gap-2"
                       >
-                        Xoá
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Sửa đáp án
+                      </MenuItem>
+                      <MenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(item._id, item);
+                        }}
+                        className="text-red-500 flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Xóa đáp án
                       </MenuItem>
                     </MenuList>
                   </Menu>
@@ -389,12 +421,32 @@ export function AnswersTable() {
       )}
 
       <div className="flex items-center justify-center gap-4 mt-6">
-        <Button variant="outlined" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>Trang trước</Button>
-        <span className="text-sm font-medium">Trang {currentPage} / {totalPages || 1}</span>
-        <Button variant="outlined" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)}>Trang sau</Button>
+        <Button
+          variant="outlined"
+          size="sm"
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((p) => p - 1)}
+        >
+          Trang trước
+        </Button>
+        <span className="text-sm font-medium">
+          Trang {currentPage} / {totalPages}
+        </span>
+        <Button
+          variant="outlined"
+          size="sm"
+          disabled={currentPage >= totalPages}
+          onClick={() => setCurrentPage((p) => p + 1)}
+        >
+          Trang sau
+        </Button>
       </div>
 
-      <Dialog open={formType !== null} handler={() => setFormType(null)} size="xl">
+      <Dialog
+        open={formType !== null}
+        handler={() => setFormType(null)}
+        size="xl"
+      >
         {formType === "add" ? (
           <AnswerAddForm
             open
@@ -418,7 +470,11 @@ export function AnswersTable() {
         ) : null}
       </Dialog>
 
-      <AnswersTableDetail open={detailOpen} onClose={() => setDetailOpen(false)} data={selectedAnswer} />
+      <AnswersTableDetail
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        data={selectedAnswer}
+      />
     </div>
   );
 }
