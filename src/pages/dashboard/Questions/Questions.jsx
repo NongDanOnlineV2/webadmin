@@ -5,40 +5,27 @@ import { Oval } from 'react-loader-spinner';
 import AddQuestion from './AddQuestion';
 import AnswersTable from './answerstable';
 import {
-  MenuHandler,
-  Menu,
-  IconButton,
-  MenuList,
-  MenuItem,
-  Button,
-  Dialog,
-  DialogHeader,
-  DialogBody,
-  DialogFooter,
+  MenuHandler, Menu, IconButton, MenuList, MenuItem,
+  Input, Dialog, DialogBody, DialogHeader, DialogFooter, Button
 } from '@material-tailwind/react';
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import EditQuestion from './EditQuestion';
 
-const Questions = () => {
-  const tokenUser = localStorage.getItem('token');
-
+export const Questions = () => {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editData, setEditData] = useState(null);
   const [editValue, setEditValue] = useState({ options: [] });
-
   const [addDialog, setAddDialog] = useState(false);
   const [addValue, setAddValue] = useState({ text: '', options: [''], type: 'option', link: '' });
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('');
-  const [filteredQuestions, setFilteredQuestions] = useState([]);
-
   const [showAnswersDialog, setShowAnswersDialog] = useState(false);
+
+  const tokenUser = localStorage.getItem('token');
 
   const getData = async (page = 1) => {
     setLoading(true);
@@ -48,11 +35,10 @@ const Questions = () => {
       });
       if (res.status === 200) {
         setQuestions(res.data.data);
-        setFilteredQuestions(res.data.data);
         setTotalPages(res.data.totalPages || 1);
       }
     } catch (error) {
-      console.log('Lỗi khi tải dữ liệu:', error);
+      console.log('Lỗi khi lấy dữ liệu:', error);
     } finally {
       setLoading(false);
     }
@@ -80,11 +66,7 @@ const Questions = () => {
   };
 
   const handleEditChange = (e, idx) => {
-    if (
-      editData &&
-      ['option', 'single-choice', 'multiple-choice', 'multi-choice'].includes(editData.type) &&
-      typeof idx === 'number'
-    ) {
+    if (['option', 'single-choice', 'multiple-choice', 'multi-choice'].includes(editData?.type) && typeof idx === 'number') {
       const newOptions = [...editValue.options];
       newOptions[idx] = e.target.value;
       setEditValue({ ...editValue, options: newOptions });
@@ -94,18 +76,17 @@ const Questions = () => {
   };
 
   const handleSave = async () => {
+    if (!editValue.text || editValue.text.trim() === '') {
+      alert('Vui lòng nhập nội dung câu hỏi!');
+      return;
+    }
     if (
-      ['option', 'single-choice', 'multiple-choice', 'multi-choice'].includes(editData.type) &&
+      ['option', 'single-choice', 'multiple-choice', 'multi-choice'].includes(editValue.type) &&
       editValue.options.some(opt => !opt || opt.trim() === '')
     ) {
       alert('Vui lòng điền đủ tất cả các đáp án!');
       return;
     }
-    if (!editValue.text || editValue.text.trim() === '') {
-      alert('Vui lòng nhập nội dung câu hỏi!');
-      return;
-    }
-
     try {
       await axios.put(`${BaseUrl}/admin-questions/${editData._id}`, editValue, {
         headers: { Authorization: `Bearer ${tokenUser}` },
@@ -127,7 +108,8 @@ const Questions = () => {
       alert('Xoá thành công!');
       getData(currentPage);
     } catch (error) {
-      console.log('Lỗi khi xoá:', error);
+      alert('Lỗi khi xóa!');
+      console.log('Lỗi khi xóa:', error);
     }
   };
 
@@ -156,12 +138,10 @@ const Questions = () => {
       alert('Vui lòng nhập nội dung câu hỏi!');
       return;
     }
-    if (["option", "single-choice", "multiple-choice", "multi-choice"].includes(addValue.type) &&
-        addValue.options.some(opt => !opt || opt.trim() === '')) {
+    if (["option", "single-choice", "multiple-choice", "multi-choice"].includes(addValue.type) && addValue.options.some(opt => !opt || opt.trim() === '')) {
       alert('Vui lòng điền đủ tất cả các đáp án!');
       return;
     }
-
     try {
       await axios.post(`${BaseUrl}/admin-questions`, addValue, {
         headers: { Authorization: `Bearer ${tokenUser}` },
@@ -170,18 +150,9 @@ const Questions = () => {
       handleCloseAddDialog();
       getData(currentPage);
     } catch (error) {
+      alert('Lỗi khi thêm!');
       console.log('Lỗi khi thêm:', error);
     }
-  };
-
-  const handleFilter = () => {
-    const keyword = searchTerm.toLowerCase().trim();
-    const filtered = questions.filter(q => {
-      const matchesText = q.text?.toLowerCase().includes(keyword);
-      const matchesType = filterType === '' || q.type === filterType;
-      return matchesText && matchesType;
-    });
-    setFilteredQuestions(filtered);
   };
 
   return (
@@ -204,48 +175,28 @@ const Questions = () => {
           <AnswersTable />
         </DialogBody>
         <DialogFooter>
-          <Button variant="text" onClick={() => setShowAnswersDialog(false)}>Đóng</Button>
+          <Button variant="text" onClick={() => setShowAnswersDialog(false)}>
+            Đóng
+          </Button>
         </DialogFooter>
       </Dialog>
 
-      <div className="flex gap-4 items-center mb-4">
-        <input
-          type="text"
-          placeholder="Tìm câu hỏi..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border px-4 py-2 rounded w-full max-w-sm"
-        />
-
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="border px-4 py-2 rounded"
-        >
-          <option value="">Tất cả loại</option>
-          <option value="single-choice">Chọn nhiều đáp án</option>
-          <option value="text">Nhập văn bản</option>
-          <option value="link">Nhập đường dẫn</option>
-          <option value="upload">Tải lên hình ảnh</option>
-        </select>
-
-        <Button size="sm" color="black" onClick={handleFilter}>Tìm kiếm</Button>
-      </div>
-
       {loading ? (
         <div className="flex justify-center items-center h-40">
-          <Oval height={80} width={80} color="blue" visible={true} />
+          <Oval height={80} width={80} color="blue" visible={true} ariaLabel="oval-loading" />
         </div>
-      ) : filteredQuestions.length === 0 ? (
+      ) : questions.length === 0 ? (
         <div className="text-center text-gray-500 mt-8">Không có câu hỏi nào.</div>
       ) : (
-        filteredQuestions.map((item) => (
+        questions.map((item) => (
           <div key={item._id} className="mb-6 p-4 border rounded-lg bg-white shadow">
             <div className="flex justify-between">
               <div className="font-semibold mb-2">{item.text}</div>
               <Menu placement="left-start">
                 <MenuHandler>
-                  <IconButton variant="text"><EllipsisVerticalIcon className="h-5 w-5" /></IconButton>
+                  <IconButton variant="text">
+                    <EllipsisVerticalIcon className="h-5 w-5" />
+                  </IconButton>
                 </MenuHandler>
                 <MenuList>
                   <MenuItem onClick={() => handleOpenDialog(item)}>Cập nhật</MenuItem>
@@ -254,18 +205,19 @@ const Questions = () => {
                 </MenuList>
               </Menu>
             </div>
-
             <div className="flex gap-4 mt-8">
-              {["single-choice", "multiple-choice", "multi-choice"].includes(item.type) && Array.isArray(item.options) ? (
-                item.options.map((opt, idx) => (
-                  <button key={idx} className="px-4 py-2 bg-blue-gray-400 text-white rounded">{opt}</button>
+              {["single-choice", "multiple-choice", "multi-choice"].includes(item.type) ? (
+                item.options?.map((opt, idx) => (
+                  <button key={idx} className="px-4 py-2 bg-blue-gray-400 hover:bg-blue-gray-600 text-white rounded">
+                    {opt}
+                  </button>
                 ))
               ) : item.type === 'upload' ? (
-                <input type="file" disabled className="border px-3 py-2 rounded w-full max-w-xs" />
+                <input type="file" accept="image/*" className="border px-3 py-2 rounded w-full max-w-xs" disabled />
               ) : item.type === 'link' ? (
-                <input type="url" disabled className="border px-3 py-2 rounded w-full max-w-xs" placeholder="Nhập đường dẫn..." />
+                <input type="url" className="border px-3 py-2 rounded w-full max-w-xs" placeholder="Nhập đường dẫn..." disabled />
               ) : item.type === 'text' ? (
-                <input type="text" disabled className="border px-3 py-2 rounded w-full max-w-xs" placeholder="Nhập câu trả lời..." />
+                <input type="text" className="border px-3 py-2 rounded w-full max-w-xs" placeholder="Nhập câu trả lời..." disabled />
               ) : null}
             </div>
           </div>
@@ -273,13 +225,23 @@ const Questions = () => {
       )}
 
       <div className="flex justify-center items-center gap-2 mt-6">
-        <Button size="sm" variant="outlined" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>
+        <Button
+          size="sm"
+          variant="outlined"
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+        >
           Trang trước
         </Button>
         <span className="text-sm text-gray-700">
           Trang <strong>{currentPage}</strong> / {totalPages}
         </span>
-        <Button size="sm" variant="outlined" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage >= totalPages}>
+        <Button
+          size="sm"
+          variant="outlined"
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+          disabled={currentPage >= totalPages}
+        >
           Trang sau
         </Button>
       </div>
