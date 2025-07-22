@@ -45,7 +45,7 @@ export default function UserDetail() {
   const [likeCounts, setLikeCounts] = useState({});
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [loadingVideos, setLoadingVideos] = useState(false); 
-  const [videoCountsByFarm, setVideoCountsByFarm] = useState({}); 
+  const [selectedVideoId, setSelectedVideoId] = useState(null); 
   const [visibleFarms, setVisibleFarms] = useState(6);
   const [visibleVideos, setVisibleVideos] = useState(6);
   const [visiblePosts, setVisiblePosts] = useState(6);
@@ -395,7 +395,12 @@ const handleOpenVideos = async () => {
 const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   if (videoLikesCache[videoId]) {
     setSelectedVideoTitle(videoTitle);
+    setSelectedVideoId(videoId);
     setSelectedVideoLikes(videoLikesCache[videoId]);
+    setVideoLikes((prev) => ({
+      ...prev,
+      [videoId]: videoLikesCache[videoId].length, 
+    }));
     setOpenLikesDialog(true);
     return;
   }
@@ -408,12 +413,18 @@ const fetchVideoLikesUsers = async (videoId, videoTitle) => {
       `https://api-ndolv2.nongdanonline.cc/video-like/${videoId}/users`,
       config
     );
+    const users = res.data?.users || [];
     setVideoLikesCache((prev) => ({
       ...prev,
-      [videoId]: res.data?.users || [],
+      [videoId]: users,
+    }));
+    setVideoLikes((prev) => ({
+      ...prev,
+      [videoId]: users.length, 
     }));
     setSelectedVideoTitle(videoTitle);
     setSelectedVideoLikes(res.data?.users || []);
+    setSelectedVideoId(videoId);
     setOpenLikesDialog(true);
   } catch (err) {
     console.error(`Error fetching likes for video ${videoId}:`, err);
@@ -424,6 +435,11 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   if (videoCommentsCache[videoId]) {
     setSelectedVideoTitle(videoTitle);
     setSelectedVideoComments(videoCommentsCache[videoId]);
+    setSelectedVideoId(videoId);
+    setVideoComments((prev) => ({
+      ...prev,
+      [videoId]: videoCommentsCache[videoId].length, 
+    }));
     setOpenCommentsDialog(true);
     return;
   }
@@ -436,12 +452,18 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       `https://api-ndolv2.nongdanonline.cc/video-comment/${videoId}/comments`,
       config
     );
+    const comments = res.data || [];
     setVideoCommentsCache((prev) => ({
       ...prev,
-      [videoId]: res.data || [],
+      [videoId]: comments, 
+    }));
+    setVideoComments((prev) => ({
+      ...prev,
+      [videoId]: comments.length, 
     }));
     setSelectedVideoTitle(videoTitle);
     setSelectedVideoComments(res.data || []);
+    setSelectedVideoId(videoId);
     setOpenCommentsDialog(true);
   } catch (err) {
     console.error(`Error fetching comments for video ${videoId}:`, err);
@@ -475,30 +497,21 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   const fetchedVideoStats = useRef({});
 
   const showFarmVideos = async (farmId, farmName) => {
-  setLoadingVideos(true); // bật loading khi fetch video
+  setLoadingVideos(true); 
   try {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
-    // 🛑 Chỉ fetch video khi click nút
     const farmVideos = await fetchPaginatedData(
-      `${BaseUrl}/admin-video-farm?farmId=${farmId}`,
+      `${BaseUrl}/admin-video-farm`,
       config
     );
-
-    // Gọi API lấy stats (likes/comments) nếu cần
-    const statsPromises = farmVideos.map(async (video) => {
-      if (!fetchedVideoStats.current[video._id]) {
-        await fetchVideoStats(video._id);
-        fetchedVideoStats.current[video._id] = true;
-      }
-    });
-    await Promise.allSettled(statsPromises);
-
-    // Cập nhật state
-    setSelectedFarmVideos(farmVideos);
+    const filteredVideos = farmVideos.filter(
+      (video) => video.farmId?.id === farmId
+    );
+    setSelectedFarmVideos(filteredVideos);
     setSelectedFarmName(farmName);
-    setOpenVideoDialog(true); // 👉 chỉ mở dialog khi fetch xong
+    setOpenVideoDialog(true); 
   } catch (err) {
     console.error("❌ Lỗi khi fetch video của farm:", err);
   } finally {
@@ -1124,20 +1137,19 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
             {/* Lượt thích & Bình luận */}
             <div className="flex flex-wrap gap-2 mt-3">
-              <span
+              <button
                 className="cursor-pointer text-blue-600 hover:underline text-sm"
                 onClick={() => fetchVideoLikesUsers(item._id, item.title)}
               >
-                ❤️ Lượt thích:{" "}
-                <strong>{videoLikes[item._id] ?? "Đang tải..."}</strong>
-              </span>
-              <span
+                ❤️ Xem lượt thích
+                
+              </button>
+              <button
                 className="cursor-pointer text-blue-600 hover:underline text-sm"
                 onClick={() => fetchVideoCommentsUsers(item._id, item.title)}
               >
-                💬 Lượt bình luận:{" "}
-                <strong>{videoComments[item._id] ?? "Đang tải..."}</strong>
-              </span>
+                💬 Xem lượt bình luận
+              </button>
             </div>
           </div>
         ))}
@@ -1159,7 +1171,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
         handler={() => setOpenLikesDialog(false)}
         dismiss={{ outsidePress: false }}
       >
-        <DialogHeader onClick={(e) => e.stopPropagation()}>Danh sách user đã like - {selectedVideoTitle}</DialogHeader>
+        <DialogHeader onClick={(e) => e.stopPropagation()}>Danh sách user đã like ({videoLikes[selectedVideoId] ?? 0}) - {selectedVideoTitle}</DialogHeader>
         <DialogBody className="space-y-4 max-h-[400px] overflow-y-auto">
           {selectedVideoLikes.length === 0 ? (
             <Typography>Chưa có ai like video này.</Typography>
@@ -1192,7 +1204,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
         handler={() => setOpenCommentsDialog(false)}
         dismiss={{ outsidePress: false }}
       >
-        <DialogHeader onClick={(e) => e.stopPropagation()}>Danh sách user đã bình luận - {selectedVideoTitle}</DialogHeader>
+        <DialogHeader onClick={(e) => e.stopPropagation()}>Danh sách user đã bình luận ({videoComments[selectedVideoId] ?? 0}) - {selectedVideoTitle}</DialogHeader>
         <DialogBody className="space-y-4 max-h-[400px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           {selectedVideoComments.length === 0 ? (
             <Typography>Chưa có bình luận nào.</Typography>
