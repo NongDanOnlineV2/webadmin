@@ -241,23 +241,7 @@ export function Farms() {
                         : "—"}
                     </td>
                     <td className="px-2 py-2">{farm.code}</td>
-                    {/* <td className="px-2 py-2">{farm.ownerInfo?.name || "—"}</td> */}
-                    <td className="px-2 py-2">
-                        {farm.ownerInfo && farm.ownerInfo._id ? (
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.location.href = `/dashboard/users/${farm.ownerInfo._id}`;
-                            }}
-                            className="text-blue-600 hover:underline cursor-pointer"
-                          >
-                            {farm.ownerInfo.name || "ID: " + farm.ownerInfo._id}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 italic">Không có</span>
-                        )}
-                    </td>
-                    
+                    <td className="px-2 py-2">{farm.ownerInfo?.name || "—"}</td>
                     <td className="px-2 py-2">{farm.phone || "—"}</td>
                     <td className="px-2 py-2">
                       {farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
