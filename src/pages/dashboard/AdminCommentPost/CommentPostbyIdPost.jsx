@@ -21,20 +21,16 @@ export const CommentPostbyIdPost = ({CommentsDialog}) => {
     const [showAllImages, setShowAllImages] = useState(false);
     const limit = 10;
     const [page, setPage] = useState(1)
-    console.log(post)
     const getCommentById=async(postId)=>{
       try {
-        console.log("🔥 Bắt đầu gọi API comments cho postId:", postId)
         setLoadingComments(true)
         
         const res= await axios.get(`${BaseUrl}/admin-comment-post/post/${postId}`,
             {headers:{Authorization:`Bearer ${tokenUser}` }})
         
-        console.log("📥 Response từ API comments:", res.data)
         
         if(res.status===200){
          setCommentByIdPost(res.data)
-         console.log("✅ Đã set comments data thành công")
         }
       } catch (error) {
         console.error("❌ Lỗi khi gọi API comments:", error)
@@ -58,9 +54,6 @@ try {
     setLoading(false)
 }
 }
-
-console.log(CommentByIdPost)
-
   const getCommentsData = () => {
     let comments = [];
     
@@ -372,28 +365,17 @@ const handleDeleteComment = async (comment, index, postId) => {
 };
 
 const handleLoadComments = () => {
-  console.log("🚀 Nhấn nút 'Xem bình luận'", {
-    showComments,
-    postId: CommentsDialog?.postId
-  })
-  
+ 
   if (!showComments && CommentsDialog?.postId) {
-    console.log("✅ Điều kiện hợp lệ, bắt đầu load comments")
     setShowComments(true)
     getCommentById(CommentsDialog.postId)
   } else {
-    console.log("❌ Điều kiện không hợp lệ:", {
-      showComments: showComments,
-      hasPostId: !!CommentsDialog?.postId
-    })
+   return null
   }
 }
 
     useEffect(()=>{
-      console.log("🎯 useEffect chạy khi mở dialog")
 if(CommentsDialog?.postId) {
-  console.log("📖 Chỉ load thông tin post, không load comments")
-  // Chỉ load thông tin post, không load comments
   callPost(CommentsDialog.postId)
 }
     setLoading(false)

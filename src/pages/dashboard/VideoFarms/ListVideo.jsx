@@ -4,13 +4,13 @@ import axios from 'axios';
 import { BaseUrl } from '@/ipconfig';
 import { Audio } from 'react-loader-spinner';
 import { useNavigate } from "react-router-dom";
-import { Typography, Button, Input, Menu, MenuHandler, MenuList, MenuItem } from '@material-tailwind/react';
+import { Typography, Button, Menu, MenuHandler, MenuList, MenuItem } from '@material-tailwind/react';
 import { Dialog } from '@material-tailwind/react';
 import VideoLikeList from './VideoLikeList';
 import CommentVideo from './commentVideo';
 //import Hls from 'hls.js';
 import {deletevideo, approvevideo} from './VideoById';
-// Xóa hàm fetchAllVideos cũ và thay bằng hàm mới
+
 const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
   const token = localStorage.getItem('token');
   
@@ -39,7 +39,6 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
 };
 
 const fetchAllStatuses = async () => {
-  // Không gọi API /statuses vì không tồn tại, trả về danh sách cố định
   return ['pending', 'uploaded', 'failed', 'deleted'];
 };
 
@@ -60,8 +59,6 @@ export const ListVideo = () => {
   const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', video: null });
   const [isProcessing, setIsProcessing] = useState(false);
   const [playingVideos, setPlayingVideos] = useState({});
-  const [statusList, setStatusList] = useState([]);
-  const [hasFetchedAllStatuses, setHasFetchedAllStatuses] = useState(false);
   const [videoCache, setVideoCache] = useState({});
   const limit = 9;
 
@@ -133,20 +130,7 @@ export const ListVideo = () => {
     };
 
     loadVideos();
-  }, [page, actualSearchTerm, filterStatus]); // Bỏ videoCache khỏi dependency
-
-  const performSearch = () => {
-    setActualSearchTerm(searchText);
-    setPage(1);
-    clearCache(); // Clear cache khi search mới
-  };
-
-  const clearSearch = () => {
-    setSearchText('');
-    setActualSearchTerm('');
-    setPage(1);
-    clearCache(); // Clear cache khi clear search
-  };
+  }, [page, actualSearchTerm, filterStatus]); 
 
   const togglePlayVideo = (videoId) => { 
     setPlayingVideos((prev) => ({
@@ -175,15 +159,6 @@ export const ListVideo = () => {
     setSelectedVideoForComment(null);
   };
 
-  const handleOpenStatusFilter = async () => {
-    if (!hasFetchedAllStatuses) {
-      const statuses = await fetchAllStatuses();
-      setStatusList(statuses);
-      setHasFetchedAllStatuses(true);
-    }
-  };
-
-  // Cập nhật các hàm xử lý để clear cache khi cần
   const openConfirmDialog = (type, video) => {
     if (!video || !video._id) {
       console.error('Video không hợp lệ:', video);
@@ -195,60 +170,8 @@ export const ListVideo = () => {
   return (
     <div className="p-4">
       <Typography variant="h5" color="blue-gray" className="font-semibold mb-4">
-        Quản lý Video ({totalCount} videos)
+        Quản lý Video 
       </Typography>
-
-      <div className="flex justify-end mb-4 gap-2">
-        <div className="flex gap-2 items-center">
-          <Input
-            type="text"
-            placeholder="Nhập tên video để tìm kiếm..."
-            value={searchText}
-            onChange={e => handleSearch(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                performSearch();
-              }
-            }}
-            className="min-w-[300px]"
-          />
-          <Button
-            size="sm"
-            color="blue"
-            onClick={performSearch}
-            disabled={!searchText.trim()}
-          >
-            Tìm kiếm
-          </Button>
-          {searchText && (
-            <Button
-              size="sm"
-              color="gray"
-              variant="outlined"
-              onClick={clearSearch}
-            >
-              Xóa
-            </Button>
-          )}
-        </div>
-        
-        <select
-          onClick={handleOpenStatusFilter} 
-          className="border rounded px-3 py-1"
-          value={filterStatus}
-          onChange={(e) => {
-            setFilterStatus(e.target.value);
-            setPage(1);
-            clearCache(); // Clear cache khi thay đổi filter
-          }}
-        >
-          <option value="">Tất cả</option>
-          {statusList.map((status) => (
-            <option key={status} value={status}>{getStatusInVietnamese(status)}</option>
-          ))}
-        </select>
-      </div>
-
       {actualSearchTerm && (
         <div className="mb-4 p-2 bg-blue-50 rounded">
           <p className="text-sm text-blue-700">
@@ -267,13 +190,11 @@ export const ListVideo = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {videos.map((item) => (
             <div key={item._id} className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow">
-              {/* Video Display */}
               <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center relative cursor-pointer"
                onClick={() => togglePlayVideo(item._id)}
                >
                 {playingVideos[item._id] ? (
                   <>
-                {/* Phát đúng loại: youtube, mp4, m3u8 */}
                 {item.youtubeLink ? (
                   item.youtubeLink.endsWith('.m3u8') ? (
                     <HlsPlayer src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`} className="w-full h-full object-cover rounded-t-lg" />
@@ -564,7 +485,6 @@ export const ListVideo = () => {
                       if (result?.success) {
                         alert("✅ Xóa video thành công!");
                         setConfirmDialog({ open: false, type: '', video: null });
-                        // Clear cache và reload trang hiện tại
                         clearCache();
                         const updatedVideos = await fetchVideos(page, limit, actualSearchTerm, filterStatus);
                         setVideos(updatedVideos.videos);
