@@ -502,14 +502,12 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
-    const farmVideos = await fetchPaginatedData(
-      `${BaseUrl}/admin-video-farm`,
+    const response  = await fetchPaginatedData(
+      `${BaseUrl}/admin-video-farm/farm/${farmId}`,
       config
     );
-    const filteredVideos = farmVideos.filter(
-      (video) => video.farmId?.id === farmId
-    );
-    setSelectedFarmVideos(filteredVideos);
+    const farmVideos = await response.json()
+    setSelectedFarmVideos(farmVideos);
     setSelectedFarmName(farmName);
     setOpenVideoDialog(true); 
   } catch (err) {
