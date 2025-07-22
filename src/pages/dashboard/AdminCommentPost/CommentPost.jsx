@@ -178,7 +178,7 @@ export const CommentPost = () => {
                                     </span>
                                   </div>
                                   <p 
-                                    className="text-sm break-all text-gray-600 line-clamp-2 mb-2 cursor-pointer hover:text-blue-600 transition-colors"
+                                    className="text-sm break-all text-gray-600 line-clamp-2 mb-2 transition-colors"
                                    
                                   >
                                     {latestComment.comment}
@@ -195,9 +195,9 @@ export const CommentPost = () => {
                           
                           <td className="px-6 py-4">
                             <div className="flex items-center">
-                              <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                              <div className="bg-blue-100 p-2 rounded-lg mr-3 cursor-pointer hover:text-blue-600">
                                 <svg  onClick={() => handleOpenCommentDetail(latestComment, item)}
-                                    title="Nhấn để xem chi tiết comment" className="cursor-pointer w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    title="Nhấn để xem chi tiết comment" className="  w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                 </svg>
                               </div>
