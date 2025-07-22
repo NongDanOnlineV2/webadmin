@@ -10,42 +10,59 @@ import VideoLikeList from './VideoLikeList';
 import CommentVideo from './commentVideo';
 //import Hls from 'hls.js';
 import {deletevideo, approvevideo} from './VideoById';
-const fetchAllVideos = async () => {
+// Xóa hàm fetchAllVideos cũ và thay bằng hàm mới
+const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
   const token = localStorage.getItem('token');
-  let page = 1;
-  let totalPages = 1;
-  let allVideos = [];
-
-  while (page <= totalPages) {
-    const res = await axios.get(`${BaseUrl}/admin-video-farm?limit=100&page=${page}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    totalPages = res.data.totalPages || 1;
-    const videos = res.data.data || [];
-    allVideos = [...allVideos, ...videos];
-    page++;
+  
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString()
+  });
+  
+  if (searchTerm) {
+    params.append('search', searchTerm);
   }
+  
+  if (status) {
+    params.append('status', status);
+  }
+  
+  const res = await axios.get(`${BaseUrl}/admin-video-farm?${params}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  
+  return {
+    videos: res.data.data || [],
+    totalPages: res.data.totalPages || 1,
+    totalCount: res.data.totalCount || 0
+  };
+};
 
-  return allVideos;
+const fetchAllStatuses = async () => {
+  // Không gọi API /statuses vì không tồn tại, trả về danh sách cố định
+  return ['pending', 'uploaded', 'failed', 'deleted'];
 };
 
 export const ListVideo = () => {
   const navigate = useNavigate();
-  const [allVideos, setAllVideos] = useState([]);
+  const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
-  const [actualSearchTerm, setActualSearchTerm] = useState(''); // Từ khóa thực tế để search
+  const [actualSearchTerm, setActualSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [openLikeDialog, setOpenLikeDialog] = useState(false);
   const [openCommentDialog, setOpenCommentDialog] = useState(false);
   const [selectedVideoForLike, setSelectedVideoForLike] = useState(null);
   const [selectedVideoForComment, setSelectedVideoForComment] = useState(null);
-  const [videoStats, setVideoStats] = useState({});
   const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', video: null });
   const [isProcessing, setIsProcessing] = useState(false);
   const [playingVideos, setPlayingVideos] = useState({});
+  const [statusList, setStatusList] = useState([]);
+  const [hasFetchedAllStatuses, setHasFetchedAllStatuses] = useState(false);
+  const [videoCache, setVideoCache] = useState({});
   const limit = 9;
 
   const getStatusInVietnamese = (status) => {
@@ -67,36 +84,69 @@ export const ListVideo = () => {
     setSearchText(value);
   };
 
+  // Clear cache function
+  const clearCache = () => {
+    console.log('🗑️ Clear cache');
+    setVideoCache({});
+  };
+
+  // Load videos khi page, search, hoặc filter thay đổi
+  useEffect(() => {
+    const loadVideos = async () => {
+      // Tạo cache key duy nhất cho mỗi combination
+      const cacheKey = `${page}-${actualSearchTerm}-${filterStatus}`;
+      
+      // Kiểm tra cache trước
+      if (videoCache[cacheKey]) {
+        console.log('📦 Load từ cache:', cacheKey);
+        const cachedData = videoCache[cacheKey];
+        setVideos(cachedData.videos);
+        setTotalPages(cachedData.totalPages);
+        setTotalCount(cachedData.totalCount);
+        setLoading(false);
+        return;
+      }
+
+      console.log('🔄 Gọi API cho:', cacheKey);
+      setLoading(true);
+      try {
+        const result = await fetchVideos(page, limit, actualSearchTerm, filterStatus);
+        setVideos(result.videos);
+        setTotalPages(result.totalPages);
+        setTotalCount(result.totalCount);
+        
+        // Lưu vào cache
+        setVideoCache(prev => ({
+          ...prev,
+          [cacheKey]: {
+            videos: result.videos,
+            totalPages: result.totalPages,
+            totalCount: result.totalCount,
+            timestamp: Date.now()
+          }
+        }));
+      } catch (err) {
+        console.error("Lỗi khi tải video:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadVideos();
+  }, [page, actualSearchTerm, filterStatus]); // Bỏ videoCache khỏi dependency
+
   const performSearch = () => {
     setActualSearchTerm(searchText);
     setPage(1);
+    clearCache(); // Clear cache khi search mới
   };
 
   const clearSearch = () => {
     setSearchText('');
     setActualSearchTerm('');
     setPage(1);
+    clearCache(); // Clear cache khi clear search
   };
-
- const filteredVideos = useMemo(() => {
-  const filtered = filterStatus
-    ? allVideos.filter(v => v.status === filterStatus)
-    : allVideos;
-
-  const searched = filtered.filter(v =>
-    v.title?.toLowerCase().includes(actualSearchTerm.toLowerCase()) ||
-    v.playlistName?.toLowerCase().includes(actualSearchTerm.toLowerCase())
-  );
-
- 
-  return searched.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-}, [allVideos, filterStatus, actualSearchTerm]); // Sử dụng actualSearchTerm thay vì searchText
-
-
-  const paginatedVideos = useMemo(() => {
-    const start = (page - 1) * limit;
-    return filteredVideos.slice(start, start + limit);
-  }, [filteredVideos, page]);
 
   const togglePlayVideo = (videoId) => { 
     setPlayingVideos((prev) => ({
@@ -105,182 +155,35 @@ export const ListVideo = () => {
     }));
   };
 
-const handleOpenLikeDialog = (video) => {
-  setSelectedVideoForLike(video);
-  setOpenLikeDialog(true);
-};
+  const handleOpenLikeDialog = (video) => {
+    setSelectedVideoForLike(video);
+    setOpenLikeDialog(true);
+  };
 
-const handleCloseLikeDialog = () => {
-  setOpenLikeDialog(false);
-  setSelectedVideoForLike(null);
-  // Refresh stats after closing like dialog
-  if (paginatedVideos.length > 0) {
-    const videoIds = paginatedVideos.map(v => v._id);
-    fetchVideoStats(videoIds);
-  }
-};
+  const handleCloseLikeDialog = () => {
+    setOpenLikeDialog(false);
+    setSelectedVideoForLike(null);
+  };
 
-const handleOpenCommentDialog = (video) => {
-  setSelectedVideoForComment(video);
-  setOpenCommentDialog(true);
-};
+  const handleOpenCommentDialog = (video) => {
+    setSelectedVideoForComment(video);
+    setOpenCommentDialog(true);
+  };
 
-const handleCloseCommentDialog = () => {
-  setOpenCommentDialog(false);
-  setSelectedVideoForComment(null);
-  if (paginatedVideos.length > 0) {
-    const videoIds = paginatedVideos.map(v => v._id);
-    fetchVideoStats(videoIds);
-  }
-};
-const fetchVideoStats = async (videoIds) => {
-  const token = localStorage.getItem('token');
-  const stats = {};
-    
-  try {
-    const promises = videoIds.map(async (videoId) => {
-      try {
-   
-        let likeCount = 0;        
-        const likeEndpoints = [
-          { url: `${BaseUrl}/video-like/${videoId}/users`, name: 'video-like-users' },
-          { url: `${BaseUrl}/video-like/${videoId}`, name: 'video-like' },
-          { url: `${BaseUrl}/admin-video-like/${videoId}/users`, name: 'admin-video-like-users' },
-          { url: `${BaseUrl}/admin-video-like/${videoId}`, name: 'admin-video-like' },
-          { url: `${BaseUrl}/video-like/${videoId}/count`, name: 'video-like-count' },
-          { url: `${BaseUrl}/admin-video-like/${videoId}/count`, name: 'admin-video-like-count' },
-          { url: `${BaseUrl}/video/${videoId}/like-count`, name: 'video-like-count-alt' },
-          { url: `${BaseUrl}/like/video/${videoId}`, name: 'like-video' },
-        ];
-        
-        for (const { url, name } of likeEndpoints) {
-          try {
-            const likeRes = await axios.get(url, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            
-            const data = likeRes.data;
-            
-            if (data !== null && data !== undefined) {
+  const handleCloseCommentDialog = () => {
+    setOpenCommentDialog(false);
+    setSelectedVideoForComment(null);
+  };
 
-              if (typeof data === 'number') {
-                likeCount = data;
-                break;
-              } else if (Array.isArray(data)) {
-                likeCount = data.length;
-
-                break;
-              } else if (typeof data === 'object') {
-
-                if (data.users && Array.isArray(data.users)) {
-                  likeCount = data.users.length;
-                  break;
-                } else if (data.total !== undefined) {
-                  likeCount = data.total;
-                  break;
-                } else if (data.count !== undefined) {
-                  likeCount = data.count;
-                  break;
-                } else if (data.likeCount !== undefined) {
-                  likeCount = data.likeCount;
-                  break;
-                } else if (data.data && Array.isArray(data.data)) {
-                  likeCount = data.data.length;
-                  break;
-                } else if (data.likes && Array.isArray(data.likes)) {
-                  likeCount = data.likes.length;
-                  break;
-                }
-              }
-            }
-          } catch (error) {
-            const status = error.response?.status;
-            const statusText = error.response?.statusText;
-            continue;
-          }
-        }
-        
-        let commentCount = 0;
-
-        
-        stats[videoId] = { likeCount, commentCount };
-        
-      } catch (error) {
-        console.error(`✗ Error fetching stats for video ${videoId}:`, error);
-        stats[videoId] = { likeCount: 0, commentCount: 0 };
-      }
-    });
-    
-    await Promise.all(promises);
-
-    setVideoStats(prev => {
-      const newStats = { ...prev, ...stats };
-      return newStats;
-    });
-  } catch (error) {
-    console.error('Error fetching video stats:', error);
-  }
-};
-
-  useEffect(() => {
-    setLoading(true);
-    fetchAllVideos()
-      .then((videos) => {
-        setAllVideos(videos);
-      })
-      .catch(err => console.error("Lỗi khi tải video:", err))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    if (paginatedVideos.length > 0) {
-      const videoIds = paginatedVideos.map(v => v._id);
-
-      fetchVideoStats(videoIds);
+  const handleOpenStatusFilter = async () => {
+    if (!hasFetchedAllStatuses) {
+      const statuses = await fetchAllStatuses();
+      setStatusList(statuses);
+      setHasFetchedAllStatuses(true);
     }
-  }, [paginatedVideos]);
+  };
 
-console.log(paginatedVideos)
-  const totalPages = Math.ceil(filteredVideos.length / limit);
-
-
-const [statusList, setStatusList] = useState([]);
-const [hasFetchedAllStatuses, setHasFetchedAllStatuses] = useState(false);
-
-const fetchAllStatuses = async () => {
-  const token = localStorage.getItem('token');
-  let page = 1;
-  let totalPages = 1;
-  const statuses = new Set();
-
-  while (page <= totalPages) {
-    const res = await axios.get(`${BaseUrl}/admin-video-farm?limit=100&page=${page}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    totalPages = res.data.totalPages || 1;
-
-    (res.data.data || []).forEach(video => {
-      if (video.status) {
-        statuses.add(video.status);
-      }
-    });
-
-    page++;
-  }
-
-  return Array.from(statuses);
-};
-
-const handleOpenStatusFilter = async () => {
-  if (!hasFetchedAllStatuses) {
-    const statuses = await fetchAllStatuses();
-    setStatusList(statuses);
-    setHasFetchedAllStatuses(true);
-  }
-};
-
-
+  // Cập nhật các hàm xử lý để clear cache khi cần
   const openConfirmDialog = (type, video) => {
     if (!video || !video._id) {
       console.error('Video không hợp lệ:', video);
@@ -292,7 +195,7 @@ const handleOpenStatusFilter = async () => {
   return (
     <div className="p-4">
       <Typography variant="h5" color="blue-gray" className="font-semibold mb-4">
-        Quản lý Video
+        Quản lý Video ({totalCount} videos)
       </Typography>
 
       <div className="flex justify-end mb-4 gap-2">
@@ -336,6 +239,7 @@ const handleOpenStatusFilter = async () => {
           onChange={(e) => {
             setFilterStatus(e.target.value);
             setPage(1);
+            clearCache(); // Clear cache khi thay đổi filter
           }}
         >
           <option value="">Tất cả</option>
@@ -357,11 +261,11 @@ const handleOpenStatusFilter = async () => {
         <div className="flex justify-center items-center w-full h-40">
           <Audio height="80" width="80" radius="9" color="green" ariaLabel="loading" />
         </div>
-      ) : paginatedVideos.length === 0 ? (
+      ) : videos.length === 0 ? (
         <span className="text-gray-500">Không có video nào.</span>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {paginatedVideos.map((item) => (
+          {videos.map((item) => (
             <div key={item._id} className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow">
               {/* Video Display */}
               <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center relative cursor-pointer"
@@ -523,12 +427,7 @@ const handleOpenStatusFilter = async () => {
                     className="flex items-center gap-1 text-red-500 hover:text-red-600 transition-colors cursor-pointer"
                   >
                     <span>❤️</span>
-                    <span className="text-sm">
-                      Lượt thích: {(() => {
-                        const count = videoStats[item._id]?.likeCount;
-                        return count !== undefined ? count : '...';
-                      })()}
-                    </span>
+                    <span className="text-sm">Xem lượt thích</span>
                   </button>
                   <button
                     onClick={(e) => {
@@ -538,13 +437,7 @@ const handleOpenStatusFilter = async () => {
                     className="flex items-center gap-1 text-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
                   >
                     <span>💬</span>
-                    <span className="text-sm">
-                      Bình luận
-                      {/* Bình luận: {(() => {
-                        const count = videoStats[item._id]?.commentCount;
-                        return count !== undefined ? count : '...';
-                      })()} */}
-                    </span>
+                    <span className="text-sm">Xem bình luận</span>
                   </button>
                 </div>
               </div>
@@ -555,6 +448,7 @@ const handleOpenStatusFilter = async () => {
         </div>
       )}
 
+      {/* Pagination */}
       <div className="flex justify-center items-center gap-2 mt-4">
         <Button
           size="sm"
@@ -644,28 +538,45 @@ const handleOpenStatusFilter = async () => {
                 disabled={isProcessing}
                 onClick={async () => {
                   if (isProcessing) return;
-                                    setIsProcessing(true);
+                  setIsProcessing(true);
                   
                   try {
                     if (confirmDialog.type === 'approve') {
-                      const result = await approvevideo(confirmDialog.video._id, async () => {
-                        const updatedVideos = await fetchAllVideos();
-                        setAllVideos(updatedVideos);
-                      });
+                      // Gọi API approve trực tiếp
+                      const result = await approvevideo(confirmDialog.video._id);
                       
-                      alert(result?.success ? result.message : `Có lỗi xảy ra khi duyệt video: ${result?.message || 'Unknown error'}`);
-                      if (result?.success) setConfirmDialog({ open: false, type: '', video: null });
+                      if (result?.success) {
+                        alert("✅ Duyệt video thành công!");
+                        setConfirmDialog({ open: false, type: '', video: null });
+                        // Clear cache và reload trang hiện tại
+                        clearCache();
+                        const updatedVideos = await fetchVideos(page, limit, actualSearchTerm, filterStatus);
+                        setVideos(updatedVideos.videos);
+                        setTotalPages(updatedVideos.totalPages);
+                        setTotalCount(updatedVideos.totalCount);
+                      } else {
+                        alert(`❌ Lỗi khi duyệt video: ${result?.message || 'Unknown error'}`);
+                      }
                     } else {
-                      const result = await deletevideo(confirmDialog.video._id, async () => {
-                        const updatedVideos = await fetchAllVideos();
-                        setAllVideos(updatedVideos);
-                      });
+                      // Gọi API delete trực tiếp
+                      const result = await deletevideo(confirmDialog.video._id);
                       
-                      alert(result?.success ? result.message : `Có lỗi xảy ra khi xóa video: ${result?.message || 'Unknown error'}`);
-                      if (result?.success) setConfirmDialog({ open: false, type: '', video: null });
+                      if (result?.success) {
+                        alert("✅ Xóa video thành công!");
+                        setConfirmDialog({ open: false, type: '', video: null });
+                        // Clear cache và reload trang hiện tại
+                        clearCache();
+                        const updatedVideos = await fetchVideos(page, limit, actualSearchTerm, filterStatus);
+                        setVideos(updatedVideos.videos);
+                        setTotalPages(updatedVideos.totalPages);
+                        setTotalCount(updatedVideos.totalCount);
+                      } else {
+                        alert(`❌ Lỗi khi xóa video: ${result?.message || 'Unknown error'}`);
+                      }
                     }
                   } catch (error) {
-                    alert(`Có lỗi xảy ra: ${error.message || error}`);
+                    console.error('Error:', error);
+                    alert(`❌ Có lỗi xảy ra: ${error.message || error}`);
                   } finally {
                     setIsProcessing(false);
                   }

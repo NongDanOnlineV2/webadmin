@@ -372,36 +372,19 @@ const handleOpenVideos = async () => {
     return;
   }
 
-  // Chỉ fetch nếu chưa có dữ liệu và chưa từng loading
   if (videos.length > 0 || loadingVideos) return;
 
   setOpenVideos(true);
-  setLoadingVideos(true);
   try {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
-    const res = await fetchPaginatedData(`${BaseUrl}/video-farm/user/${id}`, config);
-    const userVideos = res.data?.videos || [];
-
-    setVideos(userVideos);
-
-    const likeMap = {};
-    const commentMap = {};
+    const allVideos = await fetchPaginatedData(`${BaseUrl}/admin-video-farm`, config);
+    setVideos(allVideos);
 
     // Không cần set lại nếu openVideos đã false trong lúc chờ
-    userVideos.forEach((video) => {
-      likeMap[video._id] = video.likeCount || 0;
-      commentMap[video._id] = video.commentCount || 0;
-    });
-
-    setVideoLikes(likeMap);
-    setVideoComments(commentMap);
-
-    userVideos.forEach((v) => {
-      fetchedVideoStats.current[v._id] = true;
-    });
-
+    const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
+    await Promise.allSettled(statsPromises);
   } catch (err) {
     console.error("Lỗi khi load videos:", err);
   } finally {
@@ -587,14 +570,12 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
       <Card>
   <div
-    onClick={async () => {
-      const willOpen = !openAddress;
-      setOpenAddress(willOpen);
-      if (willOpen && !fetchedAddresses) {
-        await fetchAddresses();
-      }
-    }
+    onClick={async () => {const willOpen = !openAddress;
+  setOpenAddress(willOpen);
+  if (willOpen && !fetchedAddresses) {
+    await fetchAddresses();
   }
+  }}
     className="cursor-pointer flex justify-between items-center px-5 py-3 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-md shadow"
   >
     <Typography variant="h5">
@@ -738,13 +719,13 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     {openVideos && (
       <div className="overflow-hidden transition-all duration-300">
         <CardBody className="bg-white rounded-b-md">
-          {videos.length === 0 ? (
+          {userVideos.length === 0 ? (
             <Typography className="text-center text-gray-500 py-6">
               Chưa có video nào.
             </Typography>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {videos.slice(0, visibleVideos).map((video) => (
+              {userVideos.slice(0, visibleVideos).map((video) => (
                 <div
                   key={video._id}
                   className="border border-gray-200 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-gray-50"
@@ -852,7 +833,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
               ))}
             </div>
           )}
-                  {visibleVideos < videos.length && (
+                  {visibleVideos < userVideos.length && (
           <div className="flex justify-center mt-4">
             <Button onClick={handleShowMoreVideos} color="blue" variant="outlined">
               Xem thêm videos
