@@ -372,7 +372,6 @@ const handleOpenVideos = async () => {
     return;
   }
 
-  // Chỉ fetch nếu chưa có dữ liệu và chưa từng loading
   if (videos.length > 0 || loadingVideos) return;
 
   setOpenVideos(true);
