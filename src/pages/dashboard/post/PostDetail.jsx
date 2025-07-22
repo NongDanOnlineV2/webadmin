@@ -21,6 +21,8 @@ import { BaseUrl } from "@/ipconfig";
     const [showComments, setShowComments] = useState(false);
     const [likeDialogOpen, setLikeDialogOpen] = useState(false); 
     const [lastPostIdFetched, setLastPostIdFetched] = useState(null);
+    const [commentDialogOpen, setCommentDialogOpen] = useState(false);
+    const [commentTotal, setCommentTotal] = useState(0);
    
 
     const token = localStorage.getItem("token");
@@ -47,8 +49,6 @@ import { BaseUrl } from "@/ipconfig";
       }
     };
 
-    
-
     const fetchComments = async () => {
   try {
     const res = await fetch(`${BaseUrl}/admin-comment-post/post/${postId}`, {
@@ -57,8 +57,12 @@ import { BaseUrl } from "@/ipconfig";
     const json = await res.json();
     if (res.ok) {
       const commentsArray = Array.isArray(json?.data) ? json.data : [];
-
+      const totalComments = commentsArray.reduce(
+        (acc, cmt) => acc + 1 + (cmt.replies?.length || 0),
+        0
+      );
       setComments(commentsArray);
+      setCommentTotal(totalComments)
     } else {
       console.warn("⚠️ Lỗi khi fetch comments:", json);
       setComments([]);
@@ -70,34 +74,6 @@ import { BaseUrl } from "@/ipconfig";
     setCommentLoading(false);
   }
 };
-
-
-    const fetchUsers = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        let allUsers = [];
-        let page = 1;
-        let totalPages = 1;
-      do {
-        const res = await fetch(`${BaseUrl}/admin-users?page=${page}&limit=10`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (res.ok && Array.isArray(json.data)) {
-          allUsers = allUsers.concat(json.data);
-          totalPages = json.totalPages || 1; 
-          page++;
-        } else {
-          console.warn("Danh sách users không hợp lệ:", json); 
-          break;
-        }
-      } while (page <= totalPages); 
-      setUsers(allUsers); 
-      } catch (err) {
-        console.error("Fetch users error:", err);
-        setUsers([])
-      }
-    };
 
     const fetchLikeUsers = async () => {
     try {
@@ -123,17 +99,10 @@ import { BaseUrl } from "@/ipconfig";
         setLastPostIdFetched(postId);
         fetchPost();
         setLikeUsers([]);
-        fetchComments();
-        fetchUsers();
         setShowComments(false);
       }
     }, [postId, open]);
 
-    
-
-
-    const findUser = (userId) =>
-      users.find((u) => u.id === userId || u._id === userId) || null;
 
     const formatDateTime = (dateString) => {
       if (!dateString) return "Không rõ";
@@ -267,77 +236,18 @@ import { BaseUrl } from "@/ipconfig";
             <Typography className="font-semibold">Lượt thích:</Typography>
             <Chip value={post.like || 0} color="blue" size="sm" />
           </div>
-        </div>
-
-        {/* Bình luận */}
-        <div className="border-t pt-3">
           <div
-            className="cursor-pointer mb-2"
-            onClick={() => setShowComments(!showComments)}
+            className="flex items-center gap-1 cursor-pointer"
+            onClick={() => {
+              fetchComments();
+              setCommentDialogOpen(true);
+            }}
           >
-            <Typography variant="h5" className="text-blue-800">
-              Bình luận ({comments.reduce((acc, cmt) => acc + 1 + (cmt.replies?.length || 0), 0)})
-            </Typography>
+            <Typography className="font-semibold">Xem bình luận</Typography>
           </div>
-
-          {showComments && (
-            <>
-              {commentLoading ? (
-                <Typography>Đang tải bình luận...</Typography>
-              ) : comments.length > 0 ? (
-                comments.map((cmt) => (
-                  <div key={cmt._id} className="border-b py-2 flex gap-2">
-                    <Avatar
-                      src={
-                        cmt.userId?.avatar?.startsWith("http")
-                          ? cmt.userId.avatar
-                          : `${BaseUrl}${cmt.userId?.avatar || ""}`
-                      }
-                      alt={cmt.userId?.fullName}
-                      size="sm"
-                    />
-                    <div className="flex-1">
-                      <Typography className="font-medium">
-                        {cmt.userId?.fullName || "Ẩn danh"}
-                      </Typography>
-                      <Typography className="text-sm text-gray-700">{cmt.comment}</Typography>
-
-                      {/* Replies */}
-                      {cmt.replies?.length > 0 && (
-                        <div className="ml-4 mt-1 border-l pl-2 border-blue-100">
-                          {cmt.replies.map((rep, idx) => {
-                            const replyUser = findUser(rep.userId);
-                            return (
-                              <div key={idx} className="flex gap-1 mt-1">
-                                <Avatar
-                                  src={
-                                    replyUser?.avatar?.startsWith("http")
-                                      ? replyUser.avatar
-                                      : `${BaseUrl}${replyUser?.avatar || ""}`
-                                  }
-                                  alt={replyUser?.fullName}
-                                  size="xs"
-                                />
-                                <div>
-                                  <Typography className="font-semibold text-sm">
-                                    {replyUser?.fullName || "Ẩn danh"}:
-                                  </Typography>
-                                  <Typography className="text-sm">{rep.comment}</Typography>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <Typography>Không có bình luận</Typography>
-              )}
-            </>
-          )}
         </div>
+
+        
       </>
     )}
     <Dialog
@@ -374,6 +284,83 @@ import { BaseUrl } from "@/ipconfig";
     )}
   </DialogBody>
 </Dialog>
+{/* Bình luận */}
+<Dialog
+  open={commentDialogOpen}
+  handler={() => setCommentDialogOpen(false)}
+  className="max-w-3xl z-50"
+>
+  <DialogHeader className="flex justify-between items-center">
+    <Typography variant="h5">
+      Danh sách bình luận ({commentTotal})
+    </Typography>
+    <Button size="sm" onClick={() => setCommentDialogOpen(false)}>
+      Đóng
+    </Button>
+  </DialogHeader>
+
+  <DialogBody className="max-h-[60vh] overflow-y-auto">
+    {commentLoading ? (
+      <Typography>Đang tải bình luận...</Typography>
+    ) : comments.length > 0 ? (
+      comments.map((cmt) => (
+        <div key={cmt._id} className="border-b py-3">
+          {/* Comment cha */}
+          <div className="flex gap-3 mb-1">
+            <Avatar
+              src={
+                cmt.userId?.avatar?.startsWith("http")
+                  ? cmt.userId.avatar
+                  : `${BaseUrl}${cmt.userId?.avatar || ""}`
+              }
+              alt={cmt.userId?.fullName}
+              size="sm"
+            />
+            <div className="flex-1">
+              <Typography className="font-medium">
+                {cmt.userId?.fullName || "Ẩn danh"}
+              </Typography>
+              <Typography className="text-sm text-gray-700">
+                {cmt.comment}
+              </Typography>
+            </div>
+          </div>
+
+          {/* Replies */}
+          {cmt.replies?.length > 0 && (
+            <div className="ml-8 mt-2 border-l border-gray-200 pl-3">
+              {cmt.replies.map((reply, idx) => (
+                <div key={idx} className="flex gap-2 mb-2">
+                  <Avatar
+                    src={
+                      reply.userId?.avatar?.startsWith("http")
+                        ? reply.userId.avatar
+                        : `${BaseUrl}${reply.userId?.avatar || ""}`
+                    }
+                    alt={reply.userId?.fullName}
+                    size="xs"
+                  />
+                  <div>
+                    <Typography className="font-medium text-sm">
+                      {reply.userId?.fullName || "Ẩn danh"}
+                    </Typography>
+                    <Typography className="text-sm text-gray-600">
+                      {reply.comment}
+                    </Typography>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))
+    ) : (
+      <Typography>Không có bình luận</Typography>
+    )}
+  </DialogBody>
+</Dialog>
+
+
   </DialogBody>
 </Dialog>
 

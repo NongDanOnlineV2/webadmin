@@ -31,62 +31,10 @@ export function PostList() {
   const [filterSortComments, setFilterSortComments] = useState("");
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState(null);
-  const [filterTag, setFilterTag] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [topTags, setTopTags] = useState([]);
   const [postCache, setPostCache] = useState({});
-
-
-
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
-
-  const fetchAllUsers  = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      let allUsers = [];
-      let page = 1;
-      let totalPages = 1;
-
-      do {
-        const res = await fetch(`${BaseUrl}/admin-users?page=${page}&limit=50`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-
-        if (res.ok && Array.isArray(json.data)) {
-          const usersPage = json.data;
-          allUsers = allUsers.concat(usersPage);
-          totalPages = json.totalPages || 1; 
-          page++;
-      } else {
-          console.warn("Danh sách users không hợp lệ:", json);
-          break;
-      } 
-      } while (page <= totalPages);
-        setUsers(allUsers);
-      } catch (err) {
-      console.error("Fetch users error:", err);
-      setUsers([]);
-    }
-  };
-
-  const fetchTopTags = async () => {
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${BaseUrl}/post-feed/tags/top`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const json = await res.json();
-    if (res.ok && Array.isArray(json)) {
-      setTopTags(json);
-    } else {
-      console.warn("Top tags không hợp lệ:", json);
-    }
-  } catch (err) {
-    console.error("Fetch top tags error:", err);
-  }
-};
 
   const fetchPosts = async () => {
     if (postCache[currentPage]) {
@@ -107,7 +55,6 @@ export function PostList() {
   else if (filterStatus === "false") queryParams.append("status", false);
   if (filterSortLikes) queryParams.append("sortLikes", filterSortLikes);
   if (filterSortComments) queryParams.append("sortComments", filterSortComments);
-  if (filterTag) queryParams.append("tags", filterTag);
 
   try {
     const res = await fetch(
@@ -124,50 +71,14 @@ export function PostList() {
 
     if (res.ok) {
       const fetchPosts = json.data || [];
-      const postsWithComments = await Promise.all(
-        fetchPosts.map(async (post) => {
-          try {
-            // ✅ Fix dùng post.id thay vì post._id
-            const commentRes = await fetch(
-              `${BaseUrl}/admin-comment-post/post/${post.id}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-
-            if (!commentRes.ok) {
-              console.warn(`Không lấy được comment cho post ${post.id}:`, await commentRes.text());
-              return { ...post, commentCount: 0 };
-            }
-            
-            const commentJson = await commentRes.json();
-
-            const commentsArray = Array.isArray(commentJson?.data) ? commentJson.data : [];
-
-            const totalComments = commentsArray.length;
-            const totalReplies = commentsArray.reduce(
-              (acc, comment) => acc + (Array.isArray(comment.replies) ? comment.replies.length : 0),
-              0
-            );
-
-            return {
-              ...post,
-              commentCount: totalComments + totalReplies,
-            };
-          } catch (err) {
-            console.error("Fetch comment error:", err);
-            return { ...post, commentCount: 0 };
-          }
-        })
-      );
       setPostCache((prev) => ({
         ...prev,
         [currentPage]: {
-          posts: postsWithComments,
+          posts: fetchPosts,
           totalPages: json.totalPages || 1,
         },
       }));
-      setPosts(postsWithComments);
+      setPosts(fetchPosts);
       setTotalPages(json.totalPages || 1);
     } else {
       console.error("API lỗi:", json.message);
@@ -183,18 +94,17 @@ export function PostList() {
 
 
   const handleFilter = () => {
-    setCurrentPage(1);
+  setPostCache({}); 
+  if (currentPage === 1) {
     fetchPosts();
-  };
-
+  } else {
+    setCurrentPage(1);
+  }
+};
   useEffect(() => {
-    fetchAllUsers();
     fetchPosts();
   }, [currentPage]);
 
-  useEffect(() => {
-      fetchTopTags();
-    }, []);
 
   const findUser = (id) => users.find((u) => u.id === id);
 
@@ -314,8 +224,6 @@ export function PostList() {
     />
   </div>
 
-  
-
   {/* Trạng thái */}
   <select
     className="h-10 border border-gray-300 rounded px-2 text-sm text-gray-700"
@@ -326,30 +234,6 @@ export function PostList() {
     <option value="true">Đang hoạt động</option>
     <option value="false">Đã ẩn</option>
   </select>
-
-  {/* Sắp xếp like */}
-  <select
-    className="h-10 border border-gray-300 rounded px-2 text-sm text-gray-700"
-    value={filterSortLikes}
-    onChange={(e) => setFilterSortLikes(e.target.value)}
-  >
-    <option value="">Không sắp xếp</option>
-    <option value="asc">Like tăng dần</option>
-    <option value="desc">Like giảm dần</option>
-  </select>
-
-  <select
-  className="h-10 border border-gray-300 rounded px-2 text-sm text-gray-700"
-  value={filterTag}
-  onChange={(e) => {setFilterTag(e.target.value)}}
->
-  <option value="">Tất cả tags</option>
-  {topTags.map((tagObj, idx) => (
-    <option key={idx} value={tagObj.tag}>
-      {tagObj.tag} ({tagObj.count})
-    </option>
-  ))}
-</select>
 
   {/* Nút lọc */}
   <Button
@@ -376,8 +260,6 @@ export function PostList() {
             <th className="p-3 border">Ngày tạo</th>
             <th className="p-3 border">Hình</th>
             <th className="p-3 border">Tác giả</th>
-            <th className="p-3 border text-center">Like</th>
-            <th className="p-3 border text-center">Bình luận</th>
             <th className="p-3 border text-center">Trạng thái</th>
             <th className="p-3 border text-center">Hành động</th>
           </tr>
@@ -436,9 +318,6 @@ export function PostList() {
                     )}
                   </div>
                 </td>
-
-                <td className="p-3 border text-center">{post.like}</td>
-                <td className="p-3 border text-center">{post.commentCount ?? 0}</td>
                 <td className="p-3 border text-center">
                   <Chip
                     value={post.status ? "Đang hoạt động" : "Đã ẩn"}
