@@ -218,7 +218,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
                   color="blue"
                   className="w-fit px-4 py-2 text-sm"
                 >
-                  Xem danh sách video ({videoCount})
+                  Xem danh sách video 
                 </Button>
               </div>
 
@@ -256,7 +256,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
             </div>
 
             <Dialog open={showVideos} handler={() => setShowVideos(false)} size="lg">
-              <DialogHeader>Danh sách video</DialogHeader>
+              <DialogHeader>Danh sách video ({videoCount})</DialogHeader>
               <DialogBody className="max-h-[70vh] overflow-y-auto">
                 {loadingVideos ? (
                   <Typography className="text-sm text-blue-500">Đang tải danh sách video...</Typography>

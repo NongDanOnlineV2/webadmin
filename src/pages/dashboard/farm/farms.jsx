@@ -1,3 +1,4 @@
+// ==== START OF FILE ====
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
@@ -28,12 +29,11 @@ const getOpts = () => ({
 
 export function Farms() {
   const [farms, setFarms] = useState([]);
-  const [searchInput, setSearchInput] = useState(""); 
-  const [searchQuery, setSearchQuery] = useState(""); 
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
-  const [search, setSearch] = useState("");
   const [openForm, setOpenForm] = useState(false);
   const [editingFarm, setEditingFarm] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -46,17 +46,16 @@ export function Farms() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const handleSearch = () => {
+    if (searchQuery !== searchInput) {
+      setSearchQuery(searchInput);
+      setCurrentPage(1);
+    }
+  };
 
-const handleSearch = () => {
-  if (searchQuery !== searchInput) {
-    setSearchQuery(searchInput);
-    setCurrentPage(1);
-  }
-};
-
-const handlePageChange = (newPage) => {
-  setCurrentPage(newPage);
-};
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
 
   const addFarm = async (data) => {
     try {
@@ -79,7 +78,7 @@ const handlePageChange = (newPage) => {
 
   const deleteFarm = async (id) => {
     try {
-await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
+      await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
       await fetchFarms();
     } catch (err) {
       alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
@@ -107,67 +106,72 @@ await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
     setOpenDetail(true);
   };
 
-useEffect(() => {
-  const controller = new AbortController();
-  const { signal } = controller;
-const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
-  if (farmCache[cacheKey]) {
-    setFarms(farmCache[cacheKey].farms);
-    setTotalPage(farmCache[cacheKey].totalPages);
-    setLoading(false);
-    return;
-  }
-  // Tạo mảng lưu các controller cho video count
-  let videoControllers = [];
-
-  const fetchFarms = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${BASE_URL}/adminfarms`, {
-        ...getOpts(),
-        params: {
-          limit: itemsPerPage,
-          page: currentPage,
-          status: tab === "all" ? undefined : tab,
-          name: searchQuery || undefined,
-        },
-        signal,
-      });
-
-      const farms = (res.data?.data || []).sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      );
-      const total = res.data?.total || 0;
-
-      setFarms(farms.filter(Boolean));
-      setTotalPage(Math.ceil(total / itemsPerPage));
-      setFarmCache((prev) => ({
-        ...prev,
-        [cacheKey]: {
-          farms: farms,
-          totalPages: Math.ceil(total / itemsPerPage),
-        },
-      }));
-    } catch (err) {
-      if (axios.isCancel(err) || err.name === "CanceledError") {
-        // Bị huỷ
-      } else {
-        setError(err.response?.data?.message || err.message);
-      }
-    } finally {
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+    const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
+    if (farmCache[cacheKey]) {
+      setFarms(farmCache[cacheKey].farms);
+      setTotalPage(farmCache[cacheKey].totalPages);
       setLoading(false);
+      return;
     }
-  };
 
-  fetchFarms();
+    let videoControllers = [];
 
-  return () => {
-    controller.abort();
-    // Huỷ tất cả các request video count
-    videoControllers.forEach((vc) => vc.abort());
-  };
-}, [currentPage, tab, searchQuery]);
+    const fetchFarms = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`${BASE_URL}/adminfarms`, {
+          ...getOpts(),
+          params: {
+            limit: itemsPerPage,
+            page: currentPage,
+            status: tab === "all" ? undefined : tab,
+            name: searchQuery || undefined,
+          },
+          signal,
+        });
 
+        let farms = (res.data?.data || []).sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        // 🔍 Gán fallback cho ownerInfo nếu thiếu
+        farms = farms.map((farm) => ({
+          ...farm,
+          ownerInfo: farm.ownerInfo || null,
+        }));
+
+        console.log("Fetched farms:", farms);
+
+        const total = res.data?.total || 0;
+
+        setFarms(farms.filter(Boolean));
+        setTotalPage(Math.ceil(total / itemsPerPage));
+        setFarmCache((prev) => ({
+          ...prev,
+          [cacheKey]: {
+            farms: farms,
+            totalPages: Math.ceil(total / itemsPerPage),
+          },
+        }));
+      } catch (err) {
+        if (!axios.isCancel(err)) {
+          setError(err.response?.data?.message || err.message);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFarms();
+
+    return () => {
+      controller.abort();
+      videoControllers.forEach((vc) => vc.abort());
+    };
+  }, [currentPage, tab, searchQuery]);
 
   return (
     <>
@@ -227,25 +231,39 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
                     onClick={() => handleOpenDetail(farm._id)}
                   >
                     <td className="px-2 py-2">{farm.name}</td>
-                      <td className="px-2 py-2">
-                        {farm.createdAt
-                          ? new Date(farm.createdAt).toLocaleDateString("vi-VN", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            })
-                          : "—"}
-                      </td>
-
+                    <td className="px-2 py-2">
+                      {farm.createdAt
+                        ? new Date(farm.createdAt).toLocaleDateString("vi-VN", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })
+                        : "—"}
+                    </td>
                     <td className="px-2 py-2">{farm.code}</td>
-                    <td className="px-2 py-2">{farm.ownerInfo?.name || "—"}</td>
+                    {/* <td className="px-2 py-2">{farm.ownerInfo?.name || "—"}</td> */}
+                    <td className="px-2 py-2">
+                        {farm.ownerInfo && farm.ownerInfo._id ? (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = `/dashboard/users/${farm.ownerInfo._id}`;
+                            }}
+                            className="text-blue-600 hover:underline cursor-pointer"
+                          >
+                            {farm.ownerInfo.name || "ID: " + farm.ownerInfo._id}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 italic">Không có</span>
+                        )}
+                    </td>
+                    
                     <td className="px-2 py-2">{farm.phone || "—"}</td>
                     <td className="px-2 py-2">
                       {farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
                     </td>
                     <td className="px-2 py-2">{farm.area} m²</td>
-        
-<td className="px-2 py-2">
+                    <td className="px-2 py-2">
                       <Chip
                         value={
                           farm.status === "pending"
@@ -267,9 +285,7 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
                     <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
                       <Menu
                         open={openMenuId === farm._id}
-                        handler={() =>
-                          setOpenMenuId(openMenuId === farm._id ? null : farm._id)
-                        }
+                        handler={() => setOpenMenuId(openMenuId === farm._id ? null : farm._id)}
                         allowHover={false}
                         placement="left-start"
                       >
@@ -308,7 +324,7 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
                             </>
                           )}
                           {farm.status === "active" && (
-<MenuItem onClick={() => { changeStatus(farm._id, "deactivate"); setOpenMenuId(null); }}>Khóa</MenuItem>
+                            <MenuItem onClick={() => { changeStatus(farm._id, "deactivate"); setOpenMenuId(null); }}>Khóa</MenuItem>
                           )}
                           {farm.status === "inactive" && (
                             <MenuItem onClick={() => { changeStatus(farm._id, "activate"); setOpenMenuId(null); }}>Mở khóa</MenuItem>
@@ -330,9 +346,7 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
                   disabled={currentPage === 1}
                   onClick={() => handlePageChange(currentPage - 1)}
                 >
-
-                    TRANG TRƯỚC
-                  
+                  TRANG TRƯỚC
                 </Button>
 
                 <Typography variant="small" className="text-black font-medium">
@@ -346,7 +360,7 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
                   disabled={currentPage === totalPages}
                   onClick={() => handlePageChange(currentPage + 1)}
                 >
-                    TRANG SAU
+                  TRANG SAU
                 </Button>
               </div>
             )}
@@ -354,7 +368,6 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
         )}
       </div>
 
-      {/* Form tạo/sửa */}
       <FarmForm
         open={openForm}
         onClose={() => {
@@ -368,7 +381,6 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
         }}
       />
 
-      {/* Chi tiết nông trại */}
       <Dialog open={openDetail} size="xl" handler={setOpenDetail} dismiss={{ outsidePress: false }}>
         <DialogHeader className="justify-between">
           Chi tiết nông trại
@@ -379,7 +391,6 @@ const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
         </DialogBody>
       </Dialog>
 
-      {/* Xác nhận xoá */}
       <Dialog open={deleteConfirmOpen} handler={setDeleteConfirmOpen} size="sm">
         <DialogHeader>Xác nhận xoá</DialogHeader>
         <DialogBody>
