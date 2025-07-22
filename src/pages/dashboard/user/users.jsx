@@ -57,11 +57,11 @@ const fetchAllData = async () => {
         return items;
       };
 
-      [allFarms.current, allVideos.current, allPosts.current] = await Promise.all([
-        getAllPages("adminfarms"),
-        getAllPages("admin-video-farm"),
-        getAllPages("admin-post-feed")
-      ]);
+      // [allFarms.current, allVideos.current, allPosts.current] = await Promise.all([
+      //   getAllPages("adminfarms"),
+      //   getAllPages("admin-video-farm"),
+      //   getAllPages("admin-post-feed")
+      // ]);
     } catch (err) {
       console.error("Lỗi tải toàn bộ farms/videos/posts:", err);
     }
@@ -75,7 +75,7 @@ const fetchAllData = async () => {
       if (filterRole) params.role = filterRole;
       if (filterStatus) params.isActive = filterStatus === "Active";
 
-    const res = await api.get(`/admin-users`, { params }); // ✅ Sửa đúng
+    const res = await api.get(`/admin-users`, { params }); 
     const usersData = res.data?.data || [];
 
       const postMap = {};
@@ -121,7 +121,6 @@ const fetchAllData = async () => {
   if (!token) return;
 
   fetchAllData()
-    .then(fetchUsers)
     .catch((err) => {
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
@@ -140,8 +139,8 @@ const fetchAllData = async () => {
 
       const [byName, byEmail, byPhone] = await Promise.all([
         axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, fullName: searchText } }),
-        axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, email: searchText } }),
-        axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, phone: searchText } }),
+        // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, email: searchText } }),
+        // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, phone: searchText } }),
       ]);
       const merged = [...(byName.data.data || []), ...(byEmail.data.data || []), ...(byPhone.data.data || [])];
       const unique = merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
@@ -355,7 +354,9 @@ const fetchAllData = async () => {
         <table className="min-w-full border">
           <thead>
             <tr className="bg-gray-100">
-              {["Avatar", "Tên", "Email", "Phone", "Role", "Posts", "Farms", "Videos", "Trạng thái", "Thao tác"].map(head => (
+              {["Avatar", "Tên", "Email", "Phone", "Role", 
+              // "Posts", "Farms", "Videos"
+              , "Trạng thái", "Thao tác"].map(head => (
                 <th key={head} className="p-2 text-left text-xs font-semibold">{head}</th>
               ))}
             </tr>
@@ -369,9 +370,9 @@ const fetchAllData = async () => {
                 <td className="p-2">{user.email}</td>
                 <td className="p-2">{user.phone || "N/A"}</td>
                 <td className="p-2 text-xs">{Array.isArray(user.role) ? user.role.join(", ") : user.role}</td>
-                <td className="p-2">{counts[user.id]?.posts ?? 0}</td>
+                {/* <td className="p-2">{counts[user.id]?.posts ?? 0}</td>
                 <td className="p-2">{counts[user.id]?.farms ?? 0}</td>
-                <td className="p-2">{counts[user.id]?.videos ?? 0}</td>
+                <td className="p-2">{counts[user.id]?.videos ?? 0}</td> */}
                 <td className="p-2">
                   {user.isActive
                     ? <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded">Active</span>

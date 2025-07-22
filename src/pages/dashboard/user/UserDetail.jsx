@@ -43,6 +43,7 @@ export default function UserDetail() {
   const [fetchedAddresses, setFetchedAddresses] = useState(false);
   const [postLikesCache, setPostLikesCache] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
+  const [playingVideoId, setPlayingVideoId] = useState(null);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [loadingVideos, setLoadingVideos] = useState(false); 
   const [selectedVideoId, setSelectedVideoId] = useState(null); 
@@ -58,7 +59,7 @@ export default function UserDetail() {
 
   const fetchPaginatedData = async (url, config) => {
   let page = 1;
-  let limit = 50;
+  let limit = 100;
   let allData = [];
   let totalPages = 1;
 
@@ -338,25 +339,6 @@ const handleOpenPosts = async () => {
 
       const allPosts = await fetchPaginatedData(`${BaseUrl}/admin-post-feed`, config);
       setPosts(allPosts); 
-
-      const statsPromises = allPosts.map(async (post) => {
-        const [likeCount, commentCount] = await Promise.all([
-          fetchLikeCount(post.id),
-          fetchCommentCount(post.id),
-        ]);
-
-        setLikeCounts((prev) => ({
-          ...prev,
-          [post.id]: likeCount,
-        }));
-
-        setCommentCounts((prev) => ({
-          ...prev,
-          [post.id]: commentCount,
-        }));
-      });
-
-      await Promise.allSettled(statsPromises); 
     } catch (err) {
       console.error("Lỗi khi load posts:", err);
     } finally {
@@ -382,15 +364,12 @@ const handleOpenVideos = async () => {
     setVideos(allVideos);
 
     // Không cần set lại nếu openVideos đã false trong lúc chờ
-    const statsPromises = allVideos.map((video) => fetchVideoStats(video._id));
-    await Promise.allSettled(statsPromises);
   } catch (err) {
     console.error("Lỗi khi load videos:", err);
   } finally {
     if (openVideos) setLoadingVideos(false);
   }
 };
-
 
 const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   if (videoLikesCache[videoId]) {
@@ -470,43 +449,17 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   }
 };
 
-  const fetchVideoStats = async (videoId) => {
-  if (fetchedVideoStats.current[videoId]) return;
-  const token = localStorage.getItem("token");
-  const config = { headers: { Authorization: `Bearer ${token}` } };
-
-  try {
-    const [likeRes, commentRes] = await Promise.all([
-      axios.get(`https://api-ndolv2.nongdanonline.cc/video-like/${videoId}/users`, config),
-      axios.get(`https://api-ndolv2.nongdanonline.cc/video-comment/${videoId}/comments`, config),
-    ]);
-
-    setVideoLikes((prev) => ({
-      ...prev,
-      [videoId]: likeRes.data?.total || 0,
-    }));
-    setVideoComments((prev) => ({
-      ...prev,
-      [videoId]: Array.isArray(commentRes.data) ? commentRes.data.length : 0,
-    }));
-    fetchedVideoStats.current[videoId] = true;
-  } catch (err) {
-    console.error(`Error fetching stats for video ${videoId}:`, err);
-  }
-};
-  const fetchedVideoStats = useRef({});
-
   const showFarmVideos = async (farmId, farmName) => {
   setLoadingVideos(true); 
   try {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
-    const response  = await fetchPaginatedData(
+    const res  = await axios.get(
       `${BaseUrl}/admin-video-farm/farm/${farmId}`,
       config
     );
-    const farmVideos = await response.json()
+    const farmVideos = res.data?.data || [];
     setSelectedFarmVideos(farmVideos);
     setSelectedFarmName(farmName);
     setOpenVideoDialog(true); 
@@ -516,7 +469,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     setLoadingVideos(false);
   }
 };
-
+  const handlePlay = (videoId) => setPlayingVideoId(videoId);
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?._id) || String(f.createBy) === String(user?._id));
   const userPosts = posts.filter(p => p.authorId?.id === user?._id);
   const userVideos = videos.filter(v => v.uploadedBy?.id === user?._id);
@@ -771,7 +724,8 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   </Typography>
 
                   {/* Video Player */}
-                  {video.status === "pending" && video.localFilePath ? (
+                  {playingVideoId === video._id ? (
+                  video.status === "pending" && video.localFilePath ? (
                     <video
                       src={
                         video.localFilePath.startsWith("http")
@@ -807,6 +761,14 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     <div className="flex items-center justify-center h-[180px] text-red-500 font-semibold bg-gray-100 rounded shadow mb-3">
                       Video không tồn tại
                     </div>
+                    )
+                  ) : (
+                     <div
+                      onClick={() => setPlayingVideoId(video._id)}
+                      className="flex items-center justify-center h-[180px] w-full bg-gray-200 rounded shadow mb-3 cursor-pointer hover:bg-gray-300 transition"
+                    >
+                      ▶️ <span className="ml-2 font-medium">Bấm để xem video</span>
+                    </div>
                   )}
 
                   {/* Thông tin video */}
@@ -834,22 +796,22 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
                   {/* Lượt thích & Lượt bình luận */}
                   <div className="flex flex-wrap gap-2 mt-3">
-                    <div
+                    <button
                       onClick={() =>
                         fetchVideoLikesUsers(video._id, video.title)
                       }
                       className="px-3 py-1 rounded-full bg-red-50 text-red-600 font-medium text-xs cursor-pointer shadow hover:bg-red-100 transition"
                     >
-                      ❤️ Lượt thích: {videoLikes[video._id] ?? "…"}
-                    </div>
-                    <div
+                      ❤️ Xem lượt thích
+                    </button>
+                    <button
                       onClick={() =>
                         fetchVideoCommentsUsers(video._id, video.title)
                       }
                       className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-medium text-xs cursor-pointer shadow hover:bg-blue-100 transition"
                     >
-                      💬 Bình luận: {videoComments[video._id] ?? "…"}
-                    </div>
+                      💬 Xem lượt bình luận
+                    </button>
                   </div>
                 </div>
               ))}
@@ -867,7 +829,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     )}
   </Collapse>
 </Card>
-
       {/* Thông tin Farms của user */}
       <Card>
   <div
@@ -1034,28 +995,27 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
       <Dialog
   open={openVideoDialog}
-  size={selectedFarmVideos.length === 1 ? "md" : "xl"} 
+  size={selectedFarmVideos.length === 1 ? "md" : "xl"}
   dismiss={{ outsidePress: false }}
 >
   <DialogHeader>Danh sách video - {selectedFarmName}</DialogHeader>
 
   <DialogBody className="space-y-6 max-h-[560px] overflow-y-auto">
     {loadingVideos ? (
-       <div className="flex justify-center items-center py-6">
+      <div className="flex justify-center items-center py-6">
         <Spinner className="h-6 w-6 mr-3" color="blue" />
         <Typography className="italic text-blue-gray-700">
           Đang tải danh sách video...
         </Typography>
       </div>
-    ) :
-    selectedFarmVideos.length === 0 ? (
+    ) : selectedFarmVideos.length === 0 ? (
       <Typography>Không có video nào cho farm này.</Typography>
     ) : (
       <div
         className={`grid gap-4 ${
           selectedFarmVideos.length === 1
-            ? "grid-cols-1" 
-            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3" 
+            ? "grid-cols-1"
+            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
         }`}
       >
         {selectedFarmVideos.map((item) => (
@@ -1070,45 +1030,75 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
               {item.title}
             </Typography>
 
-            {/* Video hiển thị */}
             {item.status === "pending" && item.localFilePath ? (
-              <video
-                src={
-                  item.localFilePath.startsWith("http")
-                    ? item.localFilePath
-                    : `https://api-ndolv2.nongdanonline.cc${item.localFilePath}`
-                }
-                controls
-                className="h-[200px] w-full rounded shadow mb-3"
-              >
-                Trình duyệt không hỗ trợ video
-              </video>
+              playingVideoId === item._id ? (
+                <video
+                  src={
+                    item.localFilePath.startsWith("http")
+                      ? item.localFilePath
+                      : `https://api-ndolv2.nongdanonline.cc${item.localFilePath}`
+                  }
+                  controls
+                  autoPlay
+                  className="h-[200px] w-full rounded shadow mb-3"
+                >
+                  Trình duyệt không hỗ trợ video
+                </video>
+              ) : (
+                <div
+                  onClick={() => handlePlay(item._id)}
+                  className="h-[200px] w-full rounded shadow mb-3 flex items-center justify-center bg-gray-200 cursor-pointer"
+                >
+                  ▶️ Bấm để xem video
+                </div>
+              )
             ) : item.youtubeLink && item.status === "uploaded" ? (
               item.youtubeLink.endsWith(".mp4") ? (
-                <video
-                  src={item.youtubeLink}
-                  controls
-                  className="h-[200px] w-full rounded shadow mb-3"
-                />
+                playingVideoId === item._id ? (
+                  <video
+                    src={item.youtubeLink}
+                    controls
+                    autoPlay
+                    className="h-[200px] w-full rounded shadow mb-3"
+                  />
+                ) : (
+                  <div
+                    onClick={() => handlePlay(item._id)}
+                    className="h-[200px] w-full rounded shadow mb-3 flex items-center justify-center bg-gray-200 cursor-pointer"
+                  >
+                    ▶️ Bấm để xem video
+                  </div>
+                )
               ) : (
-                <iframe
-                  src={
-                    "https://www.youtube.com/embed/" +
-                    (item.youtubeLink.match(
-                      /(?:v=|\/embed\/|\.be\/)([^\s&?]+)/
-                    )?.[1] || "")
-                  }
-                  title="YouTube video"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="h-[200px] w-full rounded shadow mb-3"
-                ></iframe>
+                playingVideoId === item._id ? (
+                  <iframe
+                    src={
+                      "https://www.youtube.com/embed/" +
+                      (item.youtubeLink.match(
+                        /(?:v=|\/embed\/|\.be\/)([^\s&?]+)/,
+                      )?.[1] || "")
+                    }
+                    title="YouTube video"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="h-[200px] w-full rounded shadow mb-3"
+                  ></iframe>
+                ) : (
+                  <div
+                    onClick={() => handlePlay(item._id)}
+                    className="h-[200px] w-full rounded shadow mb-3 flex items-center justify-center bg-gray-200 cursor-pointer"
+                  >
+                    ▶️ Bấm để xem video
+                  </div>
+                )
               )
             ) : (
               <div className="flex items-center justify-center h-[200px] text-red-500 font-semibold bg-gray-100 rounded shadow mb-3">
                 Video không tồn tại
               </div>
             )}
+
+            {/* ✅ KẾT THÚC SỬA CHỖ HIỂN THỊ VIDEO */}
 
             {/* Thông tin video */}
             <div className="text-sm text-gray-700 space-y-1 flex-1">
@@ -1140,7 +1130,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                 onClick={() => fetchVideoLikesUsers(item._id, item.title)}
               >
                 ❤️ Xem lượt thích
-                
               </button>
               <button
                 className="cursor-pointer text-blue-600 hover:underline text-sm"
@@ -1348,18 +1337,18 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
                   {/* Lượt thích & Bình luận */}
                   <div className="flex flex-wrap gap-2 mt-3">
-                    <div
+                    <button
                       onClick={() => fetchPostLikesUsers(post.id, post.title)}
                       className="px-3 py-1 rounded-full bg-red-50 text-red-600 font-medium text-xs cursor-pointer shadow hover:bg-red-100 transition"
                     >
-                      ❤️ Lượt thích: {Array.isArray(post.like) ? post.like.length : post.like || 0}
-                    </div>
-                    <div
+                      ❤️ Xem lượt thích
+                    </button>
+                    <button
                       onClick={() => fetchPostCommentsUsers(post.id, post.title)}
                       className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-medium text-xs cursor-pointer shadow hover:bg-blue-100 transition"
                     >
-                      💬 Bình luận: {commentCounts[post.id] || 0}
-                    </div>
+                      💬 Xem bình luận
+                    </button>
                   </div>
                 </div>
               ))}
