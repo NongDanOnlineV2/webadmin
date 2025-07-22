@@ -57,21 +57,30 @@ export default function UserDetail() {
   });
 
   const fetchPaginatedData = async (url, config) => {
-    let allData = [];
-    let page = 1;
-    let hasMore = true;
+  let page = 1;
+  let limit = 50;
+  let allData = [];
+  let totalPages = 1;
 
-    while (hasMore) {
-      const res = await axios.get(`${url}?page=${page}&limit=50`, config);
-      const pageData = res.data?.data || [];
-      allData = [...allData, ...pageData];
+  try {
+    while (page <= totalPages) {
+      const res = await axios.get(`${url}?page=${page}&limit=${limit}`, config);
+      const { data, totalPages: apiTotalPages } = res.data;
 
-      hasMore = pageData.length > 0 && pageData.length === 50;
+      allData.push(...data);
+
+      if (!apiTotalPages && data.length < limit) break;
+
+      totalPages = apiTotalPages || totalPages;
       page++;
     }
+  } catch (err) {
+    console.error("❌ Lỗi fetchPaginatedData:", err);
+  }
 
-    return allData;
-  };
+  return allData;
+};
+
 
   const handleShowMoreFarms = () => {
     setVisibleFarms((prev) => prev + 6);
@@ -466,35 +475,35 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   const fetchedVideoStats = useRef({});
 
   const showFarmVideos = async (farmId, farmName) => {
+  setLoadingVideos(true); // bật loading khi fetch video
   try {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
-    // 👉 Chỉ fetch video của farm được chọn
+    // 🛑 Chỉ fetch video khi click nút
     const farmVideos = await fetchPaginatedData(
       `${BaseUrl}/admin-video-farm?farmId=${farmId}`,
       config
     );
 
-    // Gọi API stats nếu cần
-    const statsPromises = farmVideos
-      .filter((video) => !fetchedVideoStats.current[video._id])
-      .map(async (video) => {
+    // Gọi API lấy stats (likes/comments) nếu cần
+    const statsPromises = farmVideos.map(async (video) => {
+      if (!fetchedVideoStats.current[video._id]) {
         await fetchVideoStats(video._id);
         fetchedVideoStats.current[video._id] = true;
-      });
+      }
+    });
     await Promise.allSettled(statsPromises);
 
+    // Cập nhật state
     setSelectedFarmVideos(farmVideos);
     setSelectedFarmName(farmName);
-    setOpenVideoDialog(true);
+    setOpenVideoDialog(true); // 👉 chỉ mở dialog khi fetch xong
   } catch (err) {
-    console.error("Lỗi khi fetch video của farm:", err);
+    console.error("❌ Lỗi khi fetch video của farm:", err);
+  } finally {
+    setLoadingVideos(false);
   }
-};
-
-  const countVideosByFarm = (farmId) => {
-  return videos.filter((v) => v.farmId?.id === farmId).length;
 };
 
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?._id) || String(f.createBy) === String(user?._id));
@@ -1020,7 +1029,15 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   <DialogHeader>Danh sách video - {selectedFarmName}</DialogHeader>
 
   <DialogBody className="space-y-6 max-h-[560px] overflow-y-auto">
-    {selectedFarmVideos.length === 0 ? (
+    {loadingVideos ? (
+       <div className="flex justify-center items-center py-6">
+        <Spinner className="h-6 w-6 mr-3" color="blue" />
+        <Typography className="italic text-blue-gray-700">
+          Đang tải danh sách video...
+        </Typography>
+      </div>
+    ) :
+    selectedFarmVideos.length === 0 ? (
       <Typography>Không có video nào cho farm này.</Typography>
     ) : (
       <div
