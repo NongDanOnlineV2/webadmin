@@ -322,9 +322,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
               <DialogFooter>
                 <Button onClick={() => setShowVideos(false)} color="blue">Đóng</Button>
               </DialogFooter>
-            </Dialog>
-
-            <Dialog open={!!selectedVideo} handler={() => setSelectedVideo(null)} size="lg">
+              <Dialog open={!!selectedVideo} handler={() => setSelectedVideo(null)} size="lg">
               <DialogHeader>{selectedVideo?.title || "Xem video"}</DialogHeader>
               <DialogBody divider className="flex justify-center">
                 {selectedVideo ? (() => {
@@ -370,6 +368,9 @@ export default function FarmDetail({ open, onClose, farmId }) {
                 </Button>
               </DialogFooter>
             </Dialog>
+            </Dialog>
+
+            
 
             <div className="mt-6">
               <Button onClick={handleToggleChanges} color="blue" variant="outlined" size="sm">
