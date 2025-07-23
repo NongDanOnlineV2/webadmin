@@ -76,12 +76,12 @@ export const routes = [
         path: "/PostList",
         element: <PostList />,
       },
-      // {
-      //   icon: <ReceiptPercentIcon {...icon} />,
-      //   name: "AdminReports",
-      //   path: "/AdminReports",
-      //   element: <AdminReports />,
-      // },
+      {
+        icon: <ReceiptPercentIcon {...icon} />,
+        name: "AdminReports",
+        path: "/AdminReports",
+        element: <AdminReports />,
+      },
     {
         icon: <ChatBubbleOvalLeftEllipsisIcon {...icon} />,
         name: "CommentPost",

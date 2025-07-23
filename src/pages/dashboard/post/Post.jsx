@@ -25,7 +25,6 @@ export function PostList() {
   const [users, setUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;
-  const [filterUserId, setFilterUserId] = useState("");
   const [filterTitle, setFilterTitle] = useState("");
   const [filterSortLikes, setFilterSortLikes] = useState("");
   const [filterSortComments, setFilterSortComments] = useState("");
@@ -34,7 +33,11 @@ export function PostList() {
   const [filterStatus, setFilterStatus] = useState("");
   const [postCache, setPostCache] = useState({});
   const [totalPages, setTotalPages] = useState(1);
-  const navigate = useNavigate();
+  const [sortTitle, setSortTitle] = useState("");
+  const [sortDescription, setSortDescription] = useState("");
+  const [sortAuthor, setSortAuthor] = useState("");
+  const [sortDate, setSortDate] = useState("");
+  const [filterImage, setFilterImage] = useState("");
 
   const fetchPosts = async () => {
     if (postCache[currentPage]) {
@@ -49,12 +52,16 @@ export function PostList() {
     limit: postsPerPage,
   });
 
-  if (filterUserId) queryParams.append("userId", filterUserId);
   if (filterTitle) queryParams.append("title", filterTitle);
   if (filterStatus === "true") queryParams.append("status", true);
   else if (filterStatus === "false") queryParams.append("status", false);
   if (filterSortLikes) queryParams.append("sortLikes", filterSortLikes);
   if (filterSortComments) queryParams.append("sortComments", filterSortComments);
+  if (sortTitle) queryParams.append("sortTitle", sortTitle);
+  if (sortDescription) queryParams.append("sortDescription", sortDescription);
+  if (sortAuthor) queryParams.append("sortAuthor", sortAuthor);
+  if (sortDate) queryParams.append("sortDate", sortDate);
+  if (filterImage) queryParams.append("hasImage", filterImage);
 
   try {
     const res = await fetch(
@@ -103,7 +110,17 @@ export function PostList() {
 };
   useEffect(() => {
     fetchPosts();
-  }, [currentPage]);
+  }, [currentPage,
+      filterTitle,
+      filterStatus,
+      filterSortLikes,
+      filterSortComments,
+      sortTitle,
+      sortDescription,
+      sortAuthor,
+      sortDate,
+      filterImage
+  ]);
 
 
   const findUser = (id) => users.find((u) => u.id === id);
@@ -255,18 +272,71 @@ export function PostList() {
       <table className="min-w-full text-left border-collapse">
         <thead className="bg-gray-100 text-gray-700">
           <tr>
-            <th className="p-3 border">Tiêu đề</th>
-            <th className="p-3 border">Mô tả</th>
-            <th className="p-3 border">Ngày tạo</th>
-            <th className="p-3 border">Hình</th>
-            <th className="p-3 border">Tác giả</th>
+            <th className="p-3 border">
+              <div className="flex flex-col gap-1">
+              <span>Tiêu đề</span> 
+              <select className="text-sm border rounded px-1 py-0.5" 
+              value={sortTitle} onChange={(e) => {
+                setSortTitle(e.target.value)
+                setPostCache({});
+                setCurrentPage(1);
+              }}>
+                <option value="">--</option>
+                <option value="asc">A-Z</option>
+                <option value="desc">Z-A</option>
+              </select>
+              </div>
+            </th>
+            <th className="p-3 border">
+              <div className="flex flex-col gap-1">
+                <span>Mô tả</span>
+                <select
+                  className="text-sm border rounded px-1 py-0.5"
+                  value={sortDescription}
+                  onChange={(e) => {
+                    setSortDescription(e.target.value);
+                    setPostCache({});
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="">--</option>
+                  <option value="asc">A-Z</option>
+                  <option value="desc">Z-A</option>
+                </select>
+              </div>
+            </th>
+            <th className="p-3 border">
+              <div className="flex flex-col gap-1">
+                Ngày tạo
+              </div>
+            </th>
+            <th className="p-3 border">
+              Hình
+            </th>
+            <th className="p-3 border">
+              <div className="flex flex-col gap-1">
+                <span>Tác giả</span>
+                <select
+                  className="text-sm border rounded px-1 py-0.5"
+                  value={sortAuthor}
+                  onChange={(e) => {
+                    setSortAuthor(e.target.value);
+                    setPostCache({});
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="">--</option>
+                  <option value="asc">A-Z</option>
+                  <option value="desc">Z-A</option>
+                </select>
+              </div>
+            </th>
             <th className="p-3 border text-center">Trạng thái</th>
             <th className="p-3 border text-center">Hành động</th>
           </tr>
         </thead>
         <tbody>
           {posts.map((post) => {
-            const author = findUser(post.authorId);
             return (
               <tr
                 key={post.id}
