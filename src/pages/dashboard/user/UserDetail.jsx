@@ -262,13 +262,14 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
 };
 
   useEffect(() => {
+    console.log("DEBUG: id from useParams:", id);
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
         const [userRes ] = await Promise.all([
-          axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, config), 
+          axios.get(`${BaseUrl}/admin-users/${id}`, config), 
            
         ]);
 

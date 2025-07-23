@@ -364,7 +364,9 @@ const fetchAllData = async () => {
           <tbody>
             {users.map(user => (
               <tr key={user.id} className="border-t hover:bg-blue-50 cursor-pointer"
-                  onClick={() => navigate(`/dashboard/users/${user.id}`)}>
+                  onClick={() => 
+                  navigate(`/dashboard/users/${user._id}`)
+            }>
                 <td className="p-2"><Avatar src={user.avatar ? `https://api-ndolv2.nongdanonline.cc${user.avatar}` : ""} size="sm" /></td>
                 <td className="p-2">{user.fullName}</td>
                 <td className="p-2">{user.email}</td>
