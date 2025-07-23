@@ -13,29 +13,36 @@ import {deletevideo, approvevideo} from './VideoById';
 
 const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
   const token = localStorage.getItem('token');
-  
   const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString()
   });
+  if (searchTerm && searchTerm.trim()) params.append('search', searchTerm.trim());
+  if (status && status.trim()) params.append('status', status.trim());
+
   
-  if (searchTerm) {
-    params.append('search', searchTerm);
+  try {
+    const res = await axios.get(`${BaseUrl}/admin-video-farm?${params}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+        
+    let videos = [];
+    if (Array.isArray(res.data.data)) {
+      videos = res.data.data;
+    } else if (Array.isArray(res.data)) {
+      videos = res.data;
+    } else if (typeof res.data === 'object' && res.data !== null) {
+      videos = res.data.data || res.data.videos || [];
+    }
+    
+    return {
+      videos,
+      totalPages: res.data.totalPages || 1
+    };
+  } catch (error) {
+    console.error('❌ API Error:', error);
+    return { videos: [], totalPages: 1 };
   }
-  
-  if (status) {
-    params.append('status', status);
-  }
-  
-  const res = await axios.get(`${BaseUrl}/admin-video-farm?${params}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  
-  return {
-    videos: res.data.data || [],
-    totalPages: res.data.totalPages || 1,
-    totalCount: res.data.totalCount || 0
-  };
 };
 
 const fetchAllStatuses = async () => {
@@ -51,7 +58,6 @@ export const ListVideo = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const [openLikeDialog, setOpenLikeDialog] = useState(false);
   const [openCommentDialog, setOpenCommentDialog] = useState(false);
   const [selectedVideoForLike, setSelectedVideoForLike] = useState(null);
@@ -59,9 +65,8 @@ export const ListVideo = () => {
   const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', video: null });
   const [isProcessing, setIsProcessing] = useState(false);
   const [playingVideos, setPlayingVideos] = useState({});
-  const [videoCache, setVideoCache] = useState({});
+  const [videoCache, setVideoCache] = useState({}); // THÊM LẠI CACHE
   const limit = 9;
-
   const getStatusInVietnamese = (status) => {
     switch (status) {
       case 'pending':
@@ -81,56 +86,98 @@ export const ListVideo = () => {
     setSearchText(value);
   };
 
-  // Clear cache function
-  const clearCache = () => {
-    console.log('🗑️ Clear cache');
+  const performSearch = () => {
+    setActualSearchTerm(searchText.trim());
+    setPage(1);
+    // XÓA CACHE KHI SEARCH MỚI
     setVideoCache({});
   };
 
-  // Load videos khi page, search, hoặc filter thay đổi
+  // Lọc trạng thái - BỎ ASYNC VÀ ĐỂ USEEFFECT XỬ LÝ
+  const handleFilterChange = (e) => {
+    const status = e.target.value;
+    setFilterStatus(status);
+    setPage(1);
+    // XÓA CACHE KHI FILTER MỚI
+    setVideoCache({});
+  };
+
+  const clearSearch = () => {
+    setSearchText('');
+    setActualSearchTerm('');
+    setFilterStatus('');
+    setPage(1);
+    // XÓA CACHE KHI CLEAR
+    setVideoCache({});
+  };
+  // USEEFFECT VỚI CACHE
   useEffect(() => {
     const loadVideos = async () => {
-      // Tạo cache key duy nhất cho mỗi combination
       const cacheKey = `${page}-${actualSearchTerm}-${filterStatus}`;
       
-      // Kiểm tra cache trước
+      // KIỂM TRA CACHE TRƯỚC
       if (videoCache[cacheKey]) {
-        console.log('📦 Load từ cache:', cacheKey);
+
         const cachedData = videoCache[cacheKey];
         setVideos(cachedData.videos);
         setTotalPages(cachedData.totalPages);
-        setTotalCount(cachedData.totalCount);
         setLoading(false);
         return;
       }
-
-      console.log('🔄 Gọi API cho:', cacheKey);
+      
       setLoading(true);
+      
       try {
         const result = await fetchVideos(page, limit, actualSearchTerm, filterStatus);
-        setVideos(result.videos);
-        setTotalPages(result.totalPages);
-        setTotalCount(result.totalCount);
+        setVideos(result.videos || []);
+        setTotalPages(result.totalPages || 1);
         
-        // Lưu vào cache
+        // LƯU VÀO CACHE
         setVideoCache(prev => ({
           ...prev,
           [cacheKey]: {
-            videos: result.videos,
-            totalPages: result.totalPages,
-            totalCount: result.totalCount,
+            videos: result.videos || [],
+            totalPages: result.totalPages || 1,
             timestamp: Date.now()
           }
         }));
-      } catch (err) {
-        console.error("Lỗi khi tải video:", err);
+        
+      } catch (error) {
+        console.error('❌ Error loading videos:', error);
+        setVideos([]);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
 
     loadVideos();
-  }, [page, actualSearchTerm, filterStatus]); 
+  }, [page, actualSearchTerm, filterStatus, videoCache]);
+
+  // HÀM DỌN DẸP CACHE CŨ (option - chạy mỗi 5 phút)
+  useEffect(() => {
+    const cleanupCache = () => {
+      const now = Date.now();
+      const CACHE_EXPIRE_TIME = 5 * 60 * 1000; // 5 phút
+      
+      setVideoCache(prev => {
+        const newCache = {};
+        Object.keys(prev).forEach(key => {
+          if (now - prev[key].timestamp < CACHE_EXPIRE_TIME) {
+            newCache[key] = prev[key];
+          }
+        });
+        
+        if (Object.keys(newCache).length !== Object.keys(prev).length) {
+        }
+        
+        return newCache;
+      });
+    };
+
+    const interval = setInterval(cleanupCache, 5 * 60 * 1000); // Cleanup mỗi 5 phút
+    return () => clearInterval(interval);
+  }, []);
 
   const togglePlayVideo = (videoId) => { 
     setPlayingVideos((prev) => ({
@@ -166,229 +213,360 @@ export const ListVideo = () => {
     }
     setConfirmDialog({ open: true, type, video });
   };
-
   return (
     <div className="p-4">
-      <Typography variant="h5" color="blue-gray" className="font-semibold mb-4">
-        Quản lý Video 
-      </Typography>
-      {actualSearchTerm && (
-        <div className="mb-4 p-2 bg-blue-50 rounded">
-          <p className="text-sm text-blue-700">
-            Kết quả tìm kiếm cho: "<strong>{actualSearchTerm}</strong>"
-          </p>
-        </div>
-      )}
+      <div className="flex justify-between items-center mb-4">
+        <Typography variant="h5" color="blue-gray" className="font-semibold">
+          Quản lý Video
+        </Typography>
+        <Button 
+          size="sm" 
+          className="flex items-center gap-2"
+          onClick={() => window.location.reload()}
+          disabled={loading}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Làm mới
+        </Button>
+      </div>
 
+
+      <div className="mb-6 bg-white rounded-lg shadow-sm p-4 border">
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 min-w-0">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tìm kiếm video
+            </label>
+            <div className="relative flex gap-2">
+              <input
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onKeyPress={e => { if (e.key === 'Enter') performSearch(); }}
+                placeholder="Nhập từ khóa tìm kiếm..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <Button
+                size="sm"
+                onClick={performSearch}
+                className="flex items-center gap-2 px-4 py-2"
+                disabled={loading}
+              >
+                Tìm kiếm
+              </Button>
+              {actualSearchTerm && (
+                <Button
+                  size="sm"
+                  variant="outlined"
+                  onClick={() => { setSearchText(''); setActualSearchTerm(''); setPage(1); }}
+                  className="flex items-center gap-2 px-4 py-2"
+                >
+                  Xóa
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="w-full md:w-48">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Lọc theo trạng thái
+            </label>
+            <select
+              value={filterStatus}
+              onChange={handleFilterChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="pending">Chờ duyệt</option>
+              <option value="uploaded">Đã duyệt</option>
+              <option value="failed">Thất bại</option>
+              <option value="deleted">Đã xóa</option>
+            </select>
+          </div>
+        </div>
+
+        {(actualSearchTerm || filterStatus) && (
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 mb-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-blue-700">
+                {actualSearchTerm && (
+                  <span>
+                    <span className="font-medium">Tìm kiếm:</span> "{actualSearchTerm}"
+                  </span>
+                )}
+                {actualSearchTerm && filterStatus && <span className="mx-2">•</span>}
+                {filterStatus && (
+                  <span>
+                    <span className="font-medium">Trạng thái:</span> {getStatusInVietnamese(filterStatus)}
+                  </span>
+                )}
+              </p>
+              <button
+                onClick={clearSearch}
+                className="text-blue-700 hover:text-blue-900 text-sm font-medium"
+              >
+                Xóa tất cả bộ lọc
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
       {loading ? (
         <div className="flex justify-center items-center w-full h-40">
           <Audio height="80" width="80" radius="9" color="green" ariaLabel="loading" />
         </div>
-      ) : videos.length === 0 ? (
-        <span className="text-gray-500">Không có video nào.</span>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {videos.map((item) => (
-            <div key={item._id} className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow">
-              <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center relative cursor-pointer"
-               onClick={() => togglePlayVideo(item._id)}
-               >
-                {playingVideos[item._id] ? (
-                  <>
-                {item.youtubeLink ? (
-                  item.youtubeLink.endsWith('.m3u8') ? (
-                    <HlsPlayer src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`} className="w-full h-full object-cover rounded-t-lg" />
-                  ) : item.youtubeLink.endsWith('.mp4') ? (
-                    <video
-                      src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`}
-                      controls
-                      className="w-full h-full object-cover rounded-t-lg"
-                    >
-                      Trình duyệt của bạn không hỗ trợ video
-                    </video>
-                  ) : (/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//.test(item.youtubeLink) ? (
-                    <iframe
-                      src={
-                        "https://www.youtube.com/embed/" +
-                        (item.youtubeLink.match(/(?:v=|\/embed\/|\.be\/)([^\s&?]+)/)?.[1] || "")
-                      }
-                      title="YouTube video"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full rounded-t-lg"
-                    ></iframe>
-                  ) : (
-                    <audio
-                      src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`}
-                      controls
-                      className="w-full h-full object-cover rounded-t-lg"
-                    >
-                      Trình duyệt của bạn không hỗ trợ audio
-                    </audio>
-                  ))
-                ) : item.localFilePath ? (
-                  item.localFilePath.endsWith('.m3u8') ? (
-                    <HlsPlayer src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`} className="w-full h-full object-cover rounded-t-lg" />
-                  ) : item.localFilePath.endsWith('.mp4') ? (
-                    <video
-                      src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`}
-                      controls
-                      className="w-full h-full object-cover rounded-t-lg"
-                    >
-                      Trình duyệt của bạn không hỗ trợ video
-                    </video>
-                  ) : (
-                    <audio
-                      src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`}
-                      controls
-                      className="w-full h-full object-cover rounded-t-lg"
-                    >
-                      Trình duyệt của bạn không hỗ trợ audio
-                    </audio>
-                  )
-                ) : (
-                  <div className="flex items-center justify-center h-full text-red-500 font-semibold">
-                    Video không tồn tại
-                  </div>
-                )}
-                </>
-              ) : (
-                <div className="flex justify-center items-center h-full text-gray-500">
-                    <span className="text-sm"> ▶ Nhấn để phát video</span> 
-                  </div>
+        <>
+          {Array.isArray(videos) && videos.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-24 h-24 mx-auto mb-4 text-gray-300">
+                <svg fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {(actualSearchTerm || filterStatus) ? 'Không tìm thấy video nào' : 'Chưa có video nào'}
+              </h3>
+              <p className="text-gray-500">
+                {actualSearchTerm 
+                  ? `Không có video nào khớp với từ khóa "${actualSearchTerm}"`
+                  : filterStatus
+                  ? `Không có video nào với trạng thái "${getStatusInVietnamese(filterStatus)}"`
+                  : 'Các video sẽ hiển thị ở đây khi có'
+                }
+              </p>
+              {(actualSearchTerm || filterStatus) && (
+                <Button
+                  size="sm"
+                  variant="outlined"
+                  onClick={() => { setSearchText(''); setActualSearchTerm(''); setFilterStatus(''); setPage(1); }}
+                  className="mt-4"
+                >
+                  Xóa bộ lọc
+                </Button>
               )}
-              </div>
-              <div className="p-4">
-
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-lg text-gray-900 line-clamp-2 flex-1 mr-2">
-                    {item.title}
-                  </h3>
-                
-                  <Menu placement="bottom-end">
-                    <MenuHandler>
-                      <Button
-                        variant="text"
-                        size="sm"
-                        className="p-1 min-w-0 text-gray-500 hover:text-gray-700"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                        </svg>
-                      </Button>
-                    </MenuHandler>
-                    <MenuList className="min-w-[120px]">
-                      {item.status === 'pending' && (
-                        <MenuItem 
-                          onClick={() => openConfirmDialog('approve', item)}
-                          className="flex items-center gap-2 text-green-600"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          Duyệt video
-                        </MenuItem>
-                      )}
-                      <MenuItem 
-                        onClick={() => openConfirmDialog('delete', item)}
-                        className="flex items-center gap-2 text-red-600"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Xóa video
-                      </MenuItem>
-                    </MenuList>
-                  </Menu>
-                </div>
-                
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div>
-                    <span className="font-medium">Thuộc Farm:</span> {item.farmId?.name || 'N/A'}
-                  </div>
-                  <div>
-                    <span className="font-medium">Danh sách phát:</span> {item.playlistName}
-                  </div>
-                  <div>
-                    <span className="font-medium">Ngày đăng:</span> {new Date(item.createdAt).toLocaleDateString()}
-                  </div>
-                  <div>
-                    <span className="font-medium cursor-pointer hover:text-blue-600 transition-colors"  
-                    onClick={() => {
-                       const authorId = item.uploadedBy?._id || item.uploadedBy?.id || item.uploadedBy;
-                       if (authorId) {
-                         navigate(`/dashboard/users/${authorId}`);
-                       }
-                     }}
-                     title="Xem chi tiết người dùng">Người đăng: {item.uploadedBy?.fullName}</span> 
-                  </div>
-                  <div>
-                    <span className="font-medium">Email:</span>
-                    <div className="break-all text-gray-700 mt-1">{item.uploadedBy?.email}</div>
-                  </div>
-                  <div>
-                    <span className="font-medium">Trạng thái:</span> 
-                    <span className={`ml-1 px-2 py-1 rounded text-xs font-medium ${
-                      item.status === 'uploaded' ? 'bg-green-100 text-green-800' :
-                      item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      item.status === 'deleted' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {getStatusInVietnamese(item.status)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex justify-between items-center">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenLikeDialog(item);
-                    }}
-                    className="flex items-center gap-1 text-red-500 hover:text-red-600 transition-colors cursor-pointer"
-                  >
-                    <span>❤️</span>
-                    <span className="text-sm">Xem lượt thích</span>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenCommentDialog(item);
-                    }}
-                    className="flex items-center gap-1 text-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
-                  >
-                    <span>💬</span>
-                    <span className="text-sm">Xem bình luận</span>
-                  </button>
-                </div>
-              </div>
-
-            
             </div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.isArray(videos) && videos.map((item, index) => (
+                <div key={item._id || index} className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow">
+                  <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center relative cursor-pointer"
+                   onClick={() => togglePlayVideo(item._id)}
+                   >
+                    {playingVideos[item._id] ? (
+                      <>
+                    {item.youtubeLink ? (
+                      item.youtubeLink.endsWith('.m3u8') ? (
+                        <HlsPlayer src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`} className="w-full h-full object-cover rounded-t-lg" />
+                      ) : item.youtubeLink.endsWith('.mp4') ? (
+                        <video
+                          src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`}
+                          controls
+                          className="w-full h-full object-cover rounded-t-lg"
+                        >
+                          Trình duyệt của bạn không hỗ trợ video
+                        </video>
+                      ) : (/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//.test(item.youtubeLink) ? (
+                        <iframe
+                          src={
+                            "https://www.youtube.com/embed/" +
+                            (item.youtubeLink.match(/(?:v=|\/embed\/|\.be\/)([^\s&?]+)/)?.[1] || "")
+                          }
+                          title="YouTube video"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full rounded-t-lg"
+                        ></iframe>
+                      ) : (
+                        <audio
+                          src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`}
+                          controls
+                          className="w-full h-full object-cover rounded-t-lg"
+                        >
+                          Trình duyệt của bạn không hỗ trợ audio
+                        </audio>
+                      ))
+                    ) : item.localFilePath ? (
+                      item.localFilePath.endsWith('.m3u8') ? (
+                        <HlsPlayer src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`} className="w-full h-full object-cover rounded-t-lg" />
+                      ) : item.localFilePath.endsWith('.mp4') ? (
+                        <video
+                          src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`}
+                          controls
+                          className="w-full h-full object-cover rounded-t-lg"
+                        >
+                          Trình duyệt của bạn không hỗ trợ video
+                        </video>
+                      ) : (
+                        <audio
+                          src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`}
+                          controls
+                          className="w-full h-full object-cover rounded-t-lg"
+                        >
+                          Trình duyệt của bạn không hỗ trợ audio
+                        </audio>
+                      )
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-red-500 font-semibold">
+                        Video không tồn tại
+                      </div>
+                    )}
+                    </>
+                  ) : (
+                    <div className="flex justify-center items-center h-full text-gray-500">
+                      <span className="text-sm"> ▶ Nhấn để phát video</span> 
+                    </div>
+                  )}
+                  </div>
+                  <div className="p-4">
+
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-semibold text-lg text-gray-900 line-clamp-2 flex-1 mr-2">
+                        {item.title}
+                      </h3>
+                    
+                      <Menu placement="bottom-end">
+                        <MenuHandler>
+                          <Button
+                            variant="text"
+                            size="sm"
+                            className="p-1 min-w-0 text-gray-500 hover:text-gray-700"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                            </svg>
+                          </Button>
+                        </MenuHandler>
+                        <MenuList className="min-w-[120px]">
+                          {item.status === 'pending' && (
+                            <MenuItem 
+                              onClick={() => openConfirmDialog('approve', item)}
+                              className="flex items-center gap-2 text-green-600"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Duyệt video
+                            </MenuItem>
+                          )}
+                          {item.status !== 'deleted' ? (
+                            <MenuItem 
+                              onClick={() => openConfirmDialog('delete', item)}
+                              className="flex items-center gap-2 text-red-600"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Xóa video
+                            </MenuItem>
+                          ):
+                          (
+                            <MenuItem 
+                            disabled
+    
+                              className="flex items-center gap-2 text-red-600 cursor-not-allowed"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Đã xóa 
+                            </MenuItem>
+                          )
+                          
+                          }
+                        </MenuList>
+                      </Menu>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm text-gray-600">
+                      <div>
+                        <span className="font-medium">Thuộc Farm:</span> {item.farmId?.name || 'N/A'}
+                      </div>
+               
+                      <div>
+                        <span className="font-medium">Ngày đăng:</span> {new Date(item.createdAt).toLocaleDateString()}
+                      </div>
+                      <div>
+                        <span className="font-medium cursor-pointer hover:text-blue-600 transition-colors"  
+                        onClick={() => {
+                           const authorId = item.uploadedBy?._id || item.uploadedBy?.id || item.uploadedBy;
+                           if (authorId) {
+                             navigate(`/dashboard/users/${authorId}`);
+                           }
+                         }}
+                         title="Xem chi tiết người dùng">Người đăng: {item.uploadedBy?.fullName}</span> 
+                      </div>
+                      <div>
+                        <span className="font-medium">Email: {item.uploadedBy?.email}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium">Trạng thái:</span> 
+                        <span className={`ml-1 px-2 py-1 rounded text-xs font-medium ${
+                          item.status === 'uploaded' ? 'bg-green-100 text-green-800' :
+                          item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          item.status === 'deleted' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {getStatusInVietnamese(item.status)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex justify-between items-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenLikeDialog(item);
+                        }}
+                        className="flex items-center gap-1 text-red-500 hover:text-red-600 transition-colors cursor-pointer"
+                      >
+                        <span>❤️</span>
+                        <span className="text-sm">{item.likeCount}</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenCommentDialog(item);
+                        }}
+                        className="flex items-center gap-1 text-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
+                      >
+                        <span>💬</span>
+                        <span className="text-sm">{item.commentCount||0}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      {Array.isArray(videos) && videos.length > 0 && (
+        <div className="flex justify-center items-center gap-2 mt-6 bg-white rounded-lg shadow-sm p-4">
+          <Button
+            size="sm"
+            variant="outlined"
+            disabled={page <= 1 || loading}
+            onClick={() => setPage(prev => prev - 1)}
+          >
+            Trang trước
+          </Button>
+          <span className="mx-4 text-sm font-medium text-gray-700">
+            Trang {page} / {totalPages}
+          </span>
+          <Button
+            size="sm"
+            variant="outlined"
+            disabled={page >= totalPages || loading}
+            onClick={() => setPage(prev => prev + 1)}
+          >
+            Trang sau
+          </Button>
         </div>
       )}
-
-      {/* Pagination */}
-      <div className="flex justify-center items-center gap-2 mt-4">
-        <Button
-          size="sm"
-          variant="outlined"
-          disabled={page <= 1}
-          onClick={() => setPage(prev => prev - 1)}
-        >
-          Trang trước
-        </Button>
-        <span>Trang {page} / {totalPages}</span>
-        <Button
-          size="sm"
-          variant="outlined"
-          disabled={page >= totalPages}
-          onClick={() => setPage(prev => prev + 1)}
-        >
-          Trang sau
-        </Button>
-      </div>
 
       {/* Like Dialog */}
       {openLikeDialog && selectedVideoForLike && (
@@ -470,11 +648,9 @@ export const ListVideo = () => {
                         alert("✅ Duyệt video thành công!");
                         setConfirmDialog({ open: false, type: '', video: null });
                         // Clear cache và reload trang hiện tại
-                        clearCache();
                         const updatedVideos = await fetchVideos(page, limit, actualSearchTerm, filterStatus);
                         setVideos(updatedVideos.videos);
                         setTotalPages(updatedVideos.totalPages);
-                        setTotalCount(updatedVideos.totalCount);
                       } else {
                         alert(`❌ Lỗi khi duyệt video: ${result?.message || 'Unknown error'}`);
                       }
@@ -485,11 +661,9 @@ export const ListVideo = () => {
                       if (result?.success) {
                         alert("✅ Xóa video thành công!");
                         setConfirmDialog({ open: false, type: '', video: null });
-                        clearCache();
                         const updatedVideos = await fetchVideos(page, limit, actualSearchTerm, filterStatus);
                         setVideos(updatedVideos.videos);
                         setTotalPages(updatedVideos.totalPages);
-                        setTotalCount(updatedVideos.totalCount);
                       } else {
                         alert(`❌ Lỗi khi xóa video: ${result?.message || 'Unknown error'}`);
                       }

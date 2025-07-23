@@ -14,8 +14,9 @@ import { Audio } from "react-loader-spinner";
 import axios from "axios";
 import AnswersTableDetail from "./answerstabledetail";
 import AnswerAddForm from "./AnswerAddForm";
-import AnswerEditForm from "./AnswerEditForm";
-const API_URL = "https://api-ndolv2.nongdanonline.cc/answers";
+import AnswerEditForm from "./AnswerEditForm"
+import { BaseUrl } from "@/ipconfig";
+const API_URL = `${BaseUrl}/answers`;
 const FILE_BASE_URL = "https://api-ndolv2.nongdanonline.cc";
 let token = localStorage.getItem("token");
 
@@ -78,20 +79,16 @@ export function AnswersTable() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
 
-  // Load tất cả answers 1 lần duy nhất
   const loadAllAnswers = async () => {
     try {
-      // Kiểm tra cache trước
+  
       if (allAnswersCache) {
-        console.log("📦 Load all answers từ cache");
         setAllAnswers(allAnswersCache);
         setTotalPages(Math.ceil(allAnswersCache.length / itemsPerPage));
         setLoading(false);
         return;
       }
-
-      console.log("🔄 Gọi API load tất cả answers - 1 lần duy nhất");
-      setLoading(true);
+            setLoading(true);
 
       const res = await fetchWithAuth(API_URL);
       const data = await res.json();
@@ -108,9 +105,7 @@ export function AnswersTable() {
     }
   };
 
-  // Clear cache function
   const clearCache = () => {
-    console.log("🗑️ Clear cache");
     setAllAnswersCache(null);
   };
 
@@ -365,7 +360,7 @@ export function AnswersTable() {
                       {item.uploadedFiles.map((file, i) => (
                         <a
                           key={i}
-                          href={`${FILE_BASE_URL}${file}`}
+                          href={`${BaseUrl}${file}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-800 text-xs underline"
