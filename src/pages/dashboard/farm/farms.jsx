@@ -217,6 +217,7 @@ export function Farms() {
                   <th className="px-2 py-2 font-semibold uppercase">SĐT</th>
                   <th className="px-2 py-2 font-semibold uppercase">Địa chỉ</th>
                   <th className="px-2 py-2 font-semibold uppercase">Diện tích</th>
+                  <th className="px-2 py-2 font-semibold uppercase">Số video</th>
                   <th className="px-2 py-2 font-semibold uppercase">Trạng thái</th>
                   <th className="px-2 py-2 font-semibold uppercase">Thao tác</th>
                 </tr>
@@ -245,6 +246,7 @@ export function Farms() {
                       {farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
                     </td>
                     <td className="px-2 py-2">{farm.area} m²</td>
+                    <td className="px-2 py-2">{farm.videoCount ?? "—"}</td>
                     <td className="px-2 py-2">
                       <Chip
                         value={
