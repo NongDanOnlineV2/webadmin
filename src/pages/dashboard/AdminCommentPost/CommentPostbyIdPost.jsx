@@ -64,7 +64,9 @@ try {
     } else if (CommentByIdPost && CommentByIdPost.comments && Array.isArray(CommentByIdPost.comments)) {
       comments = CommentByIdPost.comments;
     }
-        return comments.filter(comment => comment.status === true);
+    
+    // HIỂN THỊ TẤT CẢ COMMENT (cả đã xóa và chưa xóa)
+    return comments; // Bỏ filter để hiển thị tất cả
   };
 
   const formatDate = (dateString) => {
@@ -77,6 +79,12 @@ try {
   };
   const renderCommentActions = (item, index) => {
     const uniqueKey = `comment-${item.createdAt}-${index}`;
+    
+    // KHÔNG HIỂN THỊ MENU CHO COMMENT ĐÃ XÓA
+    if (item.status === false) {
+      return null;
+    }
+    
     return (
       <div className="relative">
         <button
@@ -163,7 +171,6 @@ try {
       );
     }
 
-   
     const sortedComments = [...comments].sort((a, b) => {
       const dateA = new Date(a.createdAt);
       const dateB = new Date(b.createdAt);
@@ -173,39 +180,73 @@ try {
     return (
       <div className="space-y-6">
         {sortedComments.map((comment, index) => {
-
           const originalIndex = comments.findIndex(c => c.createdAt === comment.createdAt && c.comment === comment.comment);
           const uniqueKey = `comment-${comment.createdAt}-${index}`;
+          const isDeleted = comment.status === false;
           
           return (
-            <div key={uniqueKey} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden">
-       
+            <div 
+              key={uniqueKey} 
+              className={`border rounded-2xl p-6 shadow-sm transition-all duration-300 group overflow-hidden ${
+                isDeleted 
+                  ? 'bg-red-50 border-red-200 opacity-75' 
+                  : 'bg-white border-gray-200 hover:shadow-lg'
+              }`}
+            >
+              {/* BADGE ĐÃ XÓA */}
+              {isDeleted && (
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Bình luận đã bị xóa
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                   <div className="relative flex-shrink-0">
                     <img
                       src={getImageUrl(comment.userId?.avatar)}
                       alt={comment.userId?.fullName || 'User'}
-                      className="w-14 h-14 rounded-full border-3 border-gray-200 object-cover shadow-md"
+                      className={`w-14 h-14 rounded-full border-3 object-cover shadow-md ${
+                        isDeleted ? 'border-red-300 grayscale' : 'border-gray-200'
+                      }`}
                     />
+                    {isDeleted && (
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h4 
-                        className="font-bold text-gray-900 text-lg hover:text-blue-600 cursor-pointer transition-colors duration-200 truncate"
+                        className={`font-bold text-lg transition-colors duration-200 truncate ${
+                          isDeleted 
+                            ? 'text-gray-500' 
+                            : 'text-gray-900 hover:text-blue-600 cursor-pointer'
+                        }`}
                         onClick={() => {
-                          const userId = comment.userId?._id || comment.userId?.id || comment.userId;
-                          if (userId) {
-                            navigate(`/dashboard/users/${userId}`);
+                          if (!isDeleted) {
+                            const userId = comment.userId?._id || comment.userId?.id || comment.userId;
+                            if (userId) {
+                              navigate(`/dashboard/users/${userId}`);
+                            }
                           }
                         }}
-                        title="Xem chi tiết người dùng"
+                        title={isDeleted ? "Người dùng đã xóa bình luận" : "Xem chi tiết người dùng"}
                       >
                         {comment.userId?.fullName || 'Người dùng'}
                       </h4>
-           
                     </div>
-                    <p className="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
+                    <p className={`text-sm flex items-center gap-2 flex-wrap ${
+                      isDeleted ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
                       <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -213,7 +254,7 @@ try {
                     </p>
                   </div>
                 </div>
-                {/* Always visible 3-dot menu */}
+                {/* Chỉ hiển thị menu cho comment chưa xóa */}
                 <div className="flex-shrink-0 ml-2">
                   {renderCommentActions(comment, originalIndex)}
                 </div>
@@ -221,27 +262,43 @@ try {
 
               {/* Comment Content */}
               <div className="mb-6">
-                <div className="bg-gray-50 rounded-xl p-4 border-l-4 border-blue-500">
-                  <p className="text-gray-800 leading-relaxed break-words text-lg overflow-wrap-anywhere whitespace-pre-wrap max-w-full">
-                    {comment.comment}
-                  </p>
+                <div className={`rounded-xl p-4 border-l-4 ${
+                  isDeleted 
+                    ? 'bg-red-50 border-red-400' 
+                    : 'bg-gray-50 border-blue-500'
+                }`}>
+                  {isDeleted ? (
+                    <div className="space-y-3">
+                        <div className="bg-white border border-red-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                        </div>
+                        <p className="text-gray-800 leading-relaxed break-words text-base overflow-wrap-anywhere whitespace-pre-wrap max-w-full bg-gray-50 p-2 rounded border-l-4 border-orange-400">
+                          {comment.comment}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-800 leading-relaxed break-words text-lg overflow-wrap-anywhere whitespace-pre-wrap max-w-full">
+                      {comment.comment}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Comment Stats */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                    <span className="font-medium">{comment.replies?.length || 0} phản hồi</span>
+              {!isDeleted && (
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span className="font-medium">{comment.replies?.length || 0} phản hồi</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Replies */}
-              {comment.replies && comment.replies.length > 0 && (
+              {!isDeleted && comment.replies && comment.replies.length > 0 && (
                 <div className="mt-6 pl-6 border-l-2 border-gradient-to-b from-blue-200 to-indigo-200">
                   <div className="mb-4">
                     <div className="flex items-center gap-2">
@@ -656,6 +713,12 @@ if(CommentsDialog?.postId) {
                         <div className="flex items-center gap-4">
                           <div className="text-sm text-gray-500">
                             Sắp xếp theo thời gian mới nhất
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            • Tổng: {getCommentsData().length} bình luận
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            • Đã xóa: {getCommentsData().filter(c => c.status === false).length}
                           </div>
                           <button
                             onClick={() => setShowComments(false)}

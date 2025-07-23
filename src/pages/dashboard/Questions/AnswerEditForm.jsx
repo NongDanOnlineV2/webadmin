@@ -87,7 +87,6 @@ export default function AnswersTable() {
 
     try {
       setIsSubmitting(true);
-      console.log("Gửi update cho answer ID:", form._id);
       await axios.put(`${BaseUrl}/answers/${form._id}`, {
         selectedOptions: form.selectedOptions,
         otherText: form.otherText,
