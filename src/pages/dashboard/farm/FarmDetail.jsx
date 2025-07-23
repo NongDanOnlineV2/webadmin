@@ -134,7 +134,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
   const fetchQuestions = async () => {
     setLoadingQuestions(true);
     try {
-      const res = await axios.get(`${BaseUrl}/admin-questions?limit=10`, getOpts());
+      const res = await axios.get(`${BaseUrl}/admin-questions?limit=15`, getOpts());
       setQuestions(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
       console.error("Lỗi câu hỏi:", err);
@@ -377,7 +377,6 @@ export default function FarmDetail({ open, onClose, farmId }) {
                 Xem câu hỏi và trả lời
               </Button>
             </div>
-
             <Dialog open={showChanges} handler={handleToggleChanges} size="lg">
               <DialogHeader>Danh sách câu hỏi và câu trả lời</DialogHeader>
               <DialogBody className="space-y-4 max-h-[70vh] overflow-y-auto">
