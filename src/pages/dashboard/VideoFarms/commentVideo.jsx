@@ -4,34 +4,33 @@ import {
   Dialog, DialogHeader, DialogBody, DialogFooter,
   Card, Input, Button, Typography, Spinner,
 } from "@material-tailwind/react";
-
-const BASE = "https://api-ndolv2.nongdanonline.cc/video-comment";
+import { BaseUrl } from "@/ipconfig";
 const token = () => localStorage.getItem("token");
 
 const fetchComments = (videoId) =>
   axios
-    .get(`${BASE}/${videoId}/comments`, {
+    .get(`${BaseUrl}/video-comment/${videoId}/comments`, {
       headers: { Authorization: `Bearer ${token()}` },
     })
     .then((r) => r.data);
 
 const addComment = (videoId, body) =>
-  axios.post(`${BASE}/${videoId}/comment`, body, {
+  axios.post(`${BaseUrl}/video-comment/${videoId}/comment`, body, {
     headers: { Authorization: `Bearer ${token()}` },
   });
 
 const replyComment = (videoId, commentIndex, body) =>
-  axios.post(`${BASE}/${videoId}/comment/${commentIndex}/reply`, body, {
+  axios.post(`${BaseUrl}/video-comment/${videoId}/comment/${commentIndex}/reply`, body, {
     headers: { Authorization: `Bearer ${token()}` },
   });
 
 const hideComment = (videoId, commentIndex) =>
-  axios.delete(`${BASE}/${videoId}/comment/${commentIndex}`, {
+  axios.delete(`${BaseUrl}/video-comment/${videoId}/comment/${commentIndex}`, {
     headers: { Authorization: `Bearer ${token()}` },
   });
 
 const hideReply = (videoId, commentIndex, replyIndex) =>
-  axios.delete(`${BASE}/${videoId}/comment/${commentIndex}/reply/${replyIndex}`, {
+  axios.delete(`${BaseUrl}/video-comment/${videoId}/comment/${commentIndex}/reply/${replyIndex}`, {
     headers: { Authorization: `Bearer ${token()}` },
   });
 
@@ -158,7 +157,7 @@ export default function CommentVideo({ open, onClose, videoId }) {
                       size="sm"
                       variant="text"
                       color="red"
-                      onClick={() =>{console.log("Hide comment index:", i, "Comment:", c); handleHideComment(c.index)}} 
+                      onClick={() =>{ handleHideComment(c.index)}} 
                     >
                       Ẩn
                     </Button>
@@ -204,7 +203,7 @@ export default function CommentVideo({ open, onClose, videoId }) {
                           size="sm"
                           variant="text"
                           color="red"
-                          onClick={() => {console.log("Hide reply index (backend):", c.index, "reply index (backend):", r.index);
+                          onClick={() => {
                             handleHideReply(c.index, r.index)}} 
                         >
                           Ẩn

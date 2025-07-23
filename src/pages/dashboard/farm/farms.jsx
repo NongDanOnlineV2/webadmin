@@ -21,8 +21,7 @@ import {
 
 import FarmForm from "../user/FarmForm";
 import FarmDetail from "./FarmDetail";
-
-const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+import { BaseUrl } from "@/ipconfig";
 const getOpts = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 });
@@ -59,7 +58,7 @@ export function Farms() {
 
   const addFarm = async (data) => {
     try {
-      await axios.post(`${BASE_URL}/adminfarms`, data, getOpts());
+      await axios.post(`${BaseUrl}/adminfarms`, data, getOpts());
       await fetchFarms();
       alert("Tạo farm thành công!");
     } catch (err) {
@@ -69,7 +68,7 @@ export function Farms() {
 
   const editFarm = async (id, data) => {
     try {
-      await axios.put(`${BASE_URL}/adminfarms/${id}`, data, getOpts());
+      await axios.put(`${BaseUrl}/adminfarms/${id}`, data, getOpts());
       await fetchFarms();
     } catch (err) {
       alert("Lỗi sửa: " + (err.response?.data?.message || err.message));
@@ -78,7 +77,7 @@ export function Farms() {
 
   const deleteFarm = async (id) => {
     try {
-      await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
+      await axios.delete(`${BaseUrl}/adminfarms/${id}`, getOpts());
       await fetchFarms();
     } catch (err) {
       alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
@@ -94,7 +93,7 @@ export function Farms() {
     if (!window.confirm(`Bạn có chắc chắn muốn ${actionMap[action] || action} farm này không?`)) return;
 
     try {
-      await axios.patch(`${BASE_URL}/adminfarms/${id}/${action}`, null, getOpts());
+      await axios.patch(`${BaseUrl}/adminfarms/${id}/${action}`, null, getOpts());
       await fetchFarms();
     } catch (err) {
       alert(`Lỗi ${actionMap[action] || action}: ` + (err.response?.data?.message || err.message));
@@ -122,7 +121,7 @@ export function Farms() {
     const fetchFarms = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`${BASE_URL}/adminfarms`, {
+        const res = await axios.get(`${BaseUrl}/adminfarms`, {
           ...getOpts(),
           params: {
             limit: itemsPerPage,
@@ -143,7 +142,6 @@ export function Farms() {
           ownerInfo: farm.ownerInfo || null,
         }));
 
-        console.log("Fetched farms:", farms);
 
         const total = res.data?.total || 0;
 

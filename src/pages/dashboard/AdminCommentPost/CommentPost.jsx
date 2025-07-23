@@ -19,7 +19,6 @@ export const CommentPost = () => {
   const [pageCache, setPageCache] = useState(new Map());
   const [openCommentDetailDialog, setOpenCommentDetailDialog] = useState(false);
   const [selectedComment, setSelectedComment] = useState(null);
-
   const handleOpenDialogComments = (cmtDialog) => {
     setCommentsDialog(cmtDialog)
     setOpenDialogComments(true)
