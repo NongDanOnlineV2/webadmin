@@ -219,6 +219,14 @@ export default function Users() {
         });
       }
 
+      if (selectedUser.addresses?.[0]?.id) {
+        await axios.put(`${BaseUrl}/user-addresses/${selectedUser.addresses[0].id}`, {
+          address: formData.addresses[0]
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+
       alert("Cập nhật thành công!");
       fetchUsers();
       setEditOpen(false);
