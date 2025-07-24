@@ -86,19 +86,6 @@ export default function UserDetail() {
   return allData;
 };
 
-
-  const handleShowMoreFarms = () => {
-    setVisibleFarms((prev) => prev + 6);
-  };
-
-  const handleShowMoreVideos = () => {
-    setVisibleVideos((prev) => prev + 6);
-  };
-
-  const handleShowMorePosts = () => {
-    setVisiblePosts((prev) => prev + 6);
-  };
-
   const fetchPostCommentsUsers = async (postId, postTitle) => {
   const token = localStorage.getItem("token");
   const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -293,6 +280,32 @@ const handleOpenFarms = async () => {
     setLoadingFarms(false);
   }
 };
+const handleLoadMoreFarms = async () => {
+  if (loadingFarms || !hasMoreFarms) return;
+
+  setLoadingFarms(true);
+  try {
+    const token = localStorage.getItem("token");
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    const limit = 6;
+
+    const res = await axios.get(`${BaseUrl}/adminfarms/by-user/${id}?page=${farmPage}&limit=${limit}`, config);
+    const { data, totalPages } = res.data;
+
+    setFarms((prev) => [...prev, ...data]);
+    setFarmPage((prev) => prev + 1);
+
+    if (totalPages && farmPage >= totalPages) {
+      setHasMoreFarms(false);
+    } else if (!data.length || data.length < limit) {
+      setHasMoreFarms(false);
+    }
+  } catch (err) {
+    console.error("Lỗi khi tải thêm farms:", err);
+  } finally {
+    setLoadingFarms(false);
+  }
+};
 
 const handleOpenPosts = async () => {
   if (loadingPosts) return;
@@ -327,6 +340,33 @@ const handleOpenPosts = async () => {
     }
   }
 };
+const handleLoadMorePosts = async () => {
+  if (loadingPosts || !hasMorePosts) return;
+
+  setLoadingPosts(true);
+  try {
+    const token = localStorage.getItem("token");
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    const limit = 6;
+
+    const res = await axios.get(`${BaseUrl}/admin-post-feed/user/${id}?page=${postPage}&limit=${limit}`, config);
+    const { data, totalPages } = res.data;
+
+    setPosts((prev) => [...prev, ...data]);
+    setPostPage((prev) => prev + 1);
+
+    if (totalPages && postPage >= totalPages) {
+      setHasMorePosts(false);
+    } else if (!data.length || data.length < limit) {
+      setHasMorePosts(false);
+    }
+  } catch (err) {
+    console.error("Lỗi khi tải thêm bài viết:", err);
+  } finally {
+    setLoadingPosts(false);
+  }
+};
+
 
 const handleOpenVideos = async () => {
   if (loadingVideos) return;
@@ -356,6 +396,33 @@ const handleOpenVideos = async () => {
     }
   } catch (err) {
     console.error("Lỗi khi load videos:", err);
+  } finally {
+    setLoadingVideos(false);
+  }
+};
+
+const handleLoadMoreVideos = async () => {
+  if (loadingVideos || !hasMoreVideos) return;
+
+  setLoadingVideos(true);
+  try {
+    const token = localStorage.getItem("token");
+    const config = { headers: { Authorization: `Bearer ${token}` } };
+    const limit = 6;
+
+    const res = await axios.get(`${BaseUrl}/admin-video-farm/user/${id}?page=${videoPage}&limit=${limit}`, config);
+    const { data, totalPages } = res.data;
+
+    setVideos((prev) => [...prev, ...data]);
+    setVideoPage((prev) => prev + 1);
+
+    if (totalPages && videoPage >= totalPages) {
+      setHasMoreVideos(false);
+    } else if (!data.length || data.length < limit) {
+      setHasMoreVideos(false);
+    }
+  } catch (err) {
+    console.error("Lỗi khi load thêm videos:", err);
   } finally {
     setLoadingVideos(false);
   }
@@ -791,7 +858,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       }
                       className="px-3 py-1 rounded-full bg-red-50 text-red-600 font-medium text-xs cursor-pointer shadow hover:bg-red-100 transition"
                     >
-                      ❤️ Xem lượt thích
+                      ❤️ Lượt thích: {video.likeCount || 0}
                     </button>
                     <button
                       onClick={() =>
@@ -799,7 +866,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       }
                       className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-medium text-xs cursor-pointer shadow hover:bg-blue-100 transition"
                     >
-                      💬 Xem lượt bình luận
+                      💬 Bình luận: {video.commentCount || 0}
                     </button>
                   </div>
                 </div>
@@ -808,7 +875,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           )}
           {hasMoreVideos && (
           <div className="text-center mt-4">
-            <Button onClick={handleOpenVideos} disabled={loadingVideos}>
+            <Button onClick={handleLoadMoreVideos} disabled={loadingVideos}>
               {loadingVideos ? "Đang tải..." : "Xem thêm Video"}
             </Button>
           </div>
@@ -933,6 +1000,9 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                         </Typography>
                       </div>
                     )}
+                    <Typography>
+                      <b>Số video:</b> {farm.videoCount ?? 0}
+                    </Typography>
                   </div>
 
                   {/* Số lượng video và nút xem chi tiết */}
@@ -967,7 +1037,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           )}
           {hasMoreFarms && (
           <div className="text-center mt-4">
-            <Button onClick={handleOpenFarms} disabled={loadingFarms}>
+            <Button onClick={handleLoadMoreFarms} disabled={loadingFarms}>
               {loadingFarms ? "Đang tải..." : "Xem thêm Farms"}
             </Button>
           </div>
@@ -1323,16 +1393,16 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   {/* Lượt thích & Bình luận */}
                   <div className="flex flex-wrap gap-2 mt-3">
                     <button
-                      onClick={() => fetchPostLikesUsers(post.id, post.title)}
+                      onClick={() => fetchPostLikesUsers(post._id, post.title)}
                       className="px-3 py-1 rounded-full bg-red-50 text-red-600 font-medium text-xs cursor-pointer shadow hover:bg-red-100 transition"
                     >
-                      ❤️ Xem lượt thích
+                      ❤️ Lượt thích: {post.likeCount || 0}
                     </button>
                     <button
-                      onClick={() => fetchPostCommentsUsers(post.id, post.title)}
+                      onClick={() => fetchPostCommentsUsers(post._id, post.title)}
                       className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-medium text-xs cursor-pointer shadow hover:bg-blue-100 transition"
                     >
-                      💬 Xem bình luận
+                      💬 Lượt bình luận: {post.commentCount || 0}
                     </button>
                   </div>
                 </div>
@@ -1341,7 +1411,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           )}
           {hasMorePosts && (
           <div className="text-center mt-4">
-            <Button onClick={handleOpenPosts} disabled={loadingPosts}>
+            <Button onClick={handleLoadMorePosts} disabled={loadingPosts}>
               {loadingPosts ? "Đang tải..." : "Xem thêm Posts"}
             </Button>
           </div>
