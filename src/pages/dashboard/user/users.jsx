@@ -154,7 +154,7 @@ export default function Users() {
     //   setTotalPages(cached.totalPages || 1);
     //   setCounts(cached.counts || {}); // Sử dụng counts từ cache
     // } else {
-      fetchUsers();
+      // fetchUsers();
     // }
   }, [token, page, filterRole, filterStatus, isSearching]);
 
