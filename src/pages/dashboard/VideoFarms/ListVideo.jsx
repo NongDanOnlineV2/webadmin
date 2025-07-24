@@ -25,6 +25,7 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
     const res = await axios.get(`${BaseUrl}/admin-video-farm?${params}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
+    console.log("📦 Full API Response:", res.data);
         
     let videos = [];
     if (Array.isArray(res.data.data)) {
