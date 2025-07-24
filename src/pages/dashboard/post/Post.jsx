@@ -26,7 +26,6 @@ export function PostList() {
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 10;
   const [filterTitle, setFilterTitle] = useState("");
-  const [filterSortLikes, setFilterSortLikes] = useState("");
   const [filterSortComments, setFilterSortComments] = useState("");
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState(null);
@@ -38,6 +37,8 @@ export function PostList() {
   const [sortAuthor, setSortAuthor] = useState("");
   const [sortDate, setSortDate] = useState("");
   const [filterImage, setFilterImage] = useState("");
+  const [filterComment, setFilterComment] = useState("");
+  const [filterSortLikes, setFilterSortLikes] = useState("");
 
   const fetchPosts = async () => {
     if (postCache[currentPage]) {
@@ -347,8 +348,44 @@ export function PostList() {
               </div>
             </th>
 
-            <th className="p-3 border text-center">Số video</th>
-            <th className="p-3 border text-center">Lượt thích</th>
+             <th className="p-3 border text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <span>Bình luận</span>
+                  <select
+                    className="text-sm border rounded px-1 py-0.5"
+                    value={filterComment}
+                    onChange={(e) => {
+                      setFilterComment(e.target.value);
+                      setPostCache({});
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="">--</option>
+                    <option value="asc">Ít nhất</option>
+                    <option value="desc">Nhiều nhất</option>
+                  </select>
+                </div>
+              </th>
+
+            <th className="p-3 border text-center">
+              <div className="flex flex-col gap-1 items-center">
+                <span>Lượt thích</span>
+                <select
+                  className="text-sm border rounded px-1 py-0.5"
+                  value={filterSortLikes}
+                  onChange={(e) => {
+                    setFilterSortLikes(e.target.value);
+                    setPostCache({});
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="">--</option>
+                  <option value="asc">Ít nhất</option>
+                  <option value="desc">Nhiều nhất</option>
+                </select>
+              </div>
+            </th>
+
             <th className="p-3 border">
               <div className="flex flex-col gap-1">
                 <span>Tác giả</span>
@@ -407,10 +444,10 @@ export function PostList() {
                   )}
                 </td>
                    <td className="p-3 border text-center">
-                      {post.videosCount ?? 0}
+                      {post.commentCount ?? 0}
                     </td>
                     <td className="p-3 border text-center">
-                      {post.likesCount ?? 0}
+                      {post.like ?? 0}
                     </td>
                 <td className="p-3 border">
                   <div className="flex items-center gap-2">
