@@ -189,7 +189,7 @@ export default function Users() {
       selectedAddress: "",
     });
     try {
-      const res = await axios.get(`${apiUrl}/admin/user-address/user/${user.id}`, {
+      const res = await axios.get(`${apiUrl}/admin/user-address/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUserAddresses(res.data || []);
@@ -278,9 +278,9 @@ export default function Users() {
     if (!token || !selectedUser) return;
     try {
       if (selectedRole === "Farmer") {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
       } else {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
       }
       alert("Thêm role thành công!");
       fetchUsers();
