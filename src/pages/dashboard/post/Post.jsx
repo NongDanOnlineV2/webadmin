@@ -412,7 +412,7 @@ export function PostList() {
                 key={post.id}
                 className="hover:bg-gray-50 cursor-pointer transition"
                 onClick={() => {
-                  setSelectedPostId(post.id);
+                  setSelectedPostId(post._id);
                   setIsDetailOpen(true);
                 }}
               >
