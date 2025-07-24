@@ -104,72 +104,65 @@ export function Farms() {
     setSelectedFarmId(id);
     setOpenDetail(true);
   };
+useEffect(() => {
+  const controller = new AbortController();
+  const { signal } = controller;
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-    const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
-    if (farmCache[cacheKey]) {
-      setFarms(farmCache[cacheKey].farms);
-      setTotalPage(farmCache[cacheKey].totalPages);
-      setLoading(false);
-      return;
+  fetchFarms(signal);
+
+  return () => controller.abort();
+}, [currentPage, tab, searchQuery]);
+
+const fetchFarms = async (signal = null) => {
+  const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
+  if (farmCache[cacheKey]) {
+    setFarms(farmCache[cacheKey].farms);
+    setTotalPage(farmCache[cacheKey].totalPages);
+    setLoading(false);
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const res = await axios.get(`${BaseUrl}/adminfarms`, {
+      ...getOpts(),
+      params: {
+        limit: itemsPerPage,
+        page: currentPage,
+        status: tab === "all" ? undefined : tab,
+        name: searchQuery || undefined,
+      },
+      signal,
+    });
+
+    let farms = (res.data?.data || []).sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    farms = farms.map((farm) => ({
+      ...farm,
+      ownerInfo: farm.ownerInfo || null,
+    }));
+
+    const total = res.data?.total || 0;
+
+    setFarms(farms);
+    setTotalPage(Math.ceil(total / itemsPerPage));
+    setFarmCache((prev) => ({
+      ...prev,
+      [cacheKey]: {
+        farms: farms,
+        totalPages: Math.ceil(total / itemsPerPage),
+      },
+    }));
+  } catch (err) {
+    if (!axios.isCancel(err)) {
+      setError(err.response?.data?.message || err.message);
     }
-
-    let videoControllers = [];
-
-    const fetchFarms = async () => {
-      setLoading(true);
-      try {
-        const res = await axios.get(`${BaseUrl}/adminfarms`, {
-          ...getOpts(),
-          params: {
-            limit: itemsPerPage,
-            page: currentPage,
-            status: tab === "all" ? undefined : tab,
-            name: searchQuery || undefined,
-          },
-          signal,
-        });
-
-        let farms = (res.data?.data || []).sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-        );
-
-        // 🔍 Gán fallback cho ownerInfo nếu thiếu
-        farms = farms.map((farm) => ({
-          ...farm,
-          ownerInfo: farm.ownerInfo || null,
-        }));
-
-
-        const total = res.data?.total || 0;
-
-        setFarms(farms.filter(Boolean));
-        setTotalPage(Math.ceil(total / itemsPerPage));
-        setFarmCache((prev) => ({
-          ...prev,
-          [cacheKey]: {
-            farms: farms,
-            totalPages: Math.ceil(total / itemsPerPage),
-          },
-        }));
-      } catch (err) {
-        if (!axios.isCancel(err)) {
-          setError(err.response?.data?.message || err.message);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFarms();
-
-    return () => {
-      controller.abort();
-      videoControllers.forEach((vc) => vc.abort());
-    };
-  }, [currentPage, tab, searchQuery]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <>
