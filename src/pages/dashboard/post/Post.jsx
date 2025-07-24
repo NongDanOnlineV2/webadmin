@@ -66,7 +66,7 @@ export function PostList() {
         },
       }
     );
-
+console.log(queryParams)
     const json = await res.json();
 
     if (res.ok) {

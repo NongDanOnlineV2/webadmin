@@ -8,7 +8,6 @@ import { Typography, Button, Menu, MenuHandler, MenuList, MenuItem } from '@mate
 import { Dialog } from '@material-tailwind/react';
 import VideoLikeList from './VideoLikeList';
 import CommentVideo from './commentVideo';
-//import Hls from 'hls.js';
 import {deletevideo, approvevideo} from './VideoById';
 
 const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
@@ -18,14 +17,12 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
     limit: limit.toString()
   });
   if (searchTerm && searchTerm.trim()) params.append('search', searchTerm.trim());
-  if (status && status.trim()) params.append('status', status.trim());
+  if (status && status !== '') params.append('status', status);
 
-  
   try {
     const res = await axios.get(`${BaseUrl}/admin-video-farm?${params}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-        
     let videos = [];
     if (Array.isArray(res.data.data)) {
       videos = res.data.data;
@@ -34,7 +31,7 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
     } else if (typeof res.data === 'object' && res.data !== null) {
       videos = res.data.data || res.data.videos || [];
     }
-    
+
     return {
       videos,
       totalPages: res.data.totalPages || 1
@@ -65,7 +62,8 @@ export const ListVideo = () => {
   const [confirmDialog, setConfirmDialog] = useState({ open: false, type: '', video: null });
   const [isProcessing, setIsProcessing] = useState(false);
   const [playingVideos, setPlayingVideos] = useState({});
-  const [videoCache, setVideoCache] = useState({}); // THÊM LẠI CACHE
+  const [videoCache, setVideoCache] = useState({}); 
+  const [searchCache, setSearchCache] = useState({}); 
   const limit = 9;
   const getStatusInVietnamese = (status) => {
     switch (status) {
@@ -78,81 +76,137 @@ export const ListVideo = () => {
       case 'deleted':
         return 'Đã xóa';
       default:
-        return status; 
+        return status;
     }
   };
-
   const handleSearch = (value) => {
     setSearchText(value);
   };
 
-  const performSearch = () => {
-    setActualSearchTerm(searchText.trim());
-    setPage(1);
-    // XÓA CACHE KHI SEARCH MỚI
-    setVideoCache({});
+  // Khi search, lấy tất cả item có status đã lọc ra (và hỗ trợ phân trang)
+  const performSearch = async (customPage = 1) => {
+    const searchKey = `${actualSearchTerm}-${filterStatus}-${customPage}`;
+    setPage(customPage);
+
+    // Nếu đã có cache cho search này thì dùng luôn
+    if (searchCache[searchKey]) {
+      setVideos(searchCache[searchKey].videos);
+      setTotalPages(searchCache[searchKey].totalPages);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Gọi API với search và status, truyền đúng page
+      const result = await fetchVideos(customPage, limit, actualSearchTerm, filterStatus);
+      setVideos(result.videos || []);
+      setTotalPages(result.totalPages || 1);
+      // Lưu cache cho search này
+      setSearchCache(prev => ({
+        ...prev,
+        [searchKey]: {
+          videos: result.videos || [],
+          totalPages: result.totalPages || 1,
+          timestamp: Date.now()
+        }
+      }));
+    } catch (error) {
+      setVideos([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Lọc trạng thái - BỎ ASYNC VÀ ĐỂ USEEFFECT XỬ LÝ
   const handleFilterChange = (e) => {
     const status = e.target.value;
     setFilterStatus(status);
     setPage(1);
-    // XÓA CACHE KHI FILTER MỚI
+    setSearchCache({});
     setVideoCache({});
+    if (actualSearchTerm) {
+      performSearch();
+    }
   };
 
+  // Khi clear search/filter
   const clearSearch = () => {
     setSearchText('');
     setActualSearchTerm('');
     setFilterStatus('');
     setPage(1);
-    // XÓA CACHE KHI CLEAR
+    setSearchCache({});
     setVideoCache({});
   };
+
+  // Khi nhấn nút tìm kiếm
+  const handleSearchClick = () => {
+    setActualSearchTerm(searchText.trim());
+    performSearch(1);
+  };
+
+  // Khi chuyển trang
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    if (actualSearchTerm) {
+      performSearch(newPage);
+    }
+    // Nếu không search thì useEffect sẽ tự xử lý
+  };
+
   // USEEFFECT VỚI CACHE
   useEffect(() => {
-    const loadVideos = async () => {
-      const cacheKey = `${page}-${actualSearchTerm}-${filterStatus}`;
-      
-      // KIỂM TRA CACHE TRƯỚC
-      if (videoCache[cacheKey]) {
+    // Nếu đang search thì không gọi lại ở đây, đã xử lý trong performSearch
+    if (actualSearchTerm) return;
 
-        const cachedData = videoCache[cacheKey];
-        setVideos(cachedData.videos);
-        setTotalPages(cachedData.totalPages);
+    const loadVideos = async () => {
+      // Nếu đang search thì ưu tiên cache search
+      if (actualSearchTerm) {
+        const searchKey = `${actualSearchTerm}-${filterStatus}`;
+        if (searchCache[searchKey]) {
+          setVideos(searchCache[searchKey].videos);
+          setTotalPages(searchCache[searchKey].totalPages);
+          setLoading(false);
+          return;
+        }
+        // Nếu chưa có cache search thì gọi lại performSearch
+        performSearch();
+        return;
+      }
+
+      // Nếu không search thì dùng cache phân trang như cũ
+      const cacheKey = `${page}-${actualSearchTerm}-${filterStatus}`;
+      if (videoCache[cacheKey]) {
+        setVideos(videoCache[cacheKey].videos);
+        setTotalPages(videoCache[cacheKey].totalPages);
         setLoading(false);
         return;
       }
-      
+
       setLoading(true);
-      
-      try {
-        const result = await fetchVideos(page, limit, actualSearchTerm, filterStatus);
-        setVideos(result.videos || []);
-        setTotalPages(result.totalPages || 1);
-        
-        // LƯU VÀO CACHE
-        setVideoCache(prev => ({
-          ...prev,
-          [cacheKey]: {
-            videos: result.videos || [],
-            totalPages: result.totalPages || 1,
-            timestamp: Date.now()
-          }
-        }));
-        
-      } catch (error) {
-        console.error('❌ Error loading videos:', error);
-        setVideos([]);
-        setTotalPages(1);
-      } finally {
-        setLoading(false);
-      }
+      fetchVideos(page, limit, '', filterStatus)
+        .then(result => {
+          setVideos(result.videos || []);
+          setTotalPages(result.totalPages || 1);
+          setVideoCache(prev => ({
+            ...prev,
+            [cacheKey]: {
+              videos: result.videos || [],
+              totalPages: result.totalPages || 1,
+              timestamp: Date.now()
+            }
+          }));
+        })
+        .catch(() => {
+          setVideos([]);
+          setTotalPages(1);
+        })
+        .finally(() => setLoading(false));
     };
 
     loadVideos();
-  }, [page, actualSearchTerm, filterStatus, videoCache]);
+  }, [page, actualSearchTerm, filterStatus, videoCache, searchCache]);
 
   // HÀM DỌN DẸP CACHE CŨ (option - chạy mỗi 5 phút)
   useEffect(() => {
@@ -244,13 +298,13 @@ export const ListVideo = () => {
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                onKeyPress={e => { if (e.key === 'Enter') performSearch(); }}
+                onKeyPress={e => { if (e.key === 'Enter') handleSearchClick(); }}
                 placeholder="Nhập từ khóa tìm kiếm..."
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <Button
                 size="sm"
-                onClick={performSearch}
+                onClick={handleSearchClick}
                 className="flex items-center gap-2 px-4 py-2"
                 disabled={loading}
               >
@@ -260,7 +314,7 @@ export const ListVideo = () => {
                 <Button
                   size="sm"
                   variant="outlined"
-                  onClick={() => { setSearchText(''); setActualSearchTerm(''); setPage(1); }}
+                  onClick={clearSearch}
                   className="flex items-center gap-2 px-4 py-2"
                 >
                   Xóa
@@ -346,10 +400,21 @@ export const ListVideo = () => {
                   Xóa bộ lọc
                 </Button>
               )}
+              {/* Báo lỗi rõ ràng khi không có kết quả tìm kiếm */}
+              {actualSearchTerm && videos.length === 0 && (
+                <div className="mt-2 text-red-600 font-semibold">
+                  Không tìm thấy kết quả nào cho từ khóa: <span className="font-bold">"{actualSearchTerm}"</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.isArray(videos) && videos.map((item, index) => (
+              {Array.isArray(videos) &&
+                // LỌC LẠI TRÊN UI ĐỂ ĐẢM BẢO CHỈ HIỆN ĐÚNG TRẠNG THÁI (nếu backend trả về sai)
+                [...videos]
+                  .filter(item => !filterStatus || item.status === filterStatus)
+                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                  .map((item, index) => (
                 <div key={item._id || index} className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-gray-100 rounded-t-lg flex items-center justify-center relative cursor-pointer"
                    onClick={() => togglePlayVideo(item._id)}
@@ -550,7 +615,7 @@ export const ListVideo = () => {
             size="sm"
             variant="outlined"
             disabled={page <= 1 || loading}
-            onClick={() => setPage(prev => prev - 1)}
+            onClick={() => handlePageChange(page - 1)}
           >
             Trang trước
           </Button>
@@ -561,7 +626,7 @@ export const ListVideo = () => {
             size="sm"
             variant="outlined"
             disabled={page >= totalPages || loading}
-            onClick={() => setPage(prev => prev + 1)}
+            onClick={() => handlePageChange(page + 1)}
           >
             Trang sau
           </Button>
