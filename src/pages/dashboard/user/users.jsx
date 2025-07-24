@@ -78,7 +78,6 @@ export default function Users() {
 
       const res = await api.get(`${BaseUrl}/admin-users`, { params });
       const usersData = res.data?.data || [];
-
       const postMap = {};
       allPosts.current.forEach(p => {
         const uid = p.userId || p.authorId?.id;
