@@ -126,6 +126,7 @@ console.log(queryParams)
   const handleEditClick = (post) => {
     setSelectedPost({
       ...post,
+      id: post._id,
       tagsInput: Array.isArray(post.tags) ? post.tags.join(", ") : "",
     });
     setOpenEdit(true);
@@ -144,12 +145,14 @@ console.log(queryParams)
           .map((tag) => tag.trim())
           .filter((tag) => tag !== ""),
         images: selectedPost.images,
-        authorId: selectedPost.authorId,
+        authorId: typeof selectedPost.authorId === 'object'
+        ? selectedPost.authorId._id
+        : selectedPost.authorId,
       };
 
 
       const res = await fetch(
-        `${BaseUrl}/admin-post-feed/${selectedPost.id}`,
+        `${BaseUrl}/admin-post-feed/${selectedPost._id}`,
         {
           method: "PUT",
           headers: {
@@ -167,7 +170,7 @@ console.log(queryParams)
 
         setPosts((prevPosts) =>
           prevPosts.map((p) =>
-            p.id === selectedPost.id
+            p._id === selectedPost._id
               ? {
                   ...p,
                   title: selectedPost.title,
@@ -488,7 +491,7 @@ console.log(queryParams)
                       <MenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          deletePost(post.id);
+                          deletePost(post._id);
                         }}
                         className="text-red-500"
                       >

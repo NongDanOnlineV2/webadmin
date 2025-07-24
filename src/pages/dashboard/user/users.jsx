@@ -206,7 +206,7 @@ export default function Users() {
   const handleUpdate = async () => {
     if (!token || !selectedUser) return;
     try {
-      await axios.put(`${apiUrl}/admin-users/${selectedUser.id}`, {
+      await axios.put(`${apiUrl}/admin-users/${selectedUser._id}`, {
         fullName: formData.fullName,
         phone: formData.phone
       }, {
@@ -214,7 +214,7 @@ export default function Users() {
       });
 
       if (formData.isActive !== selectedUser.isActive) {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/active`, {}, {
+        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/active`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }
@@ -292,7 +292,7 @@ export default function Users() {
   const handleRemoveRole = async (role) => {
     if (!token || !selectedUser) return;
     try {
-      await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
       alert("Xoá role thành công!");
       fetchUsers();
     } catch {
