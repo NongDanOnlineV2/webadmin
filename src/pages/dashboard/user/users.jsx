@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import api from "@/utils/axiosInstance";
-import axios from "axios";
+import api from "@/utils/axiosInstance"; // thay axios = api
+import axios from 'axios';
 import {
   Typography, IconButton, Menu, MenuHandler, MenuList, MenuItem,
   Dialog, DialogHeader, DialogBody, DialogFooter,
@@ -8,18 +8,17 @@ import {
 } from "@material-tailwind/react";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
-import CreatableSelect from "react-select/creatable";
-
+import CreatableSelect from 'react-select/creatable';
 const allFarms = { current: [] };
 const allVideos = { current: [] };
 const allPosts = { current: [] };
-
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const [editOpen, setEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -30,6 +29,7 @@ export default function Users() {
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
   const [cacheUsers, setCacheUsers] = useState([]);
+
   const [filterRole, setFilterRole] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -39,8 +39,7 @@ export default function Users() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const apiUrl = "https://api-ndolv2.nongdanonline.cc";
-
-  const fetchAllData = async () => {
+const fetchAllData = async () => {
     try {
       const getAllPages = async (endpoint) => {
         let page = 1;
@@ -57,17 +56,12 @@ export default function Users() {
         return items;
       };
 
-      [allFarms.current, allVideos.current, allPosts.current] = await Promise.all([
-        getAllPages("adminfarms"),
-        getAllPages("admin-video-farm"),
-        getAllPages("admin-post-feed")
-      ]);
     } catch (err) {
       console.error("Lỗi tải toàn bộ farms/videos/posts:", err);
     }
   };
-
-  const fetchUsers = async () => {
+  // Fetch users + counts
+    const fetchUsers = async () => {
     if (!token) return;
     setLoading(true);
     try {
@@ -75,8 +69,8 @@ export default function Users() {
       if (filterRole) params.role = filterRole;
       if (filterStatus) params.isActive = filterStatus === "Active";
 
-      const res = await api.get(`/admin-users`, { params });
-      const usersData = res.data?.data || [];
+    const res = await api.get(`/admin-users`, { params }); 
+    const usersData = res.data?.data || [];
 
       const postMap = {};
       allPosts.current.forEach(p => {
@@ -117,39 +111,19 @@ export default function Users() {
     }
   };
 
-  useEffect(() => {
-    if (!token) return;
-    fetchAllData().catch(err => {
+ useEffect(() => {
+  if (!token) return;
+
+  fetchAllData()
+    // .then(fetchUsers)
+    .catch((err) => {
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
         window.location.href = "/login";
       }
     });
-  }, []);
-
-  useEffect(() => {
-    if (!token) {
-      setError("Không tìm thấy token!");
-      setLoading(false);
-      return;
-    }
-
-    if (isSearching) return;
-
-    const cached = cacheUsers.find(
-      (entry) => entry.page === page && entry.role === filterRole && entry.status === filterStatus
-    );
-
-    if (cached) {
-      setUsers(cached.users);
-      setTotalPages(cached.totalPages || 1);
-      setCounts(cached.counts || {});
-      setLoading(false);
-    } else {
-      fetchUsers();
-    }
-  }, [token, page, filterRole, filterStatus, isSearching]);
-
+}, []);
+  // Search
   const handleSearch = async () => {
     if (!token) return;
     setLoading(true);
@@ -158,14 +132,12 @@ export default function Users() {
       if (filterRole) paramsCommon.role = filterRole;
       if (filterStatus) paramsCommon.isActive = filterStatus === "Active";
 
-      const [byName] = await Promise.all([
-        axios.get(`${apiUrl}/admin-users`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { ...paramsCommon, fullName: searchText }
-        })
+      const [byName, byEmail, byPhone] = await Promise.all([
+        axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, fullName: searchText } }),
+        // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, email: searchText } }),
+        // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, phone: searchText } }),
       ]);
-
-      const merged = [...(byName.data.data || [])];
+      const merged = [...(byName.data.data || []), ...(byEmail.data.data || []), ...(byPhone.data.data || [])];
       const unique = merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
       setUsers(unique);
       setTotalPages(1);
@@ -179,54 +151,76 @@ export default function Users() {
     }
   };
 
-  const openEdit = async (user) => {
+ useEffect(() => {
+  if (!token) {
+    setError("Không tìm thấy token!");
+    setLoading(false);
+    return;
+  }
+
+  if (isSearching) return;
+
+  const cached = cacheUsers.find(
+    (entry) =>
+      entry.page === page &&
+      entry.role === filterRole &&
+      entry.status === filterStatus
+  );
+
+  if (cached) {
+    // ⚡ Load từ cache nếu đã có
+    setUsers(cached.users);
+    setTotalPages(cached.totalPages || 1);
+    setCounts(cached.counts || {});
+    setLoading(false);
+  } else {
+    // 🚀 Nếu chưa cache thì mới fetch
+    fetchUsers();
+  }
+}, [token, page, filterRole, filterStatus, isSearching]);
+
+
+  // Edit
+  const openEdit = async  (user) => {
     setSelectedUser(user);
     setFormData({
-      fullName: user.fullName,
-      email: user.email,
-      phone: user.phone || "",
+      fullName: user.fullName, email: user.email,
+      phone: user.phone || "", 
       isActive: user.isActive,
       selectedAddress: "",
     });
     try {
-      const res = await axios.get(`${apiUrl}/admin/user-address/user/${user.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setUserAddresses(res.data || []);
-      if (res.data.length > 0) {
-        setFormData(prev => ({ ...prev, selectedAddress: res.data[0].address }));
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách địa chỉ:", error);
-      setUserAddresses([]);
+    const res = await axios.get(`${apiUrl}/admin/user-address/user/${user.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setUserAddresses(res.data || []);
+    if (res.data.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        selectedAddress: res.data[0].address
+      }));
     }
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách địa chỉ:", error);
+    setUserAddresses([]);
+  }
+
     setEditOpen(true);
   };
-
-  const handleUpdate = async () => {
+  
+// CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
+ const handleUpdate = async () => {
     if (!token || !selectedUser) return;
     try {
-      await axios.put(`${apiUrl}/admin-users/${selectedUser.id}`, {
-        fullName: formData.fullName,
-        phone: formData.phone
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.put(`${apiUrl}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
 
       if (formData.isActive !== selectedUser.isActive) {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/active`, {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/active`, {}, { headers: { Authorization: `Bearer ${token}` } });
       }
 
-      if (selectedUser.addresses?.[0]?.id) {
-        await axios.put(`${apiUrl}/user-addresses/${selectedUser.addresses[0].id}`, {
-          address: formData.addresses[0]
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
-
+      // if (selectedUser.addresses?.[0]?.id) {
+      //   await axios.put(`${apiUrl}/user-addresses/${selectedUser.addresses[0].id}`, { address: formData.addresses[0] }, { headers: { Authorization: `Bearer ${token}` } });
+      // }
       alert("Cập nhật thành công!");
       fetchUsers();
       setEditOpen(false);
@@ -248,13 +242,13 @@ export default function Users() {
   }
 
   try {
-    await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/active`, {}, {
+    await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/active`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
     setFormData(prev => ({ ...prev, isActive: newIsActive }));
     setUsers(prev =>
-      prev.map(u => u.id === selectedUser.id ? { ...u, isActive: newIsActive } : u)
+      prev.map(u => u.id === selectedUser._id ? { ...u, isActive: newIsActive } : u)
     );
 
     alert("Cập nhật trạng thái thành công!");
@@ -278,9 +272,9 @@ export default function Users() {
     if (!token || !selectedUser) return;
     try {
       if (selectedRole === "Farmer") {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
       } else {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
       }
       alert("Thêm role thành công!");
       fetchUsers();
@@ -292,7 +286,7 @@ export default function Users() {
   const handleRemoveRole = async (role) => {
     if (!token || !selectedUser) return;
     try {
-      await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
       alert("Xoá role thành công!");
       fetchUsers();
     } catch {
@@ -349,50 +343,58 @@ export default function Users() {
 
 
 
-    {loading && <div className="flex justify-center py-4"><Spinner /></div>}
+      {loading && <div className="flex justify-center py-4"><Spinner /></div>}
       {error && <p className="text-red-500">{error}</p>}
 
       <div className="overflow-x-auto">
         <table className="min-w-full border">
           <thead>
             <tr className="bg-gray-100">
-              {["Avatar", "Tên", "Email", "Phone", "Role", "Posts", "Farms", "Videos", "Trạng thái", "Thao tác"].map((head, index) => (
-                <th key={`head-${index}`} className="p-2 text-left text-xs font-semibold">{head}</th>
+              {["Avatar", "Tên", "Email", "Phone", "Role", 
+              "Posts", "Farms", "Videos"
+              , "Trạng thái", "Thao tác"].map(head => (
+                <th key={head} className="p-2 text-left text-xs font-semibold">{head}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {users.map(user => (
-              <tr key={user.id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
-                <td className="p-2"><Avatar src={user.avatar ? `https://api-ndolv2.nongdanonline.cc${user.avatar}` : ""} size="sm" /></td>
-                <td className="p-2">{user.fullName}</td>
-                <td className="p-2">{user.email}</td>
-                <td className="p-2">{user.phone || "N/A"}</td>
-                <td className="p-2 text-xs">{Array.isArray(user.role) ? user.role.join(", ") : user.role}</td>
-                <td className="p-2">{counts[user.id]?.posts ?? 0}</td>
-                <td className="p-2">{counts[user.id]?.farms ?? 0}</td>
-                <td className="p-2">{counts[user.id]?.videos ?? 0}</td>
-                <td className="p-2">
-                  {user.isActive
-                    ? <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded">Active</span>
-                    : <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">Inactive</span>}
-                </td>
-                <td className="p-2" onClick={e => e.stopPropagation()}>
-                  <Menu placement="left-start">
-                    <MenuHandler>
-                      <IconButton variant="text"><EllipsisVerticalIcon className="h-5 w-5" /></IconButton>
-                    </MenuHandler>
-                    <MenuList>
-                      <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
-                      <MenuItem onClick={() => handleDelete(user.id)} className="text-red-500">Xoá</MenuItem>
-                    </MenuList>
-                  </Menu>
-                </td>
-              </tr>
+            <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
+  <td className="p-2">
+    <Avatar src={user.avatar ? `https://api-ndolv2.nongdanonline.cc${user.avatar}` : ""} size="sm" />
+  </td>
+  <td className="p-2">{user.fullName}</td>
+  <td className="p-2">{user.email}</td>
+  <td className="p-2">{user.phone || "N/A"}</td>
+  <td className="p-2 text-xs">{Array.isArray(user.role) ? user.role.join(", ") : user.role}</td>
+
+  {/* Dữ liệu đếm - có thể dùng trực tiếp từ user nếu API trả về luôn */}
+  <td className="p-2">{user.postCount ?? 0}</td>
+  <td className="p-2">{user.farmCount ?? 0}</td>
+  <td className="p-2">{user.videoCount ?? 0}</td>
+
+  <td className="p-2">
+    {user.isActive
+      ? <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded">Active</span>
+      : <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">Inactive</span>}
+  </td>
+  <td className="p-2" onClick={e => e.stopPropagation()}>
+    <Menu placement="left-start">
+      <MenuHandler>
+        <IconButton variant="text"><EllipsisVerticalIcon className="h-5 w-5" /></IconButton>
+      </MenuHandler>
+      <MenuList>
+        <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
+        <MenuItem onClick={() => handleDelete(user.id)} className="text-red-500">Xoá</MenuItem>
+      </MenuList>
+    </Menu>
+  </td>
+</tr>
+
             ))}
           </tbody>
         </table>
-</div>
+      </div>
 
       {!isSearching && (
         <div className="flex justify-center items-center gap-2 mt-4">
@@ -403,40 +405,65 @@ export default function Users() {
       )}
 
     <Dialog open={editOpen} handler={setEditOpen} size="sm">
-        <DialogHeader>Chỉnh sửa người dùng</DialogHeader>
-        <DialogBody className="space-y-4">
-          <Input label="Full Name" value={formData.fullName} onChange={e => setFormData({ ...formData, fullName: e.target.value })} />
-          <Input label="Email" value={formData.email} disabled />
-          <Input label="Phone" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
-          <Select label="Trạng thái" value={formData.isActive ? "Đã cấp quyền" : "Chưa cấp quyền"} onChange={val => setFormData({ ...formData, isActive: val === "Đã cấp quyền" })}>
-            <Option value="Đã cấp quyền">Active</Option>
-            <Option value="Chưa cấp quyền">Inactive</Option>
-          </Select>
+  <DialogHeader>Chỉnh sửa người dùng</DialogHeader>
+  <DialogBody className="space-y-4">
+    <Input
+      label="Full Name"
+      value={formData.fullName}
+      onChange={e => setFormData({ ...formData, fullName: e.target.value })}
+    />
+    <Input label="Email" value={formData.email} disabled />
+    <Input
+      label="Phone"
+      value={formData.phone}
+      onChange={e => setFormData({ ...formData, phone: e.target.value })}
+    />
+  <Select
+  label="Trạng thái"
+  value={formData.isActive ? "Đã cấp quyền" : "Chưa cấp quyền"}
+  onChange={val => setFormData({ ...formData, isActive: val === "Đã cấp quyền" })}
+>
+  <Option value="Đã cấp quyền">Active</Option>
+  <Option value="Chưa cấp quyền">Inactive</Option>
+</Select>
+    <Typography className="font-bold">Quản lý role</Typography>
+    <Select label="Thêm role" value={selectedRole} onChange={setSelectedRole}>
+      {roles.map(role => (
+        <Option key={role} value={role}>{role}</Option>
+      ))}
+    </Select>
+    <Button size="sm" variant="outlined" onClick={handleAddRole}>
+      + Thêm Role
+    </Button>
+    <div className="flex flex-wrap gap-2 mt-2">
+      {(Array.isArray(selectedUser?.role) ? selectedUser.role : [selectedUser?.role])
+        .filter(Boolean)
+        .map(role => (
+          <span
+            key={`${selectedUser?.id}-${role}`}
+            className="flex items-center bg-blue-gray-100 rounded-full px-2 py-1 text-xs"
+          >
+            {role}
+            <button
+              className="ml-1 text-red-500"
+              onClick={() => handleRemoveRole(role)}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+    </div>
+  </DialogBody>
+  <DialogFooter>
+    <Button variant="text" onClick={() => setEditOpen(false)}>
+      Huỷ
+    </Button>
+    <Button variant="gradient" onClick={handleUpdate}>
+      Lưu
+    </Button>
+  </DialogFooter>
+</Dialog>
 
-          <Typography className="font-bold">Quản lý role</Typography>
-          <Select label="Thêm role" value={selectedRole} onChange={setSelectedRole}>
-            {roles.map((role, index) => (
-              <Option key={`select-role-${index}`} value={role}>{role}</Option>
-            ))}
-          </Select>
-          <Button size="sm" variant="outlined" onClick={handleAddRole}>+ Thêm Role</Button>
-
-          <div className="flex flex-wrap gap-2 mt-2">
-            {(Array.isArray(selectedUser?.role) ? selectedUser.role : [selectedUser?.role])
-              .filter(Boolean)
-              .map((role, index) => (
-                <span key={`user-role-${index}`} className="flex items-center bg-blue-gray-100 rounded-full px-2 py-1 text-xs">
-                  {role}
-                  <button className="ml-1 text-red-500" onClick={() => handleRemoveRole(role)}>×</button>
-                </span>
-              ))}
-          </div>
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="text" onClick={() => setEditOpen(false)}>Huỷ</Button>
-          <Button variant="gradient" onClick={handleUpdate}>Lưu</Button>
-        </DialogFooter>
-      </Dialog>
     </div>
   );
 }
