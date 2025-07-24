@@ -9,6 +9,7 @@ import {
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import CreatableSelect from "react-select/creatable";
+import { BaseUrl } from '@/ipconfig';
 
 const allFarms = { current: [] };
 const allVideos = { current: [] };
@@ -38,7 +39,7 @@ export default function Users() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const apiUrl = "https://api-ndolv2.nongdanonline.cc";
+  // const BaseUrl = "https://api-ndolv2.nongdanonline.cc";
 
   const fetchAllData = async () => {
     try {
@@ -46,7 +47,7 @@ export default function Users() {
         let page = 1;
         let items = [];
         while (true) {
-          const res = await axios.get(`${apiUrl}/${endpoint}?page=${page}&limit=100`, {
+          const res = await axios.get(`${BaseUrl}/${endpoint}?page=${page}&limit=100`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = res.data?.data || [];
@@ -75,7 +76,7 @@ export default function Users() {
       if (filterRole) params.role = filterRole;
       if (filterStatus) params.isActive = filterStatus === "Active";
 
-      const res = await api.get(`/admin-users`, { params });
+      const res = await api.get(`${BaseUrl}/admin-users`, { params });
       const usersData = res.data?.data || [];
 
       const postMap = {};
@@ -159,7 +160,7 @@ export default function Users() {
       if (filterStatus) paramsCommon.isActive = filterStatus === "Active";
 
       const [byName] = await Promise.all([
-        axios.get(`${apiUrl}/admin-users`, {
+        axios.get(`${BaseUrl}/admin-users`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { ...paramsCommon, fullName: searchText }
         })
@@ -189,7 +190,7 @@ export default function Users() {
       selectedAddress: "",
     });
     try {
-      const res = await axios.get(`${apiUrl}/admin/user-address/user/${user.id}`, {
+      const res = await axios.get(`${BaseUrl}/admin/user-address/user/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUserAddresses(res.data || []);
@@ -206,7 +207,7 @@ export default function Users() {
   const handleUpdate = async () => {
     if (!token || !selectedUser) return;
     try {
-      await axios.put(`${apiUrl}/admin-users/${selectedUser.id}`, {
+      await axios.put(`${BaseUrl}/admin-users/${selectedUser.id}`, {
         fullName: formData.fullName,
         phone: formData.phone
       }, {
@@ -214,13 +215,13 @@ export default function Users() {
       });
 
       if (formData.isActive !== selectedUser.isActive) {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/active`, {}, {
+        await axios.patch(`${BaseUrl}/admin-users/${selectedUser.id}/active`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }
 
       if (selectedUser.addresses?.[0]?.id) {
-        await axios.put(`${apiUrl}/user-addresses/${selectedUser.addresses[0].id}`, {
+        await axios.put(`${BaseUrl}/user-addresses/${selectedUser.addresses[0].id}`, {
           address: formData.addresses[0]
         }, {
           headers: { Authorization: `Bearer ${token}` }
@@ -248,7 +249,7 @@ export default function Users() {
   }
 
   try {
-    await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/active`, {}, {
+    await axios.patch(`${BaseUrl}/admin-users/${selectedUser.id}/active`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -266,7 +267,7 @@ export default function Users() {
   const handleDelete = async (userId) => {
     if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
     try {
-      await axios.delete(`${apiUrl}/admin-users/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`${BaseUrl}/admin-users/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
       alert("Đã xoá người dùng!");
       fetchUsers();
     } catch {
@@ -278,9 +279,9 @@ export default function Users() {
     if (!token || !selectedUser) return;
     try {
       if (selectedRole === "Farmer") {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${BaseUrl}/admin-users/${selectedUser.id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
       } else {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${BaseUrl}/admin-users/${selectedUser.id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
       }
       alert("Thêm role thành công!");
       fetchUsers();
@@ -292,7 +293,7 @@ export default function Users() {
   const handleRemoveRole = async (role) => {
     if (!token || !selectedUser) return;
     try {
-      await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`${BaseUrl}/admin-users/${selectedUser.id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
       alert("Xoá role thành công!");
       fetchUsers();
     } catch {
@@ -363,8 +364,8 @@ export default function Users() {
           </thead>
           <tbody>
             {users.map(user => (
-              <tr key={user.id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user.id}`)}>
-                <td className="p-2"><Avatar src={user.avatar ? `https://api-ndolv2.nongdanonline.cc${user.avatar}` : ""} size="sm" /></td>
+              <tr key={user.id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
+                <td className="p-2"><Avatar src={user.avatar ? `${BaseUrl}${user.avatar}` : ""} size="sm" /></td>
                 <td className="p-2">{user.fullName}</td>
                 <td className="p-2">{user.email}</td>
                 <td className="p-2">{user.phone || "N/A"}</td>
