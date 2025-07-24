@@ -85,20 +85,23 @@ export function Farms() {
   };
 
   const changeStatus = async (id, action) => {
-    const actionMap = {
-      activate: "kích hoạt",
-      deactivate: "khóa",
-    };
-
-    if (!window.confirm(`Bạn có chắc chắn muốn ${actionMap[action] || action} farm này không?`)) return;
-
-    try {
-      await axios.patch(`${BaseUrl}/adminfarms/${id}/${action}`, null, getOpts());
-      await fetchFarms();
-    } catch (err) {
-      alert(`Lỗi ${actionMap[action] || action}: ` + (err.response?.data?.message || err.message));
-    }
+  const actionMap = {
+    activate: "kích hoạt",
+    deactivate: "khóa",
   };
+
+  if (!window.confirm(`Bạn có chắc chắn muốn ${actionMap[action] || action} farm này không?`)) return;
+
+  try {
+    await axios.patch(`${BaseUrl}/adminfarms/${id}/${action}`, null, getOpts());
+
+    alert(`Farm đã được ${actionMap[action]} thành công!`);
+    await fetchFarms(); 
+  } catch (err) {
+    alert(`Lỗi ${actionMap[action] || action}: ` + (err.response?.data?.message || err.message));
+  }
+};
+
 
   const handleOpenDetail = (id) => {
     setSelectedFarmId(id);
@@ -148,13 +151,13 @@ const fetchFarms = async (signal = null) => {
 
     setFarms(farms);
     setTotalPage(Math.ceil(total / itemsPerPage));
-    setFarmCache((prev) => ({
-      ...prev,
-      [cacheKey]: {
-        farms: farms,
-        totalPages: Math.ceil(total / itemsPerPage),
-      },
-    }));
+    // setFarmCache((prev) => ({
+    //   ...prev,
+    //   [cacheKey]: {
+    //     farms: farms,
+    //     totalPages: Math.ceil(total / itemsPerPage),
+    //   },
+    // }));
   } catch (err) {
     if (!axios.isCancel(err)) {
       setError(err.response?.data?.message || err.message);
