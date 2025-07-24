@@ -92,20 +92,23 @@ export default function VideoLikeList({ openLike, handleCloseLike, videoId }) {
                   key={index}
                   className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  <img
-                    src={
-                      user.avatar && user.avatar.startsWith('http')
-                        ? user.avatar
-                        : user.avatar
-                        ? `${BaseUrl}${user.avatar}`
-                        : "https://via.placeholder.com/40x40.png?text=👤"
-                    }
-                    alt={user.fullName || 'User'}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                    onError={(e) => {
-                      e.target.src = "https://via.placeholder.com/40x40.png?text=👤";
-                    }}
-                  />
+                  <div className="relative">
+                    <img
+                      src={
+                        user.avatar && user.avatar.startsWith('http')
+                          ? user.avatar
+                          : user.avatar
+                          ? `${BaseUrl}${user.avatar}`
+                          : "https://ui-avatars.com/api/?name=" + encodeURIComponent(user.fullName || 'User') + "&background=6366f1&color=ffffff&size=40&rounded=true"
+                      }
+                      alt={user.fullName || 'User'}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                      onError={(e) => {
+                        e.target.src = "https://ui-avatars.com/api/?name=" + encodeURIComponent(user.fullName || 'User') + "&background=6366f1&color=ffffff&size=40&rounded=true";
+                      }}
+                    />
+                  </div>
+                  
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">
                       {user.fullName || 'Người dùng'}

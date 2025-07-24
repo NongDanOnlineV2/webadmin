@@ -74,7 +74,7 @@ export function PostList() {
         },
       }
     );
-
+console.log(queryParams)
     const json = await res.json();
 
     if (res.ok) {
@@ -123,12 +123,10 @@ export function PostList() {
       filterImage
   ]);
 
-
-  const findUser = (id) => users.find((u) => u.id === id);
-
   const handleEditClick = (post) => {
     setSelectedPost({
       ...post,
+      id: post._id,
       tagsInput: Array.isArray(post.tags) ? post.tags.join(", ") : "",
     });
     setOpenEdit(true);
@@ -147,12 +145,14 @@ export function PostList() {
           .map((tag) => tag.trim())
           .filter((tag) => tag !== ""),
         images: selectedPost.images,
-        authorId: selectedPost.authorId,
+        authorId: typeof selectedPost.authorId === 'object'
+        ? selectedPost.authorId._id
+        : selectedPost.authorId,
       };
 
 
       const res = await fetch(
-        `${BaseUrl}/admin-post-feed/${selectedPost.id}`,
+        `${BaseUrl}/admin-post-feed/${selectedPost._id}`,
         {
           method: "PUT",
           headers: {
@@ -170,7 +170,7 @@ export function PostList() {
 
         setPosts((prevPosts) =>
           prevPosts.map((p) =>
-            p.id === selectedPost.id
+            p._id === selectedPost._id
               ? {
                   ...p,
                   title: selectedPost.title,
@@ -277,7 +277,7 @@ export function PostList() {
             <th className="p-3 border">
               <div className="flex flex-col gap-1">
               <span>Tiêu đề</span> 
-              <select className="text-sm border rounded px-1 py-0.5" 
+              {/* <select className="text-sm border rounded px-1 py-0.5" 
               value={sortTitle} onChange={(e) => {
                 setSortTitle(e.target.value)
                 setPostCache({});
@@ -286,13 +286,13 @@ export function PostList() {
                 <option value="">--</option>
                 <option value="asc">A-Z</option>
                 <option value="desc">Z-A</option>
-              </select>
+              </select>  */}
               </div>
             </th>
             <th className="p-3 border">
               <div className="flex flex-col gap-1">
                 <span>Mô tả</span>
-                <select
+                {/* <select
                   className="text-sm border rounded px-1 py-0.5"
                   value={sortDescription}
                   onChange={(e) => {
@@ -304,7 +304,7 @@ export function PostList() {
                   <option value="">--</option>
                   <option value="asc">A-Z</option>
                   <option value="desc">Z-A</option>
-                </select>
+                </select> */}
               </div>
               
 
@@ -313,7 +313,7 @@ export function PostList() {
             <th className="p-3 border">
             <div className="flex flex-col gap-1">
               <span>Ngày tạo</span>
-              <select
+              {/* <select
                 className="text-sm border rounded px-1 py-0.5"
                 value={sortDate}
                 onChange={(e) => {
@@ -325,14 +325,14 @@ export function PostList() {
                 <option value="">--</option>
                 <option value="desc">Mới nhất</option>
                 <option value="asc">Cũ nhất</option>
-              </select>
+              </select> */}
             </div>
           </th>
 
             <th className="p-3 border">
               <div className="flex flex-col gap-1">
                 <span>Hình</span>
-                <select
+                {/* <select
                   className="text-sm border rounded px-1 py-0.5"
                   value={filterImage}
                   onChange={(e) => {
@@ -344,14 +344,14 @@ export function PostList() {
                   <option value="">--</option>
                   <option value="true">Có hình</option>
                   <option value="false">Không có hình</option>
-                </select>
+                </select> */}
               </div>
             </th>
 
              <th className="p-3 border text-center">
                 <div className="flex flex-col items-center gap-1">
                   <span>Bình luận</span>
-                  <select
+                  {/* <select
                     className="text-sm border rounded px-1 py-0.5"
                     value={filterComment}
                     onChange={(e) => {
@@ -363,14 +363,14 @@ export function PostList() {
                     <option value="">--</option>
                     <option value="asc">Ít nhất</option>
                     <option value="desc">Nhiều nhất</option>
-                  </select>
+                  </select> */}
                 </div>
               </th>
 
             <th className="p-3 border text-center">
               <div className="flex flex-col gap-1 items-center">
                 <span>Lượt thích</span>
-                <select
+                {/* <select
                   className="text-sm border rounded px-1 py-0.5"
                   value={filterSortLikes}
                   onChange={(e) => {
@@ -382,14 +382,14 @@ export function PostList() {
                   <option value="">--</option>
                   <option value="asc">Ít nhất</option>
                   <option value="desc">Nhiều nhất</option>
-                </select>
+                </select> */}
               </div>
             </th>
 
             <th className="p-3 border">
               <div className="flex flex-col gap-1">
                 <span>Tác giả</span>
-                <select
+                {/* <select
                   className="text-sm border rounded px-1 py-0.5"
                   value={sortAuthor}
                   onChange={(e) => {
@@ -401,7 +401,7 @@ export function PostList() {
                   <option value="">--</option>
                   <option value="asc">A-Z</option>
                   <option value="desc">Z-A</option>
-                </select>
+                </select> */}
               </div>
             </th>
             <th className="p-3 border text-center">Trạng thái</th>
@@ -415,7 +415,7 @@ export function PostList() {
                 key={post.id}
                 className="hover:bg-gray-50 cursor-pointer transition"
                 onClick={() => {
-                  setSelectedPostId(post.id);
+                  setSelectedPostId(post._id);
                   setIsDetailOpen(true);
                 }}
               >
@@ -491,7 +491,7 @@ export function PostList() {
                       <MenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          deletePost(post.id);
+                          deletePost(post._id);
                         }}
                         className="text-red-500"
                       >
