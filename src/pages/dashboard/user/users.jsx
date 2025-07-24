@@ -39,7 +39,7 @@ export default function Users() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  // const BaseUrl = "https://api-ndolv2.nongdanonline.cc";
+  const BaseUrl = "https://api-ndolv2.nongdanonline.cc";
 
   const fetchAllData = async () => {
     try {
@@ -78,7 +78,6 @@ export default function Users() {
 
       const res = await api.get(`${BaseUrl}/admin-users`, { params });
       const usersData = res.data?.data || [];
-
       const postMap = {};
       allPosts.current.forEach(p => {
         const uid = p.userId || p.authorId?.id;
