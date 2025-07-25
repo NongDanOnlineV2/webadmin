@@ -30,22 +30,16 @@ export function PostList() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("");
-  const [postCache, setPostCache] = useState({});
   const [totalPages, setTotalPages] = useState(1);
   const [sortTitle, setSortTitle] = useState("");
   const [sortDescription, setSortDescription] = useState("");
   const [sortAuthor, setSortAuthor] = useState("");
   const [sortDate, setSortDate] = useState("");
   const [filterImage, setFilterImage] = useState("");
-  const [filterComment, setFilterComment] = useState("");
   const [filterSortLikes, setFilterSortLikes] = useState("");
 
   const fetchPosts = async () => {
-    if (postCache[currentPage]) {
-    setPosts(postCache[currentPage].posts);
-    setTotalPages(postCache[currentPage].totalPages);
-    return;
-  }
+
   setLoading(true);
   const token = localStorage.getItem("token");
   const queryParams = new URLSearchParams({
@@ -60,9 +54,6 @@ export function PostList() {
   if (filterSortComments) queryParams.append("sortComments", filterSortComments);
   if (sortTitle) queryParams.append("sortTitle", sortTitle);
   if (sortDescription) queryParams.append("sortDescription", sortDescription);
-  if (sortAuthor) queryParams.append("sortAuthor", sortAuthor);
-  if (sortDate) queryParams.append("sortDate", sortDate);
-  if (filterImage) queryParams.append("hasImage", filterImage);
 
   try {
     const res = await fetch(
@@ -74,18 +65,33 @@ export function PostList() {
         },
       }
     );
-console.log(queryParams)
     const json = await res.json();
 
     if (res.ok) {
       const fetchPosts = json.data || [];
-      setPostCache((prev) => ({
-        ...prev,
-        [currentPage]: {
-          posts: fetchPosts,
-          totalPages: json.totalPages || 1,
-        },
-      }));
+      if (filterStatus !== "") {
+        fetchPosts = fetchPosts.filter((post) => String(post.status) === filterStatus);
+      }
+      if (sortTitle === "asc") {
+        fetchPosts.sort((a, b) => a.title.localeCompare(b.title));
+      } else if (sortTitle === "desc") {
+        fetchPosts.sort((a, b) => b.title.localeCompare(a.title));
+      }
+      if (sortDate === "asc") {
+        fetchPosts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      } else if (sortDate === "desc") {
+        fetchPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }
+      if (filterSortComments === "asc") {
+        fetchPosts.sort((a, b) => (a.commentCount || 0) - (b.commentCount || 0));
+      } else if (filterSortComments === "desc") {
+        fetchPosts.sort((a, b) => (b.commentCount || 0) - (a.commentCount || 0));
+      }
+      if (filterSortLikes === "asc") {
+        fetchPosts.sort((a, b) => (a.like || 0) - (b.like || 0));
+      } else if (filterSortLikes === "desc") {
+        fetchPosts.sort((a, b) => (b.like || 0) - (a.like || 0));
+      }
       setPosts(fetchPosts);
       setTotalPages(json.totalPages || 1);
     } else {
@@ -101,27 +107,17 @@ console.log(queryParams)
 };
 
 
-  const handleFilter = () => {
-  setPostCache({}); 
+  const handleFilter = () => { 
   if (currentPage === 1) {
     fetchPosts();
   } else {
     setCurrentPage(1);
   }
 };
+
   useEffect(() => {
     fetchPosts();
-  }, [currentPage,
-      filterTitle,
-      filterStatus,
-      filterSortLikes,
-      filterSortComments,
-      sortTitle,
-      sortDescription,
-      sortAuthor,
-      sortDate,
-      filterImage
-  ]);
+  }, [currentPage, sortTitle, filterSortLikes, filterSortComments, sortDate]);
 
   const handleEditClick = (post) => {
     setSelectedPost({
@@ -222,6 +218,57 @@ console.log(queryParams)
       alert("Không thể kết nối tới server");
     }
   };
+  
+  const getFilteredSortedPosts = () => {
+  let result = [...posts];
+
+  if (filterStatus !== "") {
+    result = result.filter((post) => String(post.status) === filterStatus);
+  }
+
+  if (filterImage === "true") {
+    result = result.filter((post) => post.images && post.images.length > 0);
+  } else if (filterImage === "false") {
+    result = result.filter((post) => !post.images || post.images.length === 0);
+  }
+
+  if (sortTitle === "asc") {
+    result.sort((a, b) => a.title.localeCompare(b.title));
+  } else if (sortTitle === "desc") {
+    result.sort((a, b) => b.title.localeCompare(a.title));
+  }
+
+  if (sortDate === "asc") {
+    result.sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+    );
+  } else if (sortDate === "desc") {
+    result.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+  }
+
+  if (filterSortComments === "asc") {
+    result.sort((a, b) => (a.commentCount || 0) - (b.commentCount || 0));
+  } else if (filterSortComments === "desc") {
+    result.sort((a, b) => (b.commentCount || 0) - (a.commentCount || 0));
+  }
+
+  if (filterSortLikes === "asc") {
+    result.sort((a, b) => (a.like || 0) - (b.like || 0));
+  } else if (filterSortLikes === "desc") {
+    result.sort((a, b) => (b.like || 0) - (a.like || 0));
+  }
+
+  return result;
+};
+
+const sortedFilteredPosts = getFilteredSortedPosts();
+
+const paginatedPosts = sortedFilteredPosts.slice(
+  (currentPage - 1) * postsPerPage,
+  currentPage * postsPerPage
+);
 
   return (
     <div className="p-4">
@@ -275,133 +322,90 @@ console.log(queryParams)
         <thead className="bg-gray-100 text-gray-700">
           <tr>
             <th className="p-3 border">
-              <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between gap-1">
               <span>Tiêu đề</span> 
-              {/* <select className="text-sm border rounded px-1 py-0.5" 
-              value={sortTitle} onChange={(e) => {
-                setSortTitle(e.target.value)
-                setPostCache({});
-                setCurrentPage(1);
-              }}>
+              <select className="text-sm border rounded px-1 py-0.5"
+                value={sortTitle}
+                onChange={(e) => {
+                  setSortTitle(e.target.value);
+                  fetchPosts();
+                }}
+              >
                 <option value="">--</option>
                 <option value="asc">A-Z</option>
                 <option value="desc">Z-A</option>
-              </select>  */}
+              </select>
               </div>
             </th>
             <th className="p-3 border">
               <div className="flex flex-col gap-1">
                 <span>Mô tả</span>
-                {/* <select
-                  className="text-sm border rounded px-1 py-0.5"
-                  value={sortDescription}
-                  onChange={(e) => {
-                    setSortDescription(e.target.value);
-                    setPostCache({});
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">--</option>
-                  <option value="asc">A-Z</option>
-                  <option value="desc">Z-A</option>
-                </select> */}
               </div>
               
 
             </th>
             
             <th className="p-3 border">
-            <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between gap-1">
               <span>Ngày tạo</span>
-              {/* <select
+              <select
                 className="text-sm border rounded px-1 py-0.5"
                 value={sortDate}
                 onChange={(e) => {
                   setSortDate(e.target.value);
-                  setPostCache({});
-                  setCurrentPage(1);
                 }}
               >
-                <option value="">--</option>
-                <option value="desc">Mới nhất</option>
-                <option value="asc">Cũ nhất</option>
-              </select> */}
+                <option value="">⬍</option>
+                <option value="desc">↓</option>
+                <option value="asc">↑</option>
+              </select>
             </div>
           </th>
 
             <th className="p-3 border">
               <div className="flex flex-col gap-1">
                 <span>Hình</span>
-                {/* <select
-                  className="text-sm border rounded px-1 py-0.5"
-                  value={filterImage}
-                  onChange={(e) => {
-                    setFilterImage(e.target.value);
-                    setPostCache({});
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">--</option>
-                  <option value="true">Có hình</option>
-                  <option value="false">Không có hình</option>
-                </select> */}
+        
               </div>
             </th>
 
              <th className="p-3 border text-center">
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center justify-between gap-1">
                   <span>Bình luận</span>
-                  {/* <select
+                  <select
                     className="text-sm border rounded px-1 py-0.5"
-                    value={filterComment}
+                    value={filterSortComments}
                     onChange={(e) => {
-                      setFilterComment(e.target.value);
-                      setPostCache({});
-                      setCurrentPage(1);
+                      setFilterSortComments(e.target.value);
                     }}
                   >
-                    <option value="">--</option>
-                    <option value="asc">Ít nhất</option>
-                    <option value="desc">Nhiều nhất</option>
-                  </select> */}
+                    <option value="">⬍</option>
+                    <option value="desc">↓</option>
+                    <option value="asc">↑</option>
+                  </select>
                 </div>
               </th>
 
             <th className="p-3 border text-center">
-              <div className="flex flex-col gap-1 items-center">
+              <div className="flex items-center justify-between gap-1">
                 <span>Lượt thích</span>
-                {/* <select
-                  className="text-sm border rounded px-1 py-0.5"
-                  value={filterSortLikes}
-                  onChange={(e) => {
-                    setFilterSortLikes(e.target.value);
-                    setPostCache({});
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">--</option>
-                  <option value="asc">Ít nhất</option>
-                  <option value="desc">Nhiều nhất</option>
-                </select> */}
+                <select
+                    className="text-sm border rounded px-1 py-0.5"
+                    value={filterSortLikes}
+                    onChange={(e) => {
+                      setFilterSortLikes(e.target.value);
+                    }}
+                  >
+                    <option value="">⬍</option>
+                    <option value="desc">↓</option>
+                    <option value="asc">↑</option>
+                  </select>
               </div>
             </th>
 
             <th className="p-3 border">
               <div className="flex flex-col gap-1">
                 <span>Tác giả</span>
-                {/* <select
-                  className="text-sm border rounded px-1 py-0.5"
-                  value={sortAuthor}
-                  onChange={(e) => {
-                    setSortAuthor(e.target.value);
-                    setPostCache({});
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">--</option>
-                  <option value="asc">A-Z</option>
-                  <option value="desc">Z-A</option>
-                </select> */}
               </div>
             </th>
             <th className="p-3 border text-center">Trạng thái</th>
@@ -412,14 +416,14 @@ console.log(queryParams)
           {posts.map((post) => {
             return (
               <tr
-                key={post.id}
+                key={post._id}
                 className="hover:bg-gray-50 cursor-pointer transition"
                 onClick={() => {
                   setSelectedPostId(post._id);
                   setIsDetailOpen(true);
                 }}
               >
-                <td className="p-3 border">{post.title}</td>
+                <td className="p-3 border">{post.title.length > 20 ? post.title.slice(0,15) + "..." : post.title}</td>
                 <td className="p-3 border max-w-xs">
                   <p className="line-clamp-2 text-sm leading-snug break-words">
                     {post.description?.length > 20
@@ -525,10 +529,11 @@ console.log(queryParams)
                 Tác giả
               </label>
               <Input
-                value={(() => {
-                  const author = users.find((u) => u.id === selectedPost?.authorId);
-                  return author?.fullName || "Không rõ";
-                })()}
+                value={
+                  typeof selectedPost?.authorId === "object"
+                    ? selectedPost.authorId.fullName
+                    : "Không rõ"
+                }
                 readOnly
                 className="bg-gray-100 cursor-not-allowed"
               />
@@ -600,29 +605,82 @@ console.log(queryParams)
       </Dialog>
 
  
-      <div className="flex justify-center items-center gap-2 mt-4">
+      <div className="flex justify-center items-center gap-1 mt-4 flex-wrap">
+        {/* First page */}
+        <Button
+          size="sm"
+          variant="outlined"
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(1)}
+        >
+          «
+        </Button>
+
+        {/* Prev */}
         <Button
           size="sm"
           variant="outlined"
           disabled={currentPage === 1}
           onClick={() => setCurrentPage(currentPage - 1)}
         >
-          Trang trước
+          ‹
         </Button>
-        <Typography variant="small" className="text-gray-600">
-          Trang {currentPage} / {totalPages}
-        </Typography>
+
+        {/* Dynamic page numbers */}
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter((page) => {
+            return (
+              page === 1 ||
+              page === totalPages ||
+              Math.abs(page - currentPage) <= 2
+            );
+          })
+          .reduce((acc, page, i, arr) => {
+            if (i > 0 && page - arr[i - 1] > 1) {
+              acc.push("ellipsis");
+            }
+            acc.push(page);
+            return acc;
+          }, [])
+          .map((item, index) =>
+            item === "ellipsis" ? (
+              <span key={index} className="px-2 text-gray-500">...</span>
+            ) : (
+              <Button
+                key={index}
+                size="sm"
+                variant={currentPage === item ? "filled" : "outlined"}
+                className={`min-w-[32px] ${currentPage === item ? "bg-black text-white" : ""}`}
+                onClick={() => setCurrentPage(item)}
+              >
+                {item}
+              </Button>
+            )
+          )}
+
+        {/* Next */}
         <Button
           size="sm"
           variant="outlined"
           disabled={currentPage === totalPages}
           onClick={() => setCurrentPage(currentPage + 1)}
         >
-          Trang sau
+          ›
+        </Button>
+
+        {/* Last page */}
+        <Button
+          size="sm"
+          variant="outlined"
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage(totalPages)}
+        >
+          »
         </Button>
       </div>
-    </div>
-  )}
+
+          </div>
+        )}
 
   <PostDetailDialog
   postId={selectedPostId}
