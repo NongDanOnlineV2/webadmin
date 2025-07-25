@@ -208,6 +208,7 @@ const handleSearch = async () => {
   // }
 }, [token, page, filterRole, filterStatus, isSearching]);
 
+
   // Edit
   const openEdit = (user) => {
   setSelectedUser(user);
@@ -244,6 +245,14 @@ const handleSearch = async () => {
     fetchUsers();
     setEditOpen(false);
   } catch (error) {
+    console.error("❌ Lỗi khi cập nhật:", error);
+
+    const message =
+      error.response?.data?.message || "Cập nhật thất bại! Vui lòng thử lại.";
+
+    alert(message);
+  }
+  };
 
  const handleToggleActive = async (val) => {
   if (!token || !selectedUser) return;
@@ -251,42 +260,65 @@ const handleSearch = async () => {
   const isCurrentlyActive = selectedUser.isActive;
   const newIsActive = val === "Active";
 
+  // Nếu trạng thái không thay đổi
   if (isCurrentlyActive === newIsActive) {
     alert(`Người dùng đã ở trạng thái ${newIsActive ? "Active" : "Inactive"} rồi.`);
     return;
   }
 
   try {
-    await axios.patch(
-      `${BaseUrl}/admin-users/${selectedUser._id}/active`,
-      {}, // ✅ Sửa lỗi: Gửi body rỗng (không gửi status)
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    setFormData(prev => ({ ...prev, isActive: newIsActive }));
+    setUsers(prev =>
+      prev.map(u => u.id === selectedUser._id ? { ...u, isActive: newIsActive } : u)
     );
 
     alert("Cập nhật trạng thái thành công!");
-    fetchUsers();
-    setEditOpen(false);
+  } catch {
+    alert("Cập nhật trạng thái thất bại!");
+  }
+};
+
+  const handleDelete = async (userId) => {
+  if (!userId) return alert("Không tìm thấy ID người dùng để xoá!");
+  if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
+
+  try {
+    const response = await axios.delete(`${BaseUrl}/admin-users/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log("Xoá thành công:", response.data);
+    alert("Đã xoá người dùng!");
+
+    // ✅ Xoá trực tiếp khỏi state
+    setUsers(prev => prev.filter(u => u.id !== userId));
+
+    // ✅ Xoá khỏi counts luôn
+    setCounts(prev => {
+      const updated = { ...prev };
+      delete updated[userId];
+      return updated;
+    });
+
+    // ✅ Xoá khỏi cacheUsers (nếu muốn giữ cache đúng)
+    setCacheUsers(prev => prev.map(item => ({
+      ...item,
+      users: item.users.filter(u => u.id !== userId),
+      counts: Object.fromEntries(
+        Object.entries(item.counts).filter(([key]) => key !== userId)
+      )
+    })));
+
   } catch (error) {
-    console.error("Lỗi cập nhật trạng thái:", error.response?.data || error.message);
-    alert("Cập nhật thất bại!");
+    console.error("Lỗi xoá người dùng:", error?.response?.data || error.message);
+    alert("Xoá thất bại!");
   }
 };
 
 
-  const handleDelete = async (userId) => {
-    if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
-    try {
-      await axios.delete(`${BaseUrl}/admin-users/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
-      alert("Đã xoá người dùng!");
-      fetchUsers();
-    } catch {
-      alert("Xoá thất bại!");
-    }
-  };
 
   const handleAddRole = async () => {
     if (!token || !selectedUser) return;
@@ -409,7 +441,7 @@ const handleSearch = async () => {
                   </MenuHandler>
                   <MenuList>
                     <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
-                    <MenuItem onClick={() => handleDelete(user.id)} className="text-red-500">Xoá</MenuItem>
+                    <MenuItem onClick={() => handleDelete(user._id)} className="text-red-500">Xoá</MenuItem>
                   </MenuList>
                 </Menu>
               </td>
@@ -419,13 +451,40 @@ const handleSearch = async () => {
         </table>
       </div>
 
-      {!isSearching && (
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <Button size="sm" variant="outlined" disabled={page <= 1} onClick={() => setPage(prev => prev - 1)}>Trang trước</Button>
-          <span>Trang {page} / {totalPages}</span>
-          <Button size="sm" variant="outlined" disabled={page >= totalPages} onClick={() => setPage(prev => prev + 1)}>Trang sau</Button>
-        </div>
-      )}
+     {!isSearching && (
+  <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
+    {/* <Button
+      size="sm"
+      variant="outlined"
+      disabled={page <= 1}
+      onClick={() => setPage(page - 1)}
+    >
+      Trang trước
+    </Button> */}
+
+    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+      <Button
+        key={p}
+        size="sm"
+        variant={p === page ? "filled" : "outlined"}
+        className={p === page ? "bg-black text-white" : ""}
+        onClick={() => setPage(p)}
+      >
+        {p}
+      </Button>
+    ))}
+
+    {/* <Button
+      size="sm"
+      variant="outlined"
+      disabled={page >= totalPages}
+      onClick={() => setPage(page + 1)}
+    >
+      Trang sau
+    </Button> */}
+  </div>
+)}
+
 
     <Dialog open={editOpen} handler={setEditOpen} size="sm">
   <DialogHeader>Chỉnh sửa người dùng</DialogHeader>
@@ -443,11 +502,11 @@ const handleSearch = async () => {
     />
   <Select
   label="Trạng thái"
-  value={formData.isActive ? "Active" : "Inactive"}
-  onChange={val => setFormData({ ...formData, isActive: val === "Active" })}
+  value={formData.isActive ? "Đã cấp quyền" : "Chưa cấp quyền"}
+  onChange={val => setFormData({ ...formData, isActive: val === "Đã cấp quyền" })}
 >
-  <Option value="Active">Active</Option>
-  <Option value="Inactive">Inactive</Option>
+  <Option value="Đã cấp quyền">Active</Option>
+  <Option value="Chưa cấp quyền">Inactive</Option>
 </Select>
     <div className="flex flex-col sm:flex-row sm:items-end gap-2">
       <div className="w-full sm:w-60">
@@ -500,4 +559,5 @@ const handleSearch = async () => {
 </Dialog>
 
     </div>
-    );}}}
+  );
+}
