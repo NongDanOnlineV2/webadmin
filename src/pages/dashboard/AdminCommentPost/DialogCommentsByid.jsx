@@ -225,7 +225,7 @@ export const DialogCommentsByid = ({ postInfo, onClose }) => {
                               <div key={replyIndex} className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                                 <div className="flex items-start gap-3">
                                   <img
-                                    src={getImageUrl(reply.userId?.avatar)}
+                                    src={getImageUrl(reply.avatar)}
                                     alt={reply.userId?.fullName || 'User'}
                                     className="w-8 h-8 rounded-full border border-blue-300 object-cover"
                                   />
@@ -241,7 +241,7 @@ export const DialogCommentsByid = ({ postInfo, onClose }) => {
                                         }}
                                         title="Xem chi tiết người dùng"
                                       >
-                                        {reply.userId?.fullName || 'Người dùng'}
+                                        {reply.fullName || 'Người dùng'}
                                       </span>
                                       <span className="text-xs text-gray-500">
                                         {formatDate(reply.createdAt)}
