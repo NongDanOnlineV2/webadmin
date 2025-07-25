@@ -225,14 +225,15 @@ const handleSearch = async () => {
 // CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
  const handleUpdate = async () => {
     if (!token || !selectedUser) return;
+    const hasStatusChanged = formData.isActive !== selectedUser.isActive;
     try {
       await axios.put(`${BaseUrl}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
 
-      if (formData.isActive !== selectedUser.isActive) {
+    if (hasStatusChanged) {
       await axios.patch(
         `${BaseUrl}/admin-users/${selectedUser._id}/active`,
         {
-          isActive: formData.isActive, // đảm bảo gửi rõ ràng trạng thái mới
+          isActive: formData.isActive,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
