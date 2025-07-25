@@ -39,7 +39,7 @@ export default function Users() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  // const BaseUrl = "https://api-ndolv2.nongdanonline.cc";
+  const BaseUrl = "https://api-ndolv2.nongdanonline.cc";
 const fetchAllData = async () => {
     try {
       const getAllPages = async (endpoint) => {
@@ -95,6 +95,7 @@ const fetchAllData = async () => {
         page,
         role: filterRole,
         status: filterStatus,
+        searchText,
         users: usersData,
         totalPages: res.data.totalPages || 1,
         counts: countsMap
@@ -128,32 +129,55 @@ const fetchAllData = async () => {
     });
 }, []);
   // Search
-  const handleSearch = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const paramsCommon = { page: 1, limit: 10 };
-      if (filterRole) paramsCommon.role = filterRole;
-      if (filterStatus) paramsCommon.isActive = filterStatus === "Active";
+const handleSearch = async () => {
+  if (!token) return;
+  setLoading(true);
+  setIsSearching(true);
+  setPage(1); // đảm bảo về trang 1
+  try {
+    const params = {
+      page: 1,
+      limit: 10,
+    };
+    if (filterRole) params.role = filterRole;
+    if (filterStatus) params.isActive = filterStatus === "Active";
+    if (searchText.trim()) params.fullName = searchText.trim();
 
-      const [byName] = await Promise.all([
-        axios.get(`${BaseUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, fullName: searchText } }),
-        // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, email: searchText } }),
-        // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, phone: searchText } }),
-      ]);
-      const merged = [...(byName.data.data || [])];
-      const unique = merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-      setUsers(unique);
-      setTotalPages(1);
-      setPage(1);
-      setIsSearching(true);
-    } catch (err) {
-      console.error("Lỗi tìm kiếm:", err);
-      setError("Lỗi khi tìm kiếm.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const res = await api.get(`${BaseUrl}/admin-users`, { params });
+    const usersData = res.data?.data || [];
+
+    // đếm số lượng như cũ
+    const postMap = {};
+    allPosts.current.forEach(p => {
+      const uid = p.userId || p.authorId?.id;
+      if (uid) postMap[uid] = (postMap[uid] || 0) + 1;
+    });
+
+    const countsMap = {};
+    usersData.forEach(u => {
+      countsMap[u.id] = {
+        posts: postMap[u.id] || 0,
+        farms: allFarms.current.filter(f => f.ownerId === u.id).length,
+        videos: allVideos.current.filter(v => v.uploadedBy?.id === u.id).length,
+      };
+    });
+
+    setUsers(usersData);
+    setCounts(countsMap);
+    setTotalPages(res.data.totalPages || 1);
+
+    // 🛠 Giữ chế độ tìm kiếm cho đến khi người dùng "xoá tìm kiếm"
+    // Không setIsSearching(false) ở đây
+  } catch (err) {
+    console.error("Lỗi tìm kiếm người dùng:", err);
+    alert("Không thể tìm kiếm người dùng!");
+    setIsSearching(false); // nếu lỗi thì tắt chế độ
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
  useEffect(() => {
   if (!token) {
@@ -164,25 +188,25 @@ const fetchAllData = async () => {
 
   if (isSearching) return;
 
-  const cached = cacheUsers.find(
-    (entry) =>
-      entry.page === page &&
-      entry.role === filterRole &&
-      entry.status === filterStatus
-  );
+  // const cached = cacheUsers.find(
+  //   (entry) =>
+  //     entry.page === page &&
+  //     entry.role === filterRole &&
+  //     entry.status === filterStatus &&
+  //     entry.searchText === searchText
+  // );
 
-  if (cached) {
-    // ⚡ Load từ cache nếu đã có
-    setUsers(cached.users);
-    setTotalPages(cached.totalPages || 1);
-    setCounts(cached.counts || {});
-    setLoading(false);
-  } else {
-    // 🚀 Nếu chưa cache thì mới fetch
+  // if (cached) {
+  //   // ⚡ Load từ cache nếu đã có
+  //   setUsers(cached.users);
+  //   setTotalPages(cached.totalPages || 1);
+  //   setCounts(cached.counts || {});
+  //   setLoading(false);
+  // } else {
+  //   // 🚀 Nếu chưa cache thì mới fetch
     fetchUsers();
-  }
+  // }
 }, [token, page, filterRole, filterStatus, isSearching]);
-
 
   // Edit
   const openEdit = (user) => {
@@ -199,31 +223,27 @@ const fetchAllData = async () => {
   
 // CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
  const handleUpdate = async () => {
-  if (!token || !selectedUser) return;
+    if (!token || !selectedUser) return;
+    const hasStatusChanged = formData.isActive !== selectedUser.isActive;
+    try {
+      await axios.put(`${BaseUrl}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
 
-  try {
-    // Cập nhật fullName và phone trước
-    await axios.put(`${BaseUrl}/admin-users/${selectedUser._id}`, 
-      { fullName: formData.fullName, phone: formData.phone }, 
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    // Nếu trạng thái isActive thay đổi thì gọi PATCH
-    if (formData.isActive !== selectedUser.isActive) {
-      await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+    if (hasStatusChanged) {
+      await axios.patch(
+        `${BaseUrl}/admin-users/${selectedUser._id}/active`,
+        {
+          isActive: formData.isActive,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
     }
 
     alert("Cập nhật thành công!");
     fetchUsers();
     setEditOpen(false);
   } catch (error) {
-    console.error(error);
-    alert("Cập nhật thất bại!");
-  }
-};
-
 
  const handleToggleActive = async (val) => {
   if (!token || !selectedUser) return;
@@ -301,13 +321,23 @@ const fetchAllData = async () => {
      <div className="flex flex-wrap items-center gap-4 mb-4">
   <div className="w-64">
     <Input
-      label="Tìm kiếm..."
-      value={searchText}
-      onChange={(e) => setSearchText(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") handleSearch();
-      }}
-    />
+  label="Tìm kiếm..."
+  value={searchText}
+  onChange={(e) => {
+    const val = e.target.value;
+    setSearchText(val);
+
+    if (val.trim() === "") {
+      setIsSearching(false);   // Reset chế độ tìm
+      setPage(1);              // Reset về trang 1
+      fetchUsers();            // Gọi lại API mặc định
+    }
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") handleSearch();
+  }}
+/>
+
   </div>
   <div className="w-52">
   <Select label="Role" value={filterRole} onChange={val => setFilterRole(val || "")}>
@@ -352,7 +382,7 @@ const fetchAllData = async () => {
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
+            {Array.isArray(users) && users.map(user => (
             <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
               <td className="p-2">
                 <Avatar src={user.avatar ? `${BaseUrl}${user.avatar}` : ""} size="sm" />
@@ -470,5 +500,4 @@ const fetchAllData = async () => {
 </Dialog>
 
     </div>
-  );
-}
+    );}}}

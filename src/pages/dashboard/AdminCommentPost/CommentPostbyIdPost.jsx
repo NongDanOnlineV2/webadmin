@@ -321,7 +321,7 @@ try {
                         <div key={replyUniqueKey} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
                         <div className="flex items-start gap-3">
                           <img
-                            src={getImageUrl(getAvatarById(reply.userId))}
+                            src={getImageUrl(reply.avatar)}
                             alt="Avatar"
                             className="w-10 h-10 rounded-full border-2 border-blue-200 object-cover flex-shrink-0"
                           />
@@ -337,7 +337,7 @@ try {
                                 }}
                                 title="Xem chi tiết người dùng"
                               >
-                                {getFullNameById(reply.userId)}
+                                {reply.fullName||"Ẩn danh"}
                               </span>
                               <span className="text-xs text-gray-400 flex-shrink-0">•</span>
                               <span className="text-xs text-gray-500 flex-shrink-0">{formatDate(reply.createdAt)}</span>
@@ -358,16 +358,7 @@ try {
     );
   };
 
-  const getFullNameById = (userId) => {
-    // Sử dụng thông tin user có sẵn trong comment
-    if (typeof userId === 'object' && userId?.fullName) {
-      return userId.fullName;
-    }
-    return "Không xác định";
-  };
-
   const getAvatarById = (userId) => {
-    // Sử dụng thông tin user có sẵn trong comment  
     if (typeof userId === 'object' && userId?.avatar) {
       return userId.avatar;
     }
