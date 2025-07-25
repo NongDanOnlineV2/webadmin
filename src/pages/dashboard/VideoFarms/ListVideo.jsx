@@ -9,7 +9,7 @@ import { Dialog } from '@material-tailwind/react';
 import VideoLikeList from './VideoLikeList';
 import CommentVideo from './commentVideo';
 import {deletevideo, approvevideo} from './VideoById';
-
+import Pagination from './Pagination';
 const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
   const token = localStorage.getItem('token');
   const params = new URLSearchParams({
@@ -31,7 +31,8 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
     } else if (typeof res.data === 'object' && res.data !== null) {
       videos = res.data.data || res.data.videos || [];
     }
-
+    videos = videos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+console.log(videos)
     return {
       videos,
       totalPages: res.data.totalPages || 1
@@ -75,6 +76,8 @@ export const ListVideo = () => {
         return 'Thất bại';
       case 'deleted':
         return 'Đã xóa';
+      case 'processing':
+        return 'Đang xử lý';
       default:
         return status;
     }
@@ -146,22 +149,24 @@ export const ListVideo = () => {
     performSearch(1);
   };
 
-  // Khi chuyển trang
+
   const handlePageChange = (newPage) => {
     setPage(newPage);
     if (actualSearchTerm) {
       performSearch(newPage);
     }
-    // Nếu không search thì useEffect sẽ tự xử lý
+  
   };
 
-  // USEEFFECT VỚI CACHE
-  useEffect(() => {
-    // Nếu đang search thì không gọi lại ở đây, đã xử lý trong performSearch
-    if (actualSearchTerm) return;
 
+  const onChangePage = (newPage) => {
+    if (newPage === page || newPage < 1 || newPage > totalPages) return;
+    handlePageChange(newPage);
+  };
+  useEffect(() => {
+   
+    if (actualSearchTerm) return;
     const loadVideos = async () => {
-      // Nếu đang search thì ưu tiên cache search
       if (actualSearchTerm) {
         const searchKey = `${actualSearchTerm}-${filterStatus}`;
         if (searchCache[searchKey]) {
@@ -515,7 +520,7 @@ export const ListVideo = () => {
                               Duyệt video
                             </MenuItem>
                           )}
-                          {item.status !== 'deleted' ? (
+                          {item.status === 'uploaded' || item.status === "pending" ?(
                             <MenuItem 
                               onClick={() => openConfirmDialog('delete', item)}
                               className="flex items-center gap-2 text-red-600"
@@ -529,7 +534,6 @@ export const ListVideo = () => {
                           (
                             <MenuItem 
                             disabled
-    
                               className="flex items-center gap-2 text-red-600 cursor-not-allowed"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -550,7 +554,7 @@ export const ListVideo = () => {
                       </div>
                
                       <div>
-                        <span className="font-medium">Ngày đăng:</span> {new Date(item.createdAt).toLocaleDateString()}
+                        <span className="font-medium">Ngày đăng:</span> {new Date(item.createdAt).toLocaleString()}
                       </div>
                       <div>
                         <span className="font-medium cursor-pointer hover:text-blue-600 transition-colors"  
@@ -610,30 +614,8 @@ export const ListVideo = () => {
         </>
       )}
       {Array.isArray(videos) && videos.length > 0 && (
-        <div className="flex justify-center items-center gap-2 mt-6 bg-white rounded-lg shadow-sm p-4">
-          <Button
-            size="sm"
-            variant="outlined"
-            disabled={page <= 1 || loading}
-            onClick={() => handlePageChange(page - 1)}
-          >
-            Trang trước
-          </Button>
-          <span className="mx-4 text-sm font-medium text-gray-700">
-            Trang {page} / {totalPages}
-          </span>
-          <Button
-            size="sm"
-            variant="outlined"
-            disabled={page >= totalPages || loading}
-            onClick={() => handlePageChange(page + 1)}
-          >
-            Trang sau
-          </Button>
-        </div>
+        <Pagination page={page} totalPages={totalPages} onPageChange={onChangePage} />
       )}
-
-      {/* Like Dialog */}
       {openLikeDialog && selectedVideoForLike && (
         <VideoLikeList 
           openLike={openLikeDialog} 
@@ -754,5 +736,7 @@ export const ListVideo = () => {
     </div>
   );
 };
+
+
 
 export default ListVideo;
