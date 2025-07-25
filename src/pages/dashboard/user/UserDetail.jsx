@@ -67,9 +67,9 @@ export default function UserDetail() {
       `${BaseUrl}/admin-comment-post/post/${postId}`,
       config
     );
-    setSelectedPostComments((res.data.comments || []).filter(c => c.status));
-    console.log("Dữ liệu comment trả về:", res.data);
-
+    console.log("API response:", res.data);
+    setSelectedPostComments(res.data.data || []);
+    
   } catch (err) {
     if (err.response && err.response.status === 404) {
       console.warn(`Post ${postId} không có comment.`);
@@ -1375,12 +1375,12 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
                   {/* Tiêu đề */}
                   <Typography variant="h6" className="text-lg font-bold text-blue-900 mb-2">
-                    {post.title}
+                    {post.title.length > 35 ? post.title.slice(0, 30) + "..." : post.title}
                   </Typography>
 
                   {/* Mô tả */}
                   <Typography className="text-sm text-gray-700 mb-2">
-                    {post.description}
+                    {post.description.length > 35 ? post.description.slice(0, 30) + "..." : post.description}
                   </Typography>
 
                   {/* Tags */}
@@ -1455,13 +1455,14 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       handler={() => setOpenPostCommentDialog(false)}
       dismiss={{ outsidePress: false }}
     >
-      <DialogHeader>Danh sách bình luận - {selectedPostTitle}</DialogHeader>
+      <DialogHeader>Danh sách bình luận</DialogHeader>
       <DialogBody className="space-y-4 max-h-[400px] overflow-y-auto">
+        {console.log("selectedPostComments:", selectedPostComments)}
         {selectedPostComments.length === 0 ? (
           <Typography className="text-center text-gray-500">Không có bình luận nào.</Typography>
         ) : (
           selectedPostComments.map((comment) => (
-            <div key={comment.id} className="border-b pb-2 mb-2">
+            <div key={comment._id} className="border-b pb-2 mb-2">
               <div className="flex items-center gap-3">
                 <img
                   src={
@@ -1484,7 +1485,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
               <Typography className="mt-1">{comment.comment}</Typography>
 
               {/* Hiển thị reply nếu có */}
-              {comment.replies?.length > 0 && (
+              {/* {comment.replies?.length > 0 && (
                 <div className="ml-6 mt-2 space-y-2">
                   {comment.replies.map((reply, index) => (
                     <div key={index} className="border-l-2 pl-4">
@@ -1514,7 +1515,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     </div>
                   ))}
                 </div>
-              )}
+              )} */}
             </div>
           ))
         )
