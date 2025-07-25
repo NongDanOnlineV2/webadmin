@@ -36,6 +36,7 @@ export default function Users() {
   const [searchText, setSearchText] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [userAddresses, setUserAddresses] = useState([]);
+  const [search, setSearch] = useState('');
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -172,6 +173,19 @@ const fetchAllData = async () => {
     setIsSearching(false);
   }
 };
+useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get(`/admin-users?page=${page}&limit=${limit}&search=${search}`);
+      setUsers(response.data.users);  // Cập nhật dữ liệu bảng
+      setTotalPages(response.data.totalPages); // nếu có phân trang
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchUsers();
+}, [page, limit, search]);  // Phải có search trong dependency
 
 
  useEffect(() => {
@@ -309,7 +323,7 @@ const fetchAllData = async () => {
     <Input
       label="Tìm kiếm..."
       value={searchText}
-      onChange={(e) => setSearchText(e.target.value)}
+      onChange={(e) => setSearch(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") handleSearch();
       }}
@@ -358,7 +372,7 @@ const fetchAllData = async () => {
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
+            {users?.map?.(user => (
             <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
               <td className="p-2">
                 <Avatar src={user.avatar ? `${BaseUrl}${user.avatar}` : ""} size="sm" />
