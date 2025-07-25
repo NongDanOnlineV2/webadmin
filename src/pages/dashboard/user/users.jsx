@@ -135,12 +135,12 @@ setRoles(allRoles);
       if (filterRole) paramsCommon.role = filterRole;
       if (filterStatus) paramsCommon.isActive = filterStatus === "Active";
 
-      const [byName, byEmail, byPhone] = await Promise.all([
+      const [byName] = await Promise.all([
         axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, fullName: searchText } }),
         // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, email: searchText } }),
         // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, phone: searchText } }),
       ]);
-      const merged = [...(byName.data.data || []), ...(byEmail.data.data || []), ...(byPhone.data.data || [])];
+      const merged = [...(byName.data.data || [])];
       const unique = merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
       setUsers(unique);
       setTotalPages(1);
@@ -339,37 +339,36 @@ setRoles(allRoles);
           <tbody>
             {users.map(user => (
             <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
-  <td className="p-2">
-    <Avatar src={user.avatar ? `https://api-ndolv2.nongdanonline.cc${user.avatar}` : ""} size="sm" />
-  </td>
-  <td className="p-2">{user.fullName}</td>
-  <td className="p-2">{user.email}</td>
-  <td className="p-2">{user.phone || "N/A"}</td>
-  <td className="p-2 text-xs">{Array.isArray(user.role) ? user.role.join(", ") : user.role}</td>
+              <td className="p-2">
+                <Avatar src={user.avatar ? `https://api-ndolv2.nongdanonline.cc${user.avatar}` : ""} size="sm" />
+              </td>
+              <td className="p-2">{user.fullName}</td>
+              <td className="p-2">{user.email}</td>
+              <td className="p-2">{user.phone || "N/A"}</td>
+              <td className="p-2 text-xs">{Array.isArray(user.role) ? user.role.join(", ") : user.role}</td>
 
-  {/* Dữ liệu đếm - có thể dùng trực tiếp từ user nếu API trả về luôn */}
-  <td className="p-2">{user.postCount ?? 0}</td>
-  <td className="p-2">{user.farmCount ?? 0}</td>
-  <td className="p-2">{user.videoCount ?? 0}</td>
+              {/* Dữ liệu đếm - có thể dùng trực tiếp từ user nếu API trả về luôn */}
+              <td className="p-2">{user.postCount ?? 0}</td>
+              <td className="p-2">{user.farmCount ?? 0}</td>
+              <td className="p-2">{user.videoCount ?? 0}</td>
 
-  <td className="p-2">
-    {user.isActive
-      ? <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded">Active</span>
-      : <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">Inactive</span>}
-  </td>
-  <td className="p-2" onClick={e => e.stopPropagation()}>
-    <Menu placement="left-start">
-      <MenuHandler>
-        <IconButton variant="text"><EllipsisVerticalIcon className="h-5 w-5" /></IconButton>
-      </MenuHandler>
-      <MenuList>
-        <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
-        <MenuItem onClick={() => handleDelete(user.id)} className="text-red-500">Xoá</MenuItem>
-      </MenuList>
-    </Menu>
-  </td>
-</tr>
-
+              <td className="p-2">
+                {user.isActive
+                  ? <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded">Active</span>
+                  : <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">Inactive</span>}
+              </td>
+              <td className="p-2" onClick={e => e.stopPropagation()}>
+                <Menu placement="left-start">
+                  <MenuHandler>
+                    <IconButton variant="text"><EllipsisVerticalIcon className="h-5 w-5" /></IconButton>
+                  </MenuHandler>
+                  <MenuList>
+                    <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
+                    <MenuItem onClick={() => handleDelete(user.id)} className="text-red-500">Xoá</MenuItem>
+                  </MenuList>
+                </Menu>
+              </td>
+            </tr>
             ))}
           </tbody>
         </table>
@@ -405,15 +404,27 @@ setRoles(allRoles);
   <Option value="Đã cấp quyền">Active</Option>
   <Option value="Chưa cấp quyền">Inactive</Option>
 </Select>
-    <Typography className="font-bold">Quản lý role</Typography>
-    <Select label="Thêm role" value={selectedRole} onChange={setSelectedRole}>
-      {roles.map(role => (
-        <Option key={role} value={role}>{role}</Option>
-      ))}
-    </Select>
-    <Button size="sm" variant="outlined" onClick={handleAddRole}>
-      + Thêm Role
-    </Button>
+    <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+      <div className="w-full sm:w-60">
+        <Select
+          label="Chọn role để thêm"
+          value={selectedRole}
+          onChange={(val) => setSelectedRole(val)}
+        >
+          {["Admin", "Farmer", "Staff", "Customer"].map((r) => (
+            <Option key={r} value={r}>{r}</Option>
+          ))}
+        </Select>
+      </div>
+      <Button
+        size="sm"
+        className="h-10 px-4 bg-black text-white"
+        onClick={handleAddRole}
+      >
+        THÊM
+      </Button>
+    </div>
+
     <div className="flex flex-wrap gap-2 mt-2">
       {(Array.isArray(selectedUser?.role) ? selectedUser.role : [selectedUser?.role])
         .filter(Boolean)
