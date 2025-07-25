@@ -22,7 +22,7 @@ export default function Users() {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
-    fullName: "", email: "", phone: "", isActive: true, selectedAddress: ""
+    fullName: "", email: "", phone: "", isActive: true,
   });
   const [selectedRole, setSelectedRole] = useState("Farmer");
   const [page, setPage] = useState(1);
@@ -98,11 +98,15 @@ const fetchAllData = async () => {
         totalPages: res.data.totalPages || 1,
         counts: countsMap
       }]);
-
+      const formatRole = (r) => r?.trim().charAt(0).toUpperCase() + r?.trim().slice(1).toLowerCase();
       const allRoles = Array.from(new Set(
-        usersData.flatMap(u => Array.isArray(u.role) ? u.role : [u.role])
-      )).filter(Boolean);
-      setRoles(allRoles);
+        usersData
+          .flatMap(u => Array.isArray(u.role) ? u.role : [u.role])
+          .filter(Boolean)
+          .map(formatRole)
+      ));
+
+setRoles(allRoles);
     } catch (err) {
       console.error("Lỗi fetch users:", err);
       setError("Không thể tải danh sách người dùng");
@@ -113,9 +117,8 @@ const fetchAllData = async () => {
 
  useEffect(() => {
   if (!token) return;
-
+  setRoles(["Admin", "Farmer", "Staff", "Customer"]);
   fetchAllData()
-    // .then(fetchUsers)
     .catch((err) => {
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
@@ -181,32 +184,17 @@ const fetchAllData = async () => {
 
 
   // Edit
-  const openEdit = async  (user) => {
-    setSelectedUser(user);
-    setFormData({
-      fullName: user.fullName, email: user.email,
-      phone: user.phone || "", 
-      isActive: user.isActive,
-      selectedAddress: "",
-    });
-    try {
-    const res = await axios.get(`${apiUrl}/admin/user-address/user/${user.id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    setUserAddresses(res.data || []);
-    if (res.data.length > 0) {
-      setFormData(prev => ({
-        ...prev,
-        selectedAddress: res.data[0].address
-      }));
-    }
-  } catch (error) {
-    console.error("Lỗi khi lấy danh sách địa chỉ:", error);
-    setUserAddresses([]);
-  }
+  const openEdit = (user) => {
+  setSelectedUser(user);
+  setFormData({
+    fullName: user.fullName,
+    email: user.email,
+    phone: user.phone || "",
+    isActive: user.isActive
+  });
+  setEditOpen(true);
+};
 
-    setEditOpen(true);
-  };
   
 // CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
  const handleUpdate = async () => {
@@ -218,9 +206,6 @@ const fetchAllData = async () => {
         await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/active`, {}, { headers: { Authorization: `Bearer ${token}` } });
       }
 
-      // if (selectedUser.addresses?.[0]?.id) {
-      //   await axios.put(`${apiUrl}/user-addresses/${selectedUser.addresses[0].id}`, { address: formData.addresses[0] }, { headers: { Authorization: `Bearer ${token}` } });
-      // }
       alert("Cập nhật thành công!");
       fetchUsers();
       setEditOpen(false);
