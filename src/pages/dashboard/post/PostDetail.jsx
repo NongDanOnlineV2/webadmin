@@ -327,7 +327,31 @@ import { BaseUrl } from "@/ipconfig";
           </div>
 
           {/* Replies */}
-          
+          {/* {cmt.replies?.length > 0 && (
+            <div className="ml-8 mt-2 border-l border-gray-200 pl-3">
+              {cmt.replies.map((reply, idx) => (
+                <div key={idx} className="flex gap-2 mb-2">
+                  <Avatar
+                    src={
+                      reply.userId?.avatar?.startsWith("http")
+                        ? reply.userId.avatar
+                        : `${BaseUrl}${reply.userId?.avatar || ""}`
+                    }
+                    alt={reply.userId?.fullName}
+                    size="xs"
+                  />
+                  <div>
+                    <Typography className="font-medium text-sm">
+                      {reply.userId?.fullName || "Ẩn danh"}
+                    </Typography>
+                    <Typography className="text-sm text-gray-600">
+                      {reply.comment}
+                    </Typography>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )} */}
         </div>
       ))
     ) : (
