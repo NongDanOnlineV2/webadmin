@@ -7,6 +7,7 @@ import {
 import { useParams } from "react-router-dom";
 import PostLikeUserDialog from "./listpostlikeUser"
 import { BaseUrl } from "@/ipconfig";
+import HlsPlayer from "../VideoFarms/HlsPlayer";
 export default function UserDetail() {
   const { id } = useParams();
   const [user, setUser] = useState(null);
@@ -45,9 +46,6 @@ export default function UserDetail() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [loadingVideos, setLoadingVideos] = useState(false); 
   const [selectedVideoId, setSelectedVideoId] = useState(null); 
-  const [visibleFarms, setVisibleFarms] = useState(6);
-  const [visibleVideos, setVisibleVideos] = useState(6);
-  const [visiblePosts, setVisiblePosts] = useState(6);
   const [videoPage, setVideoPage] = useState(1);
   const [hasMoreVideos, setHasMoreVideos] = useState(true);
   const [farmPage, setFarmPage] = useState(1);
@@ -60,32 +58,6 @@ export default function UserDetail() {
     ward: "",
     province: ""
   });
-
-  const fetchPaginatedData = async (url, config) => {
-  let page = 1;
-  let limit = 10;
-  let allData = [];
-  let totalPages = 1;
-
-  try {
-    while (page <= totalPages) {
-      const res = await axios.get(`${url}?page=${page}&limit=${limit}`, config);
-      const { data, totalPages: apiTotalPages } = res.data;
-
-      allData.push(...data);
-
-      if (!apiTotalPages && data.length < limit) break;
-
-      totalPages = apiTotalPages || totalPages;
-      page++;
-    }
-  } catch (err) {
-    console.error("❌ Lỗi fetchPaginatedData:", err);
-  }
-
-  return allData;
-};
-
   const fetchPostCommentsUsers = async (postId, postTitle) => {
   const token = localStorage.getItem("token");
   const config = { headers: { Authorization: `Bearer ${token}` } };
