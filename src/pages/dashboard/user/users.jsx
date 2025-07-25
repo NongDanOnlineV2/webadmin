@@ -452,37 +452,37 @@ const handleSearch = async () => {
       </div>
 
      {!isSearching && (
-  <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
-    {/* <Button
-      size="sm"
-      variant="outlined"
-      disabled={page <= 1}
-      onClick={() => setPage(page - 1)}
-    >
-      Trang trước
-    </Button> */}
+  <div className="flex justify-center items-center gap-1 mt-4 flex-wrap">
+  <button
+    disabled={page <= 1}
+    className="px-3 py-1 border border-black rounded disabled:opacity-50"
+    onClick={() => setPage(page - 1)}
+  >
+    &laquo;
+  </button>
 
-    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-      <Button
-        key={p}
-        size="sm"
-        variant={p === page ? "filled" : "outlined"}
-        className={p === page ? "bg-black text-white" : ""}
-        onClick={() => setPage(p)}
-      >
-        {p}
-      </Button>
-    ))}
-
-    {/* <Button
-      size="sm"
-      variant="outlined"
-      disabled={page >= totalPages}
-      onClick={() => setPage(page + 1)}
+  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+    <button
+      key={p}
+      className={`px-3 py-1 border border-black rounded ${
+        p === page
+          ? "bg-black text-white"
+          : "bg-white text-black hover:bg-black hover:text-white"
+      }`}
+      onClick={() => setPage(p)}
     >
-      Trang sau
-    </Button> */}
-  </div>
+      {p}
+    </button>
+  ))}
+
+  <button
+    disabled={page >= totalPages}
+    className="px-3 py-1 border border-black rounded disabled:opacity-50"
+    onClick={() => setPage(page + 1)}
+  >
+    &raquo;
+  </button>
+</div>
 )}
 
 
