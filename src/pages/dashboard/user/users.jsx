@@ -283,15 +283,42 @@ const handleSearch = async () => {
 };
 
   const handleDelete = async (userId) => {
-    if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
-    try {
-      await axios.delete(`${BaseUrl}/admin-users/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
-      alert("Đã xoá người dùng!");
-      fetchUsers();
-    } catch {
-      alert("Xoá thất bại!");
-    }
-  };
+  if (!userId) return alert("Không tìm thấy ID người dùng để xoá!");
+  if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
+
+  try {
+    const response = await axios.delete(`${BaseUrl}/admin-users/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log("Xoá thành công:", response.data);
+    alert("Đã xoá người dùng!");
+
+    // ✅ Xoá trực tiếp khỏi state
+    setUsers(prev => prev.filter(u => u.id !== userId));
+
+    // ✅ Xoá khỏi counts luôn
+    setCounts(prev => {
+      const updated = { ...prev };
+      delete updated[userId];
+      return updated;
+    });
+
+    // ✅ Xoá khỏi cacheUsers (nếu muốn giữ cache đúng)
+    setCacheUsers(prev => prev.map(item => ({
+      ...item,
+      users: item.users.filter(u => u.id !== userId),
+      counts: Object.fromEntries(
+        Object.entries(item.counts).filter(([key]) => key !== userId)
+      )
+    })));
+
+  } catch (error) {
+    console.error("Lỗi xoá người dùng:", error?.response?.data || error.message);
+    alert("Xoá thất bại!");
+  }
+};
+
+
 
   const handleAddRole = async () => {
     if (!token || !selectedUser) return;
@@ -414,7 +441,7 @@ const handleSearch = async () => {
                   </MenuHandler>
                   <MenuList>
                     <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
-                    <MenuItem onClick={() => handleDelete(user.id)} className="text-red-500">Xoá</MenuItem>
+                    <MenuItem onClick={() => handleDelete(user._id)} className="text-red-500">Xoá</MenuItem>
                   </MenuList>
                 </Menu>
               </td>
@@ -424,13 +451,40 @@ const handleSearch = async () => {
         </table>
       </div>
 
-      {!isSearching && (
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <Button size="sm" variant="outlined" disabled={page <= 1} onClick={() => setPage(prev => prev - 1)}>Trang trước</Button>
-          <span>Trang {page} / {totalPages}</span>
-          <Button size="sm" variant="outlined" disabled={page >= totalPages} onClick={() => setPage(prev => prev + 1)}>Trang sau</Button>
-        </div>
-      )}
+     {!isSearching && (
+  <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
+    {/* <Button
+      size="sm"
+      variant="outlined"
+      disabled={page <= 1}
+      onClick={() => setPage(page - 1)}
+    >
+      Trang trước
+    </Button> */}
+
+    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+      <Button
+        key={p}
+        size="sm"
+        variant={p === page ? "filled" : "outlined"}
+        className={p === page ? "bg-black text-white" : ""}
+        onClick={() => setPage(p)}
+      >
+        {p}
+      </Button>
+    ))}
+
+    {/* <Button
+      size="sm"
+      variant="outlined"
+      disabled={page >= totalPages}
+      onClick={() => setPage(page + 1)}
+    >
+      Trang sau
+    </Button> */}
+  </div>
+)}
+
 
     <Dialog open={editOpen} handler={setEditOpen} size="sm">
   <DialogHeader>Chỉnh sửa người dùng</DialogHeader>
