@@ -294,6 +294,15 @@ setRoles(allRoles);
       }}
     />
   </div>
+  <div className="w-52">
+  <Select label="Role" value={filterRole} onChange={val => setFilterRole(val || "")}>
+    <Option value="">Tất cả</Option>
+    <Option value="Admin">Admin</Option>
+    <Option value="Staff">Staff</Option>
+    <Option value="Customer">Customer</Option>
+    <Option value="Farmer">Farmer</Option>
+  </Select>
+</div>
 
   <div className="w-52">
     <Select label="Trạng thái" value={filterStatus} onChange={val => setFilterStatus(val || "")}>
@@ -303,21 +312,6 @@ setRoles(allRoles);
     </Select>
   </div>
 
-  <div className="w-52">
-   <Select
-  label="Lọc theo role"
-  value={filterRole}
-  onChange={(val) => setFilterRole(val ?? "")}
->
-  <Option value="">Tất cả</Option>
-  {roles.map(role => (
-    <Option key={role} value={role}>{role}</Option>
-  ))}
-</Select>
-
-
-
-  </div>
 
   <div>
     <Button className="bg-black text-white" onClick={handleSearch}>
