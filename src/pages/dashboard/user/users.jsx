@@ -281,42 +281,52 @@ const handleSearch = async () => {
     alert("Cập nhật trạng thái thất bại!");
   }
 };
-
-  const handleDelete = async (userId) => {
-  if (!userId) return alert("Không tìm thấy ID người dùng để xoá!");
-  if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
+const handleSetActive = async (userId) => {
+  if (!window.confirm("Bạn chắc chắn muốn kích hoạt lại user này?")) return;
 
   try {
-    const response = await axios.delete(`${BaseUrl}/admin-users/${userId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    console.log("Xoá thành công:", response.data);
-    alert("Đã xoá người dùng!");
+    await axios.put(
+      `${BaseUrl}/admin-users/${userId}`,
+      { isActive: true },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-    // ✅ Xoá trực tiếp khỏi state
-    setUsers(prev => prev.filter(u => u.id !== userId));
-
-    // ✅ Xoá khỏi counts luôn
-    setCounts(prev => {
-      const updated = { ...prev };
-      delete updated[userId];
-      return updated;
-    });
-
-    // ✅ Xoá khỏi cacheUsers (nếu muốn giữ cache đúng)
-    setCacheUsers(prev => prev.map(item => ({
-      ...item,
-      users: item.users.filter(u => u.id !== userId),
-      counts: Object.fromEntries(
-        Object.entries(item.counts).filter(([key]) => key !== userId)
-      )
-    })));
-
-  } catch (error) {
-    console.error("Lỗi xoá người dùng:", error?.response?.data || error.message);
-    alert("Xoá thất bại!");
+    alert("Đã kích hoạt lại người dùng!");
+    fetchUsers(); // Reload danh sách để cập nhật trạng thái
+  } catch (err) {
+    console.error("Lỗi kích hoạt:", err?.response?.data || err.message);
+    alert("Kích hoạt thất bại!");
   }
 };
+
+const handleDelete = async (userId) => {
+  if (!window.confirm("Bạn chắc chắn muốn vô hiệu hoá user này?")) return;
+
+  try {
+    await axios.put(
+      `${BaseUrl}/admin-users/${userId}`,
+      { isActive: false },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    alert("Đã vô hiệu hoá user!");
+
+    // ✅ GỌI LẠI
+    fetchUsers();
+  } catch (err) {
+    console.error("Lỗi:", err);
+    alert("Không thể vô hiệu hoá user!");
+  }
+};
+
 
 
 
@@ -441,7 +451,19 @@ const handleSearch = async () => {
                   </MenuHandler>
                   <MenuList>
                     <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
-                    <MenuItem onClick={() => handleDelete(user._id)} className="text-red-500">Xoá</MenuItem>
+                    {user.isActive ? (
+    <MenuItem
+      onClick={() => handleDelete(user._id)}
+      className="text-red-500"
+    >
+      Xoá
+    </MenuItem>
+  ) : (
+    <MenuItem onClick={() => handleSetActive(user._id)}>
+      Active
+    </MenuItem>
+  )}
+  
                   </MenuList>
                 </Menu>
               </td>
@@ -500,14 +522,14 @@ const handleSearch = async () => {
       value={formData.phone}
       onChange={e => setFormData({ ...formData, phone: e.target.value })}
     />
-  <Select
+  {/* <Select
   label="Trạng thái"
   value={formData.isActive ? "Đã cấp quyền" : "Chưa cấp quyền"}
   onChange={val => setFormData({ ...formData, isActive: val === "Đã cấp quyền" })}
 >
   <Option value="Đã cấp quyền">Active</Option>
   <Option value="Chưa cấp quyền">Inactive</Option>
-</Select>
+</Select> */}
     <div className="flex flex-col sm:flex-row sm:items-end gap-2">
       <div className="w-full sm:w-60">
         <Select
