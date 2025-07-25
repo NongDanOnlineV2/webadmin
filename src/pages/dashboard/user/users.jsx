@@ -199,21 +199,31 @@ const fetchAllData = async () => {
   
 // CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
  const handleUpdate = async () => {
-    if (!token || !selectedUser) return;
-    try {
-      await axios.put(`${BaseUrl}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
+  if (!token || !selectedUser) return;
 
-      if (formData.isActive !== selectedUser.isActive) {
-        await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      }
+  try {
+    // Cập nhật fullName và phone trước
+    await axios.put(`${BaseUrl}/admin-users/${selectedUser._id}`, 
+      { fullName: formData.fullName, phone: formData.phone }, 
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      alert("Cập nhật thành công!");
-      fetchUsers();
-      setEditOpen(false);
-    } catch {
-      alert("Cập nhật thất bại!");
+    // Nếu trạng thái isActive thay đổi thì gọi PATCH
+    if (formData.isActive !== selectedUser.isActive) {
+      await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
     }
-  };
+
+    alert("Cập nhật thành công!");
+    fetchUsers();
+    setEditOpen(false);
+  } catch (error) {
+    console.error(error);
+    alert("Cập nhật thất bại!");
+  }
+};
+
 
  const handleToggleActive = async (val) => {
   if (!token || !selectedUser) return;
@@ -221,27 +231,31 @@ const fetchAllData = async () => {
   const isCurrentlyActive = selectedUser.isActive;
   const newIsActive = val === "Active";
 
-  // Nếu trạng thái không thay đổi
   if (isCurrentlyActive === newIsActive) {
     alert(`Người dùng đã ở trạng thái ${newIsActive ? "Active" : "Inactive"} rồi.`);
     return;
   }
 
   try {
-    await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    setFormData(prev => ({ ...prev, isActive: newIsActive }));
-    setUsers(prev =>
-      prev.map(u => u.id === selectedUser._id ? { ...u, isActive: newIsActive } : u)
+    await axios.patch(
+      `${BaseUrl}/admin-users/${selectedUser._id}/active`,
+      {}, // ✅ Sửa lỗi: Gửi body rỗng (không gửi status)
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
 
     alert("Cập nhật trạng thái thành công!");
-  } catch {
-    alert("Cập nhật trạng thái thất bại!");
+    fetchUsers();
+    setEditOpen(false);
+  } catch (error) {
+    console.error("Lỗi cập nhật trạng thái:", error.response?.data || error.message);
+    alert("Cập nhật thất bại!");
   }
 };
+
 
   const handleDelete = async (userId) => {
     if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
@@ -399,11 +413,11 @@ const fetchAllData = async () => {
     />
   <Select
   label="Trạng thái"
-  value={formData.isActive ? "Đã cấp quyền" : "Chưa cấp quyền"}
-  onChange={val => setFormData({ ...formData, isActive: val === "Đã cấp quyền" })}
+  value={formData.isActive ? "Active" : "Inactive"}
+  onChange={val => setFormData({ ...formData, isActive: val === "Active" })}
 >
-  <Option value="Đã cấp quyền">Active</Option>
-  <Option value="Chưa cấp quyền">Inactive</Option>
+  <Option value="Active">Active</Option>
+  <Option value="Inactive">Inactive</Option>
 </Select>
     <div className="flex flex-col sm:flex-row sm:items-end gap-2">
       <div className="w-full sm:w-60">
