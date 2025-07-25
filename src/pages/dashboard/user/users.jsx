@@ -39,7 +39,7 @@ export default function Users() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  // const BaseUrl = "https://api-ndolv2.nongdanonline.cc";
+  const BaseUrl = "https://api-ndolv2.nongdanonline.cc";
 const fetchAllData = async () => {
     try {
       const getAllPages = async (endpoint) => {
@@ -129,16 +129,16 @@ const fetchAllData = async () => {
     });
 }, []);
   // Search
- const handleSearch = async () => {
+const handleSearch = async () => {
   if (!token) return;
   setLoading(true);
   setIsSearching(true);
+  setPage(1); // đảm bảo về trang 1
   try {
     const params = {
       page: 1,
-      limit: 10, 
+      limit: 10,
     };
-
     if (filterRole) params.role = filterRole;
     if (filterStatus) params.isActive = filterStatus === "Active";
     if (searchText.trim()) params.fullName = searchText.trim();
@@ -146,6 +146,7 @@ const fetchAllData = async () => {
     const res = await api.get(`${BaseUrl}/admin-users`, { params });
     const usersData = res.data?.data || [];
 
+    // đếm số lượng như cũ
     const postMap = {};
     allPosts.current.forEach(p => {
       const uid = p.userId || p.authorId?.id;
@@ -164,14 +165,18 @@ const fetchAllData = async () => {
     setUsers(usersData);
     setCounts(countsMap);
     setTotalPages(res.data.totalPages || 1);
+
+    // 🛠 Giữ chế độ tìm kiếm cho đến khi người dùng "xoá tìm kiếm"
+    // Không setIsSearching(false) ở đây
   } catch (err) {
     console.error("Lỗi tìm kiếm người dùng:", err);
     alert("Không thể tìm kiếm người dùng!");
+    setIsSearching(false); // nếu lỗi thì tắt chế độ
   } finally {
     setLoading(false);
-    setIsSearching(false);
   }
 };
+
 
 
  useEffect(() => {
@@ -183,24 +188,24 @@ const fetchAllData = async () => {
 
   if (isSearching) return;
 
-  const cached = cacheUsers.find(
-    (entry) =>
-      entry.page === page &&
-      entry.role === filterRole &&
-      entry.status === filterStatus &&
-      entry.searchText === searchText
-  );
+  // const cached = cacheUsers.find(
+  //   (entry) =>
+  //     entry.page === page &&
+  //     entry.role === filterRole &&
+  //     entry.status === filterStatus &&
+  //     entry.searchText === searchText
+  // );
 
-  if (cached) {
-    // ⚡ Load từ cache nếu đã có
-    setUsers(cached.users);
-    setTotalPages(cached.totalPages || 1);
-    setCounts(cached.counts || {});
-    setLoading(false);
-  } else {
-    // 🚀 Nếu chưa cache thì mới fetch
+  // if (cached) {
+  //   // ⚡ Load từ cache nếu đã có
+  //   setUsers(cached.users);
+  //   setTotalPages(cached.totalPages || 1);
+  //   setCounts(cached.counts || {});
+  //   setLoading(false);
+  // } else {
+  //   // 🚀 Nếu chưa cache thì mới fetch
     fetchUsers();
-  }
+  // }
 }, [token, page, filterRole, filterStatus, isSearching]);
 
 
@@ -224,15 +229,28 @@ const fetchAllData = async () => {
       await axios.put(`${BaseUrl}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
 
       if (formData.isActive !== selectedUser.isActive) {
-        await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      }
-
-      alert("Cập nhật thành công!");
-      fetchUsers();
-      setEditOpen(false);
-    } catch {
-      alert("Cập nhật thất bại!");
+      await axios.patch(
+        `${BaseUrl}/admin-users/${selectedUser._id}/active`,
+        {
+          isActive: formData.isActive, // đảm bảo gửi rõ ràng trạng thái mới
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
     }
+
+    alert("Cập nhật thành công!");
+    fetchUsers();
+    setEditOpen(false);
+  } catch (error) {
+    console.error("❌ Lỗi khi cập nhật:", error);
+
+    const message =
+      error.response?.data?.message || "Cập nhật thất bại! Vui lòng thử lại.";
+
+    alert(message);
+  }
   };
 
  const handleToggleActive = async (val) => {
@@ -358,7 +376,7 @@ const fetchAllData = async () => {
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
+            {Array.isArray(users) && users.map(user => (
             <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
               <td className="p-2">
                 <Avatar src={user.avatar ? `${BaseUrl}${user.avatar}` : ""} size="sm" />
