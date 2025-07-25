@@ -8,6 +8,7 @@ import {
 } from "@material-tailwind/react";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
+import { BaseUrl } from '@/ipconfig';
 import CreatableSelect from 'react-select/creatable';
 const allFarms = { current: [] };
 const allVideos = { current: [] };
@@ -38,14 +39,14 @@ export default function Users() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const apiUrl = "https://api-ndolv2.nongdanonline.cc";
+  // const BaseUrl = "https://api-ndolv2.nongdanonline.cc";
 const fetchAllData = async () => {
     try {
       const getAllPages = async (endpoint) => {
         let page = 1;
         let items = [];
         while (true) {
-          const res = await axios.get(`${apiUrl}/${endpoint}?page=${page}&limit=100`, {
+          const res = await axios.get(`${BaseUrl}/${endpoint}?page=${page}&limit=100`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = res.data?.data || [];
@@ -69,7 +70,7 @@ const fetchAllData = async () => {
       if (filterRole) params.role = filterRole;
       if (filterStatus) params.isActive = filterStatus === "Active";
 
-    const res = await api.get(`/admin-users`, { params }); 
+    const res = await api.get(`${BaseUrl}/admin-users`, { params }); 
     const usersData = res.data?.data || [];
 
       const postMap = {};
@@ -106,7 +107,7 @@ const fetchAllData = async () => {
           .map(formatRole)
       ));
 
-setRoles(allRoles);
+    setRoles(allRoles);
     } catch (err) {
       console.error("Lỗi fetch users:", err);
       setError("Không thể tải danh sách người dùng");
@@ -136,7 +137,7 @@ setRoles(allRoles);
       if (filterStatus) paramsCommon.isActive = filterStatus === "Active";
 
       const [byName] = await Promise.all([
-        axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, fullName: searchText } }),
+        axios.get(`${BaseUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, fullName: searchText } }),
         // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, email: searchText } }),
         // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, phone: searchText } }),
       ]);
@@ -200,10 +201,10 @@ setRoles(allRoles);
  const handleUpdate = async () => {
     if (!token || !selectedUser) return;
     try {
-      await axios.put(`${apiUrl}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`${BaseUrl}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
 
       if (formData.isActive !== selectedUser.isActive) {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/active`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, { headers: { Authorization: `Bearer ${token}` } });
       }
 
       alert("Cập nhật thành công!");
@@ -227,7 +228,7 @@ setRoles(allRoles);
   }
 
   try {
-    await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/active`, {}, {
+    await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -245,7 +246,7 @@ setRoles(allRoles);
   const handleDelete = async (userId) => {
     if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
     try {
-      await axios.delete(`${apiUrl}/admin-users/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`${BaseUrl}/admin-users/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
       alert("Đã xoá người dùng!");
       fetchUsers();
     } catch {
@@ -257,9 +258,9 @@ setRoles(allRoles);
     if (!token || !selectedUser) return;
     try {
       if (selectedRole === "Farmer") {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
       } else {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
       }
       alert("Thêm role thành công!");
       fetchUsers();
@@ -271,7 +272,7 @@ setRoles(allRoles);
   const handleRemoveRole = async (role) => {
     if (!token || !selectedUser) return;
     try {
-      await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
       alert("Xoá role thành công!");
       fetchUsers();
     } catch {
@@ -340,7 +341,7 @@ setRoles(allRoles);
             {users.map(user => (
             <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
               <td className="p-2">
-                <Avatar src={user.avatar ? `https://api-ndolv2.nongdanonline.cc${user.avatar}` : ""} size="sm" />
+                <Avatar src={user.avatar ? `${BaseUrl}${user.avatar}` : ""} size="sm" />
               </td>
               <td className="p-2">{user.fullName}</td>
               <td className="p-2">{user.email}</td>
