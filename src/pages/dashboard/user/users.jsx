@@ -186,7 +186,9 @@ const handleSearch = async () => {
     return;
   }
 
-  if (isSearching) return;
+  if (isSearching){
+     fetchUsers();
+  } 
 
   // const cached = cacheUsers.find(
   //   (entry) =>
@@ -204,7 +206,7 @@ const handleSearch = async () => {
   //   setLoading(false);
   // } else {
   //   // 🚀 Nếu chưa cache thì mới fetch
-    fetchUsers();
+    
   // }
 }, [token, page, filterRole, filterStatus, isSearching]);
 
