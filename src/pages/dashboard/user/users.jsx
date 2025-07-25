@@ -8,7 +8,6 @@ import {
 } from "@material-tailwind/react";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
-import { BaseUrl } from '@/ipconfig';
 import CreatableSelect from 'react-select/creatable';
 const allFarms = { current: [] };
 const allVideos = { current: [] };
@@ -23,7 +22,7 @@ export default function Users() {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
-    fullName: "", email: "", phone: "", isActive: true,
+    fullName: "", email: "", phone: "", isActive: true, selectedAddress: ""
   });
   const [selectedRole, setSelectedRole] = useState("Farmer");
   const [page, setPage] = useState(1);
@@ -39,14 +38,14 @@ export default function Users() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  // const BaseUrl = "https://api-ndolv2.nongdanonline.cc";
+  const apiUrl = "https://api-ndolv2.nongdanonline.cc";
 const fetchAllData = async () => {
     try {
       const getAllPages = async (endpoint) => {
         let page = 1;
         let items = [];
         while (true) {
-          const res = await axios.get(`${BaseUrl}/${endpoint}?page=${page}&limit=100`, {
+          const res = await axios.get(`${apiUrl}/${endpoint}?page=${page}&limit=100`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = res.data?.data || [];
@@ -70,7 +69,7 @@ const fetchAllData = async () => {
       if (filterRole) params.role = filterRole;
       if (filterStatus) params.isActive = filterStatus === "Active";
 
-    const res = await api.get(`${BaseUrl}/admin-users`, { params }); 
+    const res = await api.get(`/admin-users`, { params }); 
     const usersData = res.data?.data || [];
 
       const postMap = {};
@@ -95,20 +94,15 @@ const fetchAllData = async () => {
         page,
         role: filterRole,
         status: filterStatus,
-        searchText,
         users: usersData,
         totalPages: res.data.totalPages || 1,
         counts: countsMap
       }]);
-      const formatRole = (r) => r?.trim().charAt(0).toUpperCase() + r?.trim().slice(1).toLowerCase();
-      const allRoles = Array.from(new Set(
-        usersData
-          .flatMap(u => Array.isArray(u.role) ? u.role : [u.role])
-          .filter(Boolean)
-          .map(formatRole)
-      ));
 
-    setRoles(allRoles);
+      const allRoles = Array.from(new Set(
+        usersData.flatMap(u => Array.isArray(u.role) ? u.role : [u.role])
+      )).filter(Boolean);
+      setRoles(allRoles);
     } catch (err) {
       console.error("Lỗi fetch users:", err);
       setError("Không thể tải danh sách người dùng");
@@ -119,8 +113,9 @@ const fetchAllData = async () => {
 
  useEffect(() => {
   if (!token) return;
-  setRoles(["Admin", "Farmer", "Staff", "Customer"]);
+
   fetchAllData()
+    // .then(fetchUsers)
     .catch((err) => {
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
@@ -129,50 +124,32 @@ const fetchAllData = async () => {
     });
 }, []);
   // Search
- const handleSearch = async () => {
-  if (!token) return;
-  setLoading(true);
-  setIsSearching(true);
-  try {
-    const params = {
-      page: 1,
-      limit: 10, 
-    };
+  const handleSearch = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const paramsCommon = { page: 1, limit: 10 };
+      if (filterRole) paramsCommon.role = filterRole;
+      if (filterStatus) paramsCommon.isActive = filterStatus === "Active";
 
-    if (filterRole) params.role = filterRole;
-    if (filterStatus) params.isActive = filterStatus === "Active";
-    if (searchText.trim()) params.fullName = searchText.trim();
-
-    const res = await api.get(`${BaseUrl}/admin-users`, { params });
-    const usersData = res.data?.data || [];
-
-    const postMap = {};
-    allPosts.current.forEach(p => {
-      const uid = p.userId || p.authorId?.id;
-      if (uid) postMap[uid] = (postMap[uid] || 0) + 1;
-    });
-
-    const countsMap = {};
-    usersData.forEach(u => {
-      countsMap[u.id] = {
-        posts: postMap[u.id] || 0,
-        farms: allFarms.current.filter(f => f.ownerId === u.id).length,
-        videos: allVideos.current.filter(v => v.uploadedBy?.id === u.id).length,
-      };
-    });
-
-    setUsers(usersData);
-    setCounts(countsMap);
-    setTotalPages(res.data.totalPages || 1);
-  } catch (err) {
-    console.error("Lỗi tìm kiếm người dùng:", err);
-    alert("Không thể tìm kiếm người dùng!");
-  } finally {
-    setLoading(false);
-    setIsSearching(false);
-  }
-};
-
+      const [byName, byEmail, byPhone] = await Promise.all([
+        axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, fullName: searchText } }),
+        axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, email: searchText } }),
+        axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, phone: searchText } }),
+      ]);
+      const merged = [...(byName.data.data || []), ...(byEmail.data.data || []), ...(byPhone.data.data || [])];
+      const unique = merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+      setUsers(unique);
+      setTotalPages(1);
+      setPage(1);
+      setIsSearching(true);
+    } catch (err) {
+      console.error("Lỗi tìm kiếm:", err);
+      setError("Lỗi khi tìm kiếm.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
  useEffect(() => {
   if (!token) {
@@ -187,8 +164,7 @@ const fetchAllData = async () => {
     (entry) =>
       entry.page === page &&
       entry.role === filterRole &&
-      entry.status === filterStatus &&
-      entry.searchText === searchText
+      entry.status === filterStatus
   );
 
   if (cached) {
@@ -205,28 +181,46 @@ const fetchAllData = async () => {
 
 
   // Edit
-  const openEdit = (user) => {
-  setSelectedUser(user);
-  setFormData({
-    fullName: user.fullName,
-    email: user.email,
-    phone: user.phone || "",
-    isActive: user.isActive
-  });
-  setEditOpen(true);
-};
+  const openEdit = async  (user) => {
+    setSelectedUser(user);
+    setFormData({
+      fullName: user.fullName, email: user.email,
+      phone: user.phone || "", 
+      isActive: user.isActive,
+      selectedAddress: "",
+    });
+    try {
+    const res = await axios.get(`${apiUrl}/admin/user-address/user/${user.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setUserAddresses(res.data || []);
+    if (res.data.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        selectedAddress: res.data[0].address
+      }));
+    }
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách địa chỉ:", error);
+    setUserAddresses([]);
+  }
 
+    setEditOpen(true);
+  };
   
 // CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
  const handleUpdate = async () => {
     if (!token || !selectedUser) return;
     try {
-      await axios.put(`${BaseUrl}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`${apiUrl}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
 
       if (formData.isActive !== selectedUser.isActive) {
-        await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/active`, {}, { headers: { Authorization: `Bearer ${token}` } });
       }
 
+      // if (selectedUser.addresses?.[0]?.id) {
+      //   await axios.put(`${apiUrl}/user-addresses/${selectedUser.addresses[0].id}`, { address: formData.addresses[0] }, { headers: { Authorization: `Bearer ${token}` } });
+      // }
       alert("Cập nhật thành công!");
       fetchUsers();
       setEditOpen(false);
@@ -248,7 +242,7 @@ const fetchAllData = async () => {
   }
 
   try {
-    await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, {
+    await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/active`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -266,7 +260,7 @@ const fetchAllData = async () => {
   const handleDelete = async (userId) => {
     if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
     try {
-      await axios.delete(`${BaseUrl}/admin-users/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`${apiUrl}/admin-users/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
       alert("Đã xoá người dùng!");
       fetchUsers();
     } catch {
@@ -278,9 +272,9 @@ const fetchAllData = async () => {
     if (!token || !selectedUser) return;
     try {
       if (selectedRole === "Farmer") {
-        await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
       } else {
-        await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
       }
       alert("Thêm role thành công!");
       fetchUsers();
@@ -292,7 +286,7 @@ const fetchAllData = async () => {
   const handleRemoveRole = async (role) => {
     if (!token || !selectedUser) return;
     try {
-      await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`${apiUrl}/admin-users/${selectedUser._id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
       alert("Xoá role thành công!");
       fetchUsers();
     } catch {
@@ -315,15 +309,6 @@ const fetchAllData = async () => {
       }}
     />
   </div>
-  <div className="w-52">
-  <Select label="Role" value={filterRole} onChange={val => setFilterRole(val || "")}>
-    <Option value="">Tất cả</Option>
-    <Option value="Admin">Admin</Option>
-    <Option value="Staff">Staff</Option>
-    <Option value="Customer">Customer</Option>
-    <Option value="Farmer">Farmer</Option>
-  </Select>
-</div>
 
   <div className="w-52">
     <Select label="Trạng thái" value={filterStatus} onChange={val => setFilterStatus(val || "")}>
@@ -333,6 +318,21 @@ const fetchAllData = async () => {
     </Select>
   </div>
 
+  <div className="w-52">
+   <Select
+  label="Lọc theo role"
+  value={filterRole}
+  onChange={(val) => setFilterRole(val ?? "")}
+>
+  <Option value="">Tất cả</Option>
+  {roles.map(role => (
+    <Option key={role} value={role}>{role}</Option>
+  ))}
+</Select>
+
+
+
+  </div>
 
   <div>
     <Button className="bg-black text-white" onClick={handleSearch}>
@@ -360,36 +360,37 @@ const fetchAllData = async () => {
           <tbody>
             {users.map(user => (
             <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
-              <td className="p-2">
-                <Avatar src={user.avatar ? `${BaseUrl}${user.avatar}` : ""} size="sm" />
-              </td>
-              <td className="p-2">{user.fullName}</td>
-              <td className="p-2">{user.email}</td>
-              <td className="p-2">{user.phone || "N/A"}</td>
-              <td className="p-2 text-xs">{Array.isArray(user.role) ? user.role.join(", ") : user.role}</td>
+  <td className="p-2">
+    <Avatar src={user.avatar ? `https://api-ndolv2.nongdanonline.cc${user.avatar}` : ""} size="sm" />
+  </td>
+  <td className="p-2">{user.fullName}</td>
+  <td className="p-2">{user.email}</td>
+  <td className="p-2">{user.phone || "N/A"}</td>
+  <td className="p-2 text-xs">{Array.isArray(user.role) ? user.role.join(", ") : user.role}</td>
 
-              {/* Dữ liệu đếm - có thể dùng trực tiếp từ user nếu API trả về luôn */}
-              <td className="p-2">{user.postCount ?? 0}</td>
-              <td className="p-2">{user.farmCount ?? 0}</td>
-              <td className="p-2">{user.videoCount ?? 0}</td>
+  {/* Dữ liệu đếm - có thể dùng trực tiếp từ user nếu API trả về luôn */}
+  <td className="p-2">{user.postCount ?? 0}</td>
+  <td className="p-2">{user.farmCount ?? 0}</td>
+  <td className="p-2">{user.videoCount ?? 0}</td>
 
-              <td className="p-2">
-                {user.isActive
-                  ? <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded">Active</span>
-                  : <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">Inactive</span>}
-              </td>
-              <td className="p-2" onClick={e => e.stopPropagation()}>
-                <Menu placement="left-start">
-                  <MenuHandler>
-                    <IconButton variant="text"><EllipsisVerticalIcon className="h-5 w-5" /></IconButton>
-                  </MenuHandler>
-                  <MenuList>
-                    <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
-                    <MenuItem onClick={() => handleDelete(user.id)} className="text-red-500">Xoá</MenuItem>
-                  </MenuList>
-                </Menu>
-              </td>
-            </tr>
+  <td className="p-2">
+    {user.isActive
+      ? <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded">Active</span>
+      : <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">Inactive</span>}
+  </td>
+  <td className="p-2" onClick={e => e.stopPropagation()}>
+    <Menu placement="left-start">
+      <MenuHandler>
+        <IconButton variant="text"><EllipsisVerticalIcon className="h-5 w-5" /></IconButton>
+      </MenuHandler>
+      <MenuList>
+        <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
+        <MenuItem onClick={() => handleDelete(user.id)} className="text-red-500">Xoá</MenuItem>
+      </MenuList>
+    </Menu>
+  </td>
+</tr>
+
             ))}
           </tbody>
         </table>
@@ -425,27 +426,15 @@ const fetchAllData = async () => {
   <Option value="Đã cấp quyền">Active</Option>
   <Option value="Chưa cấp quyền">Inactive</Option>
 </Select>
-    <div className="flex flex-col sm:flex-row sm:items-end gap-2">
-      <div className="w-full sm:w-60">
-        <Select
-          label="Chọn role để thêm"
-          value={selectedRole}
-          onChange={(val) => setSelectedRole(val)}
-        >
-          {["Admin", "Farmer", "Staff", "Customer"].map((r) => (
-            <Option key={r} value={r}>{r}</Option>
-          ))}
-        </Select>
-      </div>
-      <Button
-        size="sm"
-        className="h-10 px-4 bg-black text-white"
-        onClick={handleAddRole}
-      >
-        THÊM
-      </Button>
-    </div>
-
+    <Typography className="font-bold">Quản lý role</Typography>
+    <Select label="Thêm role" value={selectedRole} onChange={setSelectedRole}>
+      {roles.map(role => (
+        <Option key={role} value={role}>{role}</Option>
+      ))}
+    </Select>
+    <Button size="sm" variant="outlined" onClick={handleAddRole}>
+      + Thêm Role
+    </Button>
     <div className="flex flex-wrap gap-2 mt-2">
       {(Array.isArray(selectedUser?.role) ? selectedUser.role : [selectedUser?.role])
         .filter(Boolean)
