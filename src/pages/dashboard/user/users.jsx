@@ -326,13 +326,23 @@ const handleSearch = async () => {
      <div className="flex flex-wrap items-center gap-4 mb-4">
   <div className="w-64">
     <Input
-      label="Tìm kiếm..."
-      value={searchText}
-      onChange={(e) => setSearchText(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") handleSearch();
-      }}
-    />
+  label="Tìm kiếm..."
+  value={searchText}
+  onChange={(e) => {
+    const val = e.target.value;
+    setSearchText(val);
+
+    if (val.trim() === "") {
+      setIsSearching(false);   // Reset chế độ tìm
+      setPage(1);              // Reset về trang 1
+      fetchUsers();            // Gọi lại API mặc định
+    }
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") handleSearch();
+  }}
+/>
+
   </div>
   <div className="w-52">
   <Select label="Role" value={filterRole} onChange={val => setFilterRole(val || "")}>
