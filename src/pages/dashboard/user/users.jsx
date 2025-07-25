@@ -95,6 +95,7 @@ const fetchAllData = async () => {
         page,
         role: filterRole,
         status: filterStatus,
+        searchText,
         users: usersData,
         totalPages: res.data.totalPages || 1,
         counts: countsMap
@@ -128,32 +129,50 @@ const fetchAllData = async () => {
     });
 }, []);
   // Search
-  const handleSearch = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const paramsCommon = { page: 1, limit: 10 };
-      if (filterRole) paramsCommon.role = filterRole;
-      if (filterStatus) paramsCommon.isActive = filterStatus === "Active";
+ const handleSearch = async () => {
+  if (!token) return;
+  setLoading(true);
+  setIsSearching(true);
+  try {
+    const params = {
+      page: 1,
+      limit: 10, 
+    };
 
-      const [byName] = await Promise.all([
-        axios.get(`${BaseUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, fullName: searchText } }),
-        // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, email: searchText } }),
-        // axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, phone: searchText } }),
-      ]);
-      const merged = [...(byName.data.data || [])];
-      const unique = merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-      setUsers(unique);
-      setTotalPages(1);
-      setPage(1);
-      setIsSearching(true);
-    } catch (err) {
-      console.error("Lỗi tìm kiếm:", err);
-      setError("Lỗi khi tìm kiếm.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (filterRole) params.role = filterRole;
+    if (filterStatus) params.isActive = filterStatus === "Active";
+    if (searchText.trim()) params.fullName = searchText.trim();
+
+    const res = await api.get(`${BaseUrl}/admin-users`, { params });
+    const usersData = res.data?.data || [];
+
+    const postMap = {};
+    allPosts.current.forEach(p => {
+      const uid = p.userId || p.authorId?.id;
+      if (uid) postMap[uid] = (postMap[uid] || 0) + 1;
+    });
+
+    const countsMap = {};
+    usersData.forEach(u => {
+      countsMap[u.id] = {
+        posts: postMap[u.id] || 0,
+        farms: allFarms.current.filter(f => f.ownerId === u.id).length,
+        videos: allVideos.current.filter(v => v.uploadedBy?.id === u.id).length,
+      };
+    });
+
+    setUsers(usersData);
+    setCounts(countsMap);
+    setTotalPages(res.data.totalPages || 1);
+  } catch (err) {
+    console.error("Lỗi tìm kiếm người dùng:", err);
+    alert("Không thể tìm kiếm người dùng!");
+  } finally {
+    setLoading(false);
+    setIsSearching(false);
+  }
+};
+
 
  useEffect(() => {
   if (!token) {
@@ -168,7 +187,8 @@ const fetchAllData = async () => {
     (entry) =>
       entry.page === page &&
       entry.role === filterRole &&
-      entry.status === filterStatus
+      entry.status === filterStatus &&
+      entry.searchText === searchText
   );
 
   if (cached) {
