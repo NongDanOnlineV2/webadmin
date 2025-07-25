@@ -129,27 +129,44 @@ export const ListVideo = () => {
     setSearchText(value);
   };
 
-  // Khi search, lưu kết quả vào state
-  const performSearch = async (customPage = 1) => {
-    const searchKey = `${actualSearchTerm}-${filterStatus}`;
+  // Tạo function riêng để search với term cụ thể
+  const performSearchWithTerm = async (searchTerm, customPage = 1) => {
     setPage(customPage);
-
-    // Nếu đã có search results trong state thì phân trang từ đó
-    if (isSearchMode && searchResults.length > 0) {
-      const totalPages = Math.ceil(searchResults.length / limit);
+    setSearchCache({});
+    setVideoCache({});
+    setLoading(true);
+    
+    try {
+      const result = await fetchVideos(1, 100, searchTerm, filterStatus);
+      
+      // Lưu kết quả search vào state
+      const allSearchResults = result.videos || [];
+      setSearchResults(allSearchResults);
+      setIsSearchMode(true);
+      
+      // Phân trang từ kết quả search
+      const totalPages = Math.ceil(allSearchResults.length / limit);
       const startIndex = (customPage - 1) * limit;
       const endIndex = startIndex + limit;
-      const pagedVideos = searchResults.slice(startIndex, endIndex);
+      const pagedVideos = allSearchResults.slice(startIndex, endIndex);
       
       setVideos(pagedVideos);
       setTotalPages(totalPages);
+    } catch (error) {
+      setVideos([]);
+      setTotalPages(1);
+    } finally {
       setLoading(false);
-      return;
     }
+  };
 
+  const performSearch = async (customPage = 1) => {
+    setPage(customPage);
+    setSearchCache({});
+    setVideoCache({});
     setLoading(true);
+    
     try {
-      // Lấy toàn bộ dữ liệu để search
       const result = await fetchVideos(1, 100, actualSearchTerm, filterStatus);
       
       // Lưu kết quả search vào state
@@ -176,15 +193,55 @@ export const ListVideo = () => {
   const handleFilterChange = (e) => {
     const status = e.target.value;
     setFilterStatus(status);
-    setPage(1); // Reset về trang 1
+    setPage(1);
     setSearchCache({});
     setVideoCache({});
-    if (actualSearchTerm) {
-      performSearch(1);
+    setSearchResults([]);
+    setIsSearchMode(false);
+    
+    // Tự động search ngay khi thay đổi filter - không cần setTimeout
+    if (status) {
+      // Gọi với status mới ngay lập tức
+      performFilterSearch(actualSearchTerm, status, 1);
+    } else if (actualSearchTerm) {
+      // Nếu bỏ filter nhưng vẫn có search term
+      performSearchWithTerm(actualSearchTerm, 1);
+    } else {
+      // Nếu không có gì thì reset về trang thường
+      setIsSearchMode(false);
+      setSearchResults([]);
     }
   };
 
-  // Khi clear search/filter
+  // Tạo function riêng cho filter search
+  const performFilterSearch = async (searchTerm, status, customPage = 1) => {
+    setPage(customPage);
+    setSearchCache({});
+    setVideoCache({});
+    setLoading(true);
+    
+    try {
+      const result = await fetchVideos(1, 100, searchTerm, status);
+      
+      const allSearchResults = result.videos || [];
+      setSearchResults(allSearchResults);
+      setIsSearchMode(true);
+      
+      const totalPages = Math.ceil(allSearchResults.length / limit);
+      const startIndex = (customPage - 1) * limit;
+      const endIndex = startIndex + limit;
+      const pagedVideos = allSearchResults.slice(startIndex, endIndex);
+      
+      setVideos(pagedVideos);
+      setTotalPages(totalPages);
+    } catch (error) {
+      setVideos([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const clearSearch = () => {
     setSearchText('');
     setActualSearchTerm('');
@@ -198,16 +255,29 @@ export const ListVideo = () => {
 
   // Khi nhấn nút tìm kiếm
   const handleSearchClick = () => {
-    setActualSearchTerm(searchText.trim());
+    const searchTerm = searchText.trim();
+    setActualSearchTerm(searchTerm);
     setSearchResults([]);
     setIsSearchMode(false);
-    performSearch(1);
+    setSearchCache({});
+    setVideoCache({});
+    
+    // Nếu có filter status thì search với cả status
+    if (filterStatus) {
+      performFilterSearch(searchTerm, filterStatus, 1);
+    } else {
+      performSearchWithTerm(searchTerm, 1);
+    }
   };
 
   const handlePageChange = (newPage) => {
     setPage(newPage);
     if (actualSearchTerm || filterStatus) {
-      performSearch(newPage);
+      if (filterStatus) {
+        performFilterSearch(actualSearchTerm, filterStatus, newPage);
+      } else {
+        performSearch(newPage);
+      }
     }
   };
 
@@ -217,25 +287,18 @@ export const ListVideo = () => {
   };
 
   useEffect(() => {
-    // Nếu đang trong search mode thì không load videos bình thường
-    if (actualSearchTerm || filterStatus) return;
+    // Nếu đang trong search mode hoặc có filter thì không load videos bình thường
+    if (actualSearchTerm || filterStatus) {
+      // Nếu có search/filter mà chưa có kết quả thì search
+      if (!isSearchMode) {
+        performSearch(page);
+      }
+      return;
+    }
     
     const loadVideos = async () => {
-      if (actualSearchTerm) {
-        const searchKey = `${actualSearchTerm}-${filterStatus}`;
-        if (searchCache[searchKey]) {
-          setVideos(searchCache[searchKey].videos);
-          setTotalPages(searchCache[searchKey].totalPages);
-          setLoading(false);
-          return;
-        }
-        // Nếu chưa có cache search thì gọi lại performSearch
-        performSearch();
-        return;
-      }
-
-      // Load video với filter status
-      const cacheKey = `${page}-${actualSearchTerm}-${filterStatus}`;
+      // Load video bình thường khi không có search/filter
+      const cacheKey = `${page}-normal`;
       if (videoCache[cacheKey]) {
         setVideos(videoCache[cacheKey].videos);
         setTotalPages(videoCache[cacheKey].totalPages);
@@ -244,7 +307,7 @@ export const ListVideo = () => {
       }
 
       setLoading(true);
-      fetchVideos(page, limit, '', filterStatus) // Truyền filterStatus để lọc client-side
+      fetchVideos(page, limit, '', '') // Không truyền filter để load tất cả
         .then(result => {
           setVideos(result.videos || []);
           setTotalPages(result.totalPages || 1);
@@ -265,7 +328,7 @@ export const ListVideo = () => {
     };
 
     loadVideos();
-  }, [page, actualSearchTerm, filterStatus, videoCache, searchCache]);
+  }, [page, actualSearchTerm, filterStatus]);
 
   // HÀM DỌN DẸP CACHE CŨ (option - chạy mỗi 5 phút)
   useEffect(() => {
