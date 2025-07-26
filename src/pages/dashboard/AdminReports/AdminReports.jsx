@@ -13,6 +13,8 @@ export default function AdminReports() {
   const [type, setType] = useState('');
   const [openApprove, setOpenApprove] = useState(false);
 const [selectedReportId, setSelectedReportId] = useState(null);
+const [users, setUsers] = useState([]);
+const [reporterMap, setReporterMap] = useState({});
 
   const token = localStorage.getItem('token');
 
@@ -36,6 +38,7 @@ const [selectedReportId, setSelectedReportId] = useState(null);
     }
   };
 
+
   const handleApprove = async (id) => {
     const confirm = window.confirm('Bạn chắc chắn muốn duyệt báo cáo này?');
     if (!confirm) return;
@@ -49,6 +52,38 @@ const [selectedReportId, setSelectedReportId] = useState(null);
       alert('Lỗi khi duyệt báo cáo');
     }
   };
+  useEffect(() => {
+  const fetchReporterInfo = async () => {
+    const uniqueIds = [...new Set(reports.map(r => r.reporter))];
+
+    for (const id of uniqueIds) {
+      if (!reporterMap[id]) {
+        try {
+          const res =axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+})
+.then(res => {
+  setReporterMap(prev => ({ ...prev, [id]: res.data }));
+})
+.catch(err => {
+  console.error("Lỗi fetch reporter id:", id, err);
+});
+
+          setReporterMap(prev => ({ ...prev, [id]: res.data }));
+        } catch (err) {
+          console.error("Lỗi fetch reporter:", err);
+        }
+      }
+    }
+  };
+
+  if (reports.length > 0) {
+    fetchReporterInfo();
+  }
+}, [reports]);
+
 
   useEffect(() => {
     fetchReports();
@@ -117,9 +152,11 @@ const [selectedReportId, setSelectedReportId] = useState(null);
             ) : (
               reports.map((r) => (
                 <tr key={r._id} className="border-t">
-                 <td className="px-4 py-2">
-  {r.targetUser?.email ? r.targetUser.email.split("@")[0] : "Ẩn danh"}
+               <td className="px-4 py-2">
+  {reporterMap[r.reporter]?.fullName || "Ẩn danh"}
 </td>
+
+
                   <td className="px-4 py-2">
   <span
     className={`px-2 py-1 rounded text-xs font-semibold 
@@ -238,10 +275,10 @@ const [selectedReportId, setSelectedReportId] = useState(null);
           <strong>Cập nhật lần cuối:</strong>{' '}
           {new Date(selectedReport.updatedAt).toLocaleString()}
         </div>
-        <div>
+        {/* <div>
           <strong>Hành động xử lý:</strong>{' '}
           {selectedReport.handledAction || 'Chưa xử lý'}
-        </div>
+        </div> */}
       </div>
       <div className="text-right mt-6">
         <button
