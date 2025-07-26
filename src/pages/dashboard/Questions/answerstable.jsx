@@ -32,7 +32,7 @@ const fetchWithAuth = async (url, options = {}) => {
   if (res.status === 401 || res.status === 403) {
     const refreshToken = localStorage.getItem("refreshToken");
     const refreshRes = await fetch(
-      "https://api-ndolv2.nongdanonline.cc/auth/refresh-token",
+      `${BaseUrl}/auth/refresh-token`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,22 +85,22 @@ export function AnswersTable() {
   const [isSearching, setIsSearching] = useState(false); // ✅ kiểm soát search mode
 
   // ✅ Load toàn bộ options từ API
-  const loadAllOptions = async () => {
-    try {
-      const res = await fetchWithAuth(`${API_URL}?limit=9999`);
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message);
+  // const loadAllOptions = async () => {
+  //   try {
+  //     const res = await fetchWithAuth(`${API_URL}?limit=9999`);
+  //     const result = await res.json();
+  //     if (!res.ok) throw new Error(result.message);
 
-      const optionsSet = new Set();
-      (result.data || []).forEach((ans) =>
-        ans.selectedOptions?.forEach((opt) => optionsSet.add(opt))
-      );
+  //     const optionsSet = new Set();
+  //     (result.data || []).forEach((ans) =>
+  //       ans.selectedOptions?.forEach((opt) => optionsSet.add(opt))
+  //     );
 
-      setAllOptions(Array.from(optionsSet));
-    } catch (err) {
-      console.error("Lỗi tải options:", err);
-    }
-  };
+  //     setAllOptions(Array.from(optionsSet));
+  //   } catch (err) {
+  //     console.error("Lỗi tải options:", err);
+  //   }
+  // };
 
   const truncateText = (text, maxLength = 50) => {
     if (!text) return "";
@@ -111,7 +111,7 @@ export function AnswersTable() {
   const loadAnswersByPage = async (page = 1, searchMode = false) => {
     try {
       setLoading(true);
-      const limit = searchMode ? 9999 : itemsPerPage; // ✅ load theo chế độ
+      const limit = searchMode ? 9999 : itemsPerPage; 
       const res = await fetchWithAuth(`${API_URL}?limit=${limit}&page=${page}`);
       const result = await res.json();
       if (!res.ok) throw new Error(result.message);
@@ -182,7 +182,6 @@ export function AnswersTable() {
   // ✅ Lần đầu load chỉ 10 record
   useEffect(() => {
     loadAnswersByPage(1, false);
-    loadAllOptions();
     fetchFarmsAndQuestions();
   }, []);
 
