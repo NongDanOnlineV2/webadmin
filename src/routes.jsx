@@ -4,15 +4,16 @@ import {
   TableCellsIcon,
   InformationCircleIcon,
   ServerStackIcon,
-  RectangleStackIcon,
   NewspaperIcon,
   ReceiptPercentIcon,
   ChatBubbleLeftEllipsisIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  MapPinIcon,
+  ChatBubbleBottomCenterIcon
 } from "@heroicons/react/24/solid";
 
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
-import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost  } from "@/pages/dashboard";
+import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports, CommentPost, RoomTable  } from "@/pages/dashboard";
 import { SignIn, SignUp} from "@/pages/auth";
 import ChinhSach from "@/pages/dashboard/ChinhSach";
 import ChinhSachBaoMat from "@/pages/dashboard/ChinhSachBaoMat";
@@ -20,6 +21,7 @@ import ChinhSachCookie from "@/pages/dashboard/ChinhSachCookie";
 import DieuKhoanDieuKien from "@/pages/dashboard/DieuKhoanDieuKien";
 import ResetPassword from "./pages/auth/ResetPassword";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import Address from "./pages/dashboard/AdminAddress/Address";
 
 import { ViewfinderCircleIcon,VideoCameraIcon,ChatBubbleOvalLeftEllipsisIcon  } from "@heroicons/react/24/outline";
 import { Comment } from "react-loader-spinner";
@@ -88,7 +90,23 @@ export const routes = [
         path: "/CommentPost",
          element: <CommentPost />,
 
+
+      },
+       {
+        icon: <ChatBubbleBottomCenterIcon {...icon} />,
+        name: "Chat",
+        path: "/chat",
+         element: <RoomTable />,
+
       }, 
+       {
+        icon: <MapPinIcon {...icon} />,
+        name: "Address",
+        path: "/Address",
+         element: <Address />,
+
+
+      },
 {
   icon: <ShieldCheckIcon {...icon} />,
   name: "CHÍNH SÁCH",

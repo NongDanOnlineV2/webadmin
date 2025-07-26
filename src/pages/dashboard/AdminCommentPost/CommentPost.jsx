@@ -240,57 +240,90 @@ export const CommentPost = () => {
 
         {/* Pagination */}
         <div className="bg-white rounded-lg shadow-sm mt-6 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-700">
-              Trang <span className="font-medium">{page}</span> / <span className="font-medium">{totalPages}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                size="sm"
-                variant="outlined"
-                disabled={page <= 1}
+          <div className="flex items-center justify-center">
+            <div className="flex items-center space-x-1">
+              {/* Previous button */}
+              <button
                 onClick={() => setPage(prev => prev - 1)}
-                className="flex items-center space-x-1"
+                disabled={page <= 1}
+                className={`px-3 py-2 text-sm border rounded ${
+                  page <= 1 
+                    ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
+                    : 'text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                <span>Trước</span>
-              </Button>
-              
-              <div className="flex items-center space-x-1">
-                {[...Array(Math.min(5, totalPages))].map((_, index) => {
-                  const pageNum = page <= 3 ? index + 1 : page - 2 + index;
-                  if (pageNum > totalPages || pageNum <= 0) return null;
+                «
+              </button>
+
+              {(() => {
+                const pages = [];
+                
+                if (totalPages <= 3) {
+                  for (let i = 1; i <= totalPages; i++) {
+                    pages.push(i);
+                  }
+                } else {
+                  pages.push(1);
+                  
+                  if (page > 3) {
+                    pages.push('...');
+                  }
+                  const start = Math.max(2, page - 1);
+                  const end = Math.min(totalPages - 1, page + 1);
+                  
+                  for (let i = start; i <= end; i++) {
+                    if (!pages.includes(i)) {
+                      pages.push(i);
+                    }
+                  }
+                  
+                  if (page < totalPages - 2) {
+                    pages.push('...');
+                  }
+                  
+                  // Luôn hiển thị trang cuối
+                  if (!pages.includes(totalPages)) {
+                    pages.push(totalPages);
+                  }
+                }
+                
+                return pages.map((pageNum, index) => {
+                  if (pageNum === '...') {
+                    return (
+                      <span key={`ellipsis-${index}`} className="px-3 py-2 text-sm text-gray-500">
+                        ...
+                      </span>
+                    );
+                  }
                   
                   return (
                     <button
                       key={pageNum}
                       onClick={() => setPage(pageNum)}
-                      className={`px-3 py-1 text-sm rounded transition-colors ${
+                      className={`px-3 py-2 text-sm border rounded transition-colors ${
                         pageNum === page
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
+                          ? 'bg-black text-white border-black'
+                          : 'text-gray-700 border-gray-300 hover:bg-gray-50'
                       }`}
                     >
                       {pageNum}
                     </button>
                   );
-                })}
-              </div>
-              
-              <Button
-                size="sm"
-                variant="outlined"
-                disabled={page >= totalPages}
+                });
+              })()}
+
+              {/* Next button */}
+              <button
                 onClick={() => setPage(prev => prev + 1)}
-                className="flex items-center space-x-1"
+                disabled={page >= totalPages}
+                className={`px-3 py-2 text-sm border rounded ${
+                  page >= totalPages 
+                    ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
+                    : 'text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
               >
-                <span>Sau</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Button>
+                »
+              </button>
             </div>
           </div>
         </div>
@@ -312,7 +345,6 @@ export const CommentPost = () => {
         <DialogCommentsByid
           postInfo={{
             postId: selectedComment.postId,
-          
           }}
           onClose={handleCloseCommentDetail}
         />

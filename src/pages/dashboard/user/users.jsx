@@ -208,6 +208,7 @@ const handleSearch = async () => {
   // }
 }, [token, page, filterRole, filterStatus, isSearching]);
 
+
   // Edit
   const openEdit = (user) => {
   setSelectedUser(user);
@@ -244,6 +245,14 @@ const handleSearch = async () => {
     fetchUsers();
     setEditOpen(false);
   } catch (error) {
+    console.error("❌ Lỗi khi cập nhật:", error);
+
+    const message =
+      error.response?.data?.message || "Cập nhật thất bại! Vui lòng thử lại.";
+
+    alert(message);
+  }
+  };
 
  const handleToggleActive = async (val) => {
   if (!token || !selectedUser) return;
@@ -251,15 +260,34 @@ const handleSearch = async () => {
   const isCurrentlyActive = selectedUser.isActive;
   const newIsActive = val === "Active";
 
+  // Nếu trạng thái không thay đổi
   if (isCurrentlyActive === newIsActive) {
     alert(`Người dùng đã ở trạng thái ${newIsActive ? "Active" : "Inactive"} rồi.`);
     return;
   }
 
   try {
-    await axios.patch(
-      `${BaseUrl}/admin-users/${selectedUser._id}/active`,
-      {}, // ✅ Sửa lỗi: Gửi body rỗng (không gửi status)
+    await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    setFormData(prev => ({ ...prev, isActive: newIsActive }));
+    setUsers(prev =>
+      prev.map(u => u.id === selectedUser._id ? { ...u, isActive: newIsActive } : u)
+    );
+
+    alert("Cập nhật trạng thái thành công!");
+  } catch {
+    alert("Cập nhật trạng thái thất bại!");
+  }
+};
+const handleSetActive = async (userId) => {
+  if (!window.confirm("Bạn chắc chắn muốn kích hoạt lại user này?")) return;
+
+  try {
+    await axios.put(
+      `${BaseUrl}/admin-users/${userId}`,
+      { isActive: true },
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -267,26 +295,40 @@ const handleSearch = async () => {
       }
     );
 
-    alert("Cập nhật trạng thái thành công!");
+    alert("Đã kích hoạt lại người dùng!");
+    fetchUsers(); // Reload danh sách để cập nhật trạng thái
+  } catch (err) {
+    console.error("Lỗi kích hoạt:", err?.response?.data || err.message);
+    alert("Kích hoạt thất bại!");
+  }
+};
+
+const handleDelete = async (userId) => {
+  if (!window.confirm("Bạn chắc chắn muốn vô hiệu hoá user này?")) return;
+
+  try {
+    await axios.put(
+      `${BaseUrl}/admin-users/${userId}`,
+      { isActive: false },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    alert("Đã vô hiệu hoá user!");
+
+    // ✅ GỌI LẠI
     fetchUsers();
-    setEditOpen(false);
-  } catch (error) {
-    console.error("Lỗi cập nhật trạng thái:", error.response?.data || error.message);
-    alert("Cập nhật thất bại!");
+  } catch (err) {
+    console.error("Lỗi:", err);
+    alert("Không thể vô hiệu hoá user!");
   }
 };
 
 
-  const handleDelete = async (userId) => {
-    if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
-    try {
-      await axios.delete(`${BaseUrl}/admin-users/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
-      alert("Đã xoá người dùng!");
-      fetchUsers();
-    } catch {
-      alert("Xoá thất bại!");
-    }
-  };
+
 
   const handleAddRole = async () => {
     if (!token || !selectedUser) return;
@@ -409,7 +451,19 @@ const handleSearch = async () => {
                   </MenuHandler>
                   <MenuList>
                     <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
-                    <MenuItem onClick={() => handleDelete(user.id)} className="text-red-500">Xoá</MenuItem>
+                    {user.isActive ? (
+    <MenuItem
+      onClick={() => handleDelete(user._id)}
+      className="text-red-500"
+    >
+      Xoá
+    </MenuItem>
+  ) : (
+    <MenuItem onClick={() => handleSetActive(user._id)}>
+      Active
+    </MenuItem>
+  )}
+  
                   </MenuList>
                 </Menu>
               </td>
@@ -419,13 +473,40 @@ const handleSearch = async () => {
         </table>
       </div>
 
-      {!isSearching && (
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <Button size="sm" variant="outlined" disabled={page <= 1} onClick={() => setPage(prev => prev - 1)}>Trang trước</Button>
-          <span>Trang {page} / {totalPages}</span>
-          <Button size="sm" variant="outlined" disabled={page >= totalPages} onClick={() => setPage(prev => prev + 1)}>Trang sau</Button>
-        </div>
-      )}
+     {!isSearching && (
+  <div className="flex justify-center items-center gap-1 mt-4 flex-wrap">
+  <button
+    disabled={page <= 1}
+    className="px-3 py-1 border border-black rounded disabled:opacity-50"
+    onClick={() => setPage(page - 1)}
+  >
+    &laquo;
+  </button>
+
+  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+    <button
+      key={p}
+      className={`px-3 py-1 border border-black rounded ${
+        p === page
+          ? "bg-black text-white"
+          : "bg-white text-black hover:bg-black hover:text-white"
+      }`}
+      onClick={() => setPage(p)}
+    >
+      {p}
+    </button>
+  ))}
+
+  <button
+    disabled={page >= totalPages}
+    className="px-3 py-1 border border-black rounded disabled:opacity-50"
+    onClick={() => setPage(page + 1)}
+  >
+    &raquo;
+  </button>
+</div>
+)}
+
 
     <Dialog open={editOpen} handler={setEditOpen} size="sm">
   <DialogHeader>Chỉnh sửa người dùng</DialogHeader>
@@ -441,14 +522,14 @@ const handleSearch = async () => {
       value={formData.phone}
       onChange={e => setFormData({ ...formData, phone: e.target.value })}
     />
-  <Select
+  {/* <Select
   label="Trạng thái"
-  value={formData.isActive ? "Active" : "Inactive"}
-  onChange={val => setFormData({ ...formData, isActive: val === "Active" })}
+  value={formData.isActive ? "Đã cấp quyền" : "Chưa cấp quyền"}
+  onChange={val => setFormData({ ...formData, isActive: val === "Đã cấp quyền" })}
 >
-  <Option value="Active">Active</Option>
-  <Option value="Inactive">Inactive</Option>
-</Select>
+  <Option value="Đã cấp quyền">Active</Option>
+  <Option value="Chưa cấp quyền">Inactive</Option>
+</Select> */}
     <div className="flex flex-col sm:flex-row sm:items-end gap-2">
       <div className="w-full sm:w-60">
         <Select
@@ -500,4 +581,5 @@ const handleSearch = async () => {
 </Dialog>
 
     </div>
-    );}}}
+  );
+}

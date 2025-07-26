@@ -49,7 +49,6 @@ function App() {
         <Route path="users/:id" element={<UserDetail />} />
       </Route>
 
-      {/* ✅ Auth layout: quên mật khẩu chạy mượt */}
       <Route path="/auth/*" element={<Auth />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
   <Route path="/reset-password" element={<ResetPasswordWrapper />} />

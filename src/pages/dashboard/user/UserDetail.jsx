@@ -64,10 +64,12 @@ export default function UserDetail() {
 
   try {
     const res = await axios.get(
-      `https://api-ndolv2.nongdanonline.cc/admin-comment-post/post/${postId}`,
+      `${BaseUrl}/admin-comment-post/post/${postId}`,
       config
     );
-    setSelectedPostComments(res.data.comments || []);
+    console.log("API response:", res.data);
+    setSelectedPostComments(res.data.data || []);
+    
   } catch (err) {
     if (err.response && err.response.status === 404) {
       console.warn(`Post ${postId} không có comment.`);
@@ -108,7 +110,7 @@ const handleUpdateAddress = async () => {
 
   try {
     await axios.put(
-      `https://api-ndolv2.nongdanonline.cc/admin/user-address/${editingAddress._id}`,
+      `${BaseUrl}/admin/user-address/${editingAddress._id}`,
       payload,
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -116,7 +118,7 @@ const handleUpdateAddress = async () => {
     alert("Cập nhật địa chỉ thành công!");
 
     const res = await axios.get(
-      `https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`,
+      `${BaseUrl}/admin/user-address/user/${id}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -135,7 +137,7 @@ const handleDeleteAddress = async (addressId) => {
   const token = localStorage.getItem("token");
   try {
     await axios.delete(
-      `https://api-ndolv2.nongdanonline.cc/admin/user-address/${addressId}`,
+      `${BaseUrl}/admin/user-address/${addressId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -143,7 +145,7 @@ const handleDeleteAddress = async (addressId) => {
 
     // Cập nhật lại danh sách địa chỉ
     const res = await axios.get(
-      `https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`,
+      `${BaseUrl}/admin/user-address/user/${id}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     setAddresses(res.data || []);
@@ -166,7 +168,7 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
 
   try {
     const res = await axios.get(
-      `https://api-ndolv2.nongdanonline.cc/post-feed/${postId}/likes`,
+      `${BaseUrl}/post-feed/${postId}/likes`,
       config
     );
     const users = res.data?.users || [];
@@ -209,7 +211,7 @@ const fetchAddresses = async () => {
   const token = localStorage.getItem("token");
   try {
     const res = await axios.get(
-      `https://api-ndolv2.nongdanonline.cc/admin/user-address/user/${id}`,
+      `${BaseUrl}/admin/user-address/user/${id}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     setAddresses(res.data || []);
@@ -418,7 +420,7 @@ const fetchVideoLikesUsers = async (videoId, videoTitle) => {
 
   try {
     const res = await axios.get(
-      `https://api-ndolv2.nongdanonline.cc/video-like/${videoId}/users`,
+      `${BaseUrl}/video-like/${videoId}/users`,
       config
     );
     const users = res.data?.users || [];
@@ -457,7 +459,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
   try {
     const res = await axios.get(
-      `https://api-ndolv2.nongdanonline.cc/video-comment/${videoId}/comments`,
+      `${BaseUrl}/video-comment/${videoId}/comments`,
       config
     );
     const comments = res.data || [];
@@ -518,7 +520,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           {/* Avatar */}
           <div className="flex-shrink-0">
             <img
-              src={`https://api-ndolv2.nongdanonline.cc${user.avatar}`}
+              src={`${BaseUrl}${user.avatar}`}
               alt="avatar"
               className="w-32 h-32 rounded-full border-4 border-blue-400 shadow"
             />
@@ -753,45 +755,60 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
                   {/* Video Player */}
                   {playingVideoId === video._id ? (
-                  video.status === "pending" && video.localFilePath ? (
-                    <video
-                      src={
-                        video.localFilePath.startsWith("http")
-                          ? video.localFilePath
-                          : `https://api-ndolv2.nongdanonline.cc${video.localFilePath}`
-                      }
-                      controls
-                      className="h-[180px] w-full rounded shadow mb-3 object-cover"
-                    />
-                  ) : video.youtubeLink &&
-                    video.status === "uploaded" ? (
-                    video.youtubeLink.endsWith(".mp4") ? (
-                      <video
-                        src={video.youtubeLink}
-                        controls
-                        className="h-[180px] w-full rounded shadow mb-3 object-cover"
-                      />
+                    video.status === "pending" && video.localFilePath ? (
+                      video.localFilePath.endsWith(".m3u8") ? (
+                        <HlsPlayer
+                          src={
+                            video.localFilePath.startsWith("http")
+                              ? video.localFilePath
+                              : `${BaseUrl}${video.localFilePath}`
+                          }
+                          className="h-[180px] w-full rounded shadow mb-3 object-cover"
+                        />
+                      ) : (
+                        <video
+                          src={
+                            video.localFilePath.startsWith("http")
+                              ? video.localFilePath
+                              : `${BaseUrl}${video.localFilePath}`
+                          }
+                          controls
+                          className="h-[180px] w-full rounded shadow mb-3 object-cover"
+                        />
+                      )
+                    ) : video.youtubeLink && video.status === "uploaded" ? (
+                      video.youtubeLink.endsWith(".mp4") ? (
+                        <video
+                          src={video.youtubeLink}
+                          controls
+                          className="h-[180px] w-full rounded shadow mb-3 object-cover"
+                        />
+                      ) : video.youtubeLink.endsWith(".m3u8") ? (
+                        <HlsPlayer
+                          src={video.youtubeLink}
+                          className="h-[180px] w-full rounded shadow mb-3 object-cover"
+                        />
+                      ) : (
+                        <iframe
+                          src={
+                            "https://www.youtube.com/embed/" +
+                            (video.youtubeLink.match(
+                              /(?:v=|\/embed\/|\.be\/)([^\s&?]+)/,
+                            )?.[1] || "")
+                          }
+                          title="YouTube video"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="h-[180px] w-full rounded shadow mb-3"
+                        />
+                      )
                     ) : (
-                      <iframe
-                        src={
-                          "https://www.youtube.com/embed/" +
-                          (video.youtubeLink.match(
-                            /(?:v=|\/embed\/|\.be\/)([^\s&?]+)/
-                          )?.[1] || "")
-                        }
-                        title="YouTube video"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="h-[180px] w-full rounded shadow mb-3"
-                      />
+                      <div className="flex items-center justify-center h-[180px] text-red-500 font-semibold bg-gray-100 rounded shadow mb-3">
+                        Video không tồn tại
+                      </div>
                     )
                   ) : (
-                    <div className="flex items-center justify-center h-[180px] text-red-500 font-semibold bg-gray-100 rounded shadow mb-3">
-                      Video không tồn tại
-                    </div>
-                    )
-                  ) : (
-                     <div
+                    <div
                       onClick={() => setPlayingVideoId(video._id)}
                       className="flex items-center justify-center h-[180px] w-full bg-gray-200 rounded shadow mb-3 cursor-pointer hover:bg-gray-300 transition"
                     >
@@ -799,15 +816,23 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     </div>
                   )}
 
+
                   {/* Thông tin video */}
                   <div className="space-y-1 text-sm text-gray-700">
                     <p>
-                      <strong>Danh sách phát:</strong>{" "}
-                      {video.playlistName || "Không có"}
+                      <strong>Tiêu đề:</strong>{" "}
+                      {video.title || "Không có"}
                     </p>
                     <p>
                       <strong>Ngày đăng:</strong>{" "}
-                      {new Date(video.createdAt).toLocaleDateString()}
+                      {new Date(video.createdAt).toLocaleDateString( "vi-VN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric"
+                      })}
                     </p>
                     <p>
                       <strong>Người đăng:</strong>{" "}
@@ -881,7 +906,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       <div className="overflow-hidden transition-all duration-300">
         <CardBody>
           {loadingFarms ? (
-          // 👉 Hiển thị loading trong khi đang tải farms
           <div className="flex justify-center items-center py-6">
             <Spinner className="h-6 w-6 mr-3" color="blue" />
             <Typography className="italic text-blue-gray-700">Đang tải danh sách farms...</Typography>
@@ -905,7 +929,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
                   <div className="space-y-1">
                     <Typography>
-                      <b>Mã nông trại:</b> {farm.code}
+                      <b>Tên nông trại:</b> {farm.name}
                     </Typography>
                     <Typography>
                       <b>Tags:</b>{" "}
@@ -994,7 +1018,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       {farm.pictures.map((img, idx) => (
                         <img
                           key={idx}
-                          src={`https://api-ndolv2.nongdanonline.cc${
+                          src={`${BaseUrl}${
                             img.url || img.path || img.image
                           }`}
                           alt={`Hình ${idx + 1}`}
@@ -1058,27 +1082,38 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             </Typography>
 
             {item.status === "pending" && item.localFilePath ? (
-              playingVideoId === item._id ? (
-                <video
-                  src={
-                    item.localFilePath.startsWith("http")
-                      ? item.localFilePath
-                      : `https://api-ndolv2.nongdanonline.cc${item.localFilePath}`
-                  }
-                  controls
-                  autoPlay
-                  className="h-[200px] w-full rounded shadow mb-3"
-                >
-                  Trình duyệt không hỗ trợ video
-                </video>
-              ) : (
-                <div
-                  onClick={() => handlePlay(item._id)}
-                  className="h-[200px] w-full rounded shadow mb-3 flex items-center justify-center bg-gray-200 cursor-pointer"
-                >
-                  ▶️ Bấm để xem video
-                </div>
-              )
+  playingVideoId === item._id ? (
+    item.localFilePath.endsWith(".m3u8") ? (
+      <HlsPlayer
+        src={
+          item.localFilePath.startsWith("http")
+            ? item.localFilePath
+            : `${BaseUrl}${item.localFilePath}`
+        }
+        className="h-[200px] w-full rounded shadow mb-3"
+      />
+    ) : (
+      <video
+        src={
+          item.localFilePath.startsWith("http")
+            ? item.localFilePath
+            : `${BaseUrl}${item.localFilePath}`
+        }
+        controls
+        autoPlay
+        className="h-[200px] w-full rounded shadow mb-3"
+      >
+        Trình duyệt không hỗ trợ video
+      </video>
+    )
+  ) : (
+    <div
+      onClick={() => handlePlay(item._id)}
+      className="h-[200px] w-full rounded shadow mb-3 flex items-center justify-center bg-gray-200 cursor-pointer"
+    >
+      ▶️ Bấm để xem video
+    </div>
+  )
             ) : item.youtubeLink && item.status === "uploaded" ? (
               item.youtubeLink.endsWith(".mp4") ? (
                 playingVideoId === item._id ? (
@@ -1086,6 +1121,20 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     src={item.youtubeLink}
                     controls
                     autoPlay
+                    className="h-[200px] w-full rounded shadow mb-3"
+                  />
+                ) : (
+                  <div
+                    onClick={() => handlePlay(item._id)}
+                    className="h-[200px] w-full rounded shadow mb-3 flex items-center justify-center bg-gray-200 cursor-pointer"
+                  >
+                    ▶️ Bấm để xem video
+                  </div>
+                )
+              ) : item.youtubeLink.endsWith(".m3u8") ? (
+                playingVideoId === item._id ? (
+                  <HlsPlayer
+                    src={item.youtubeLink}
                     className="h-[200px] w-full rounded shadow mb-3"
                   />
                 ) : (
@@ -1124,7 +1173,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                 Video không tồn tại
               </div>
             )}
-
             {/* ✅ KẾT THÚC SỬA CHỖ HIỂN THỊ VIDEO */}
 
             {/* Thông tin video */}
@@ -1137,7 +1185,14 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
               </p>
               <p>
                 <strong>Ngày đăng:</strong>{" "}
-                {new Date(item.createdAt).toLocaleDateString()}
+                {new Date(item.createdAt).toLocaleString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric"
+                })}
               </p>
               <p>
                 <strong>Người đăng:</strong> {item.uploadedBy?.fullName}
@@ -1156,13 +1211,13 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                 className="cursor-pointer text-blue-600 hover:underline text-sm"
                 onClick={() => fetchVideoLikesUsers(item._id, item.title)}
               >
-                ❤️ Xem lượt thích
+                ❤️ Lượt thích: {item.likeCount || 0}
               </button>
               <button
                 className="cursor-pointer text-blue-600 hover:underline text-sm"
                 onClick={() => fetchVideoCommentsUsers(item._id, item.title)}
               >
-                💬 Xem lượt bình luận
+                💬 Lượt bình luận: {item.commentCount || 0}
               </button>
             </div>
           </div>
@@ -1196,7 +1251,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   src={
                     user.avatar?.startsWith("http")
                       ? user.avatar
-                      : `https://api-ndolv2.nongdanonline.cc${user.avatar}`
+                      : `${BaseUrl}${user.avatar}`
                   }
                   alt={user.fullName}
                   className="w-10 h-10 rounded-full"
@@ -1230,7 +1285,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     src={
                       comment.userId?.avatar?.startsWith("http")
                         ? comment.user.avatar
-                        : `https://api-ndolv2.nongdanonline.cc${comment.userId?.avatar}`
+                        : `${BaseUrl}${comment.userId?.avatar}`
                     }
                     alt={comment.userId?.fullName}
                     className="w-10 h-10 rounded-full"
@@ -1320,12 +1375,12 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
                   {/* Tiêu đề */}
                   <Typography variant="h6" className="text-lg font-bold text-blue-900 mb-2">
-                    {post.title}
+                    {post.title.length > 35 ? post.title.slice(0, 30) + "..." : post.title}
                   </Typography>
 
                   {/* Mô tả */}
                   <Typography className="text-sm text-gray-700 mb-2">
-                    {post.description}
+                    {post.description.length > 35 ? post.description.slice(0, 30) + "..." : post.description}
                   </Typography>
 
                   {/* Tags */}
@@ -1347,7 +1402,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       post.images.slice(0, 2).map((img) => (
                         <img
                           key={img}
-                          src={`https://api-ndolv2.nongdanonline.cc${img}`}
+                          src={`${BaseUrl}${img}`}
                           alt={`img-${img}`}
                           className="w-full h-24 object-cover rounded-lg border border-gray-200 shadow-sm"
                         />
@@ -1400,8 +1455,9 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
       handler={() => setOpenPostCommentDialog(false)}
       dismiss={{ outsidePress: false }}
     >
-      <DialogHeader>Danh sách bình luận - {selectedPostTitle}</DialogHeader>
+      <DialogHeader>Danh sách bình luận</DialogHeader>
       <DialogBody className="space-y-4 max-h-[400px] overflow-y-auto">
+        {console.log("selectedPostComments:", selectedPostComments)}
         {selectedPostComments.length === 0 ? (
           <Typography className="text-center text-gray-500">Không có bình luận nào.</Typography>
         ) : (
@@ -1412,7 +1468,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   src={
                     comment.userId?.avatar?.startsWith("http")
                       ? comment.userId.avatar
-                      : `https://api-ndolv2.nongdanonline.cc${comment.userId?.avatar}`
+                      : `${BaseUrl}${comment.userId?.avatar}`
                   }
                   alt={comment.userId?.fullName}
                   className="w-10 h-10 rounded-full"
@@ -1429,7 +1485,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
               <Typography className="mt-1">{comment.comment}</Typography>
 
               {/* Hiển thị reply nếu có */}
-              {comment.replies?.length > 0 && (
+              {/* {comment.replies?.length > 0 && (
                 <div className="ml-6 mt-2 space-y-2">
                   {comment.replies.map((reply, index) => (
                     <div key={index} className="border-l-2 pl-4">
@@ -1440,7 +1496,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                               src={
                                 reply.userId.avatar?.startsWith("http")
                                   ? reply.userId.avatar
-                                  : `https://api-ndolv2.nongdanonline.cc${reply.userId.avatar}`
+                                  : `${BaseUrl}${reply.userId.avatar}`
                               }
                               alt={reply.userId.fullName}
                               className="w-8 h-8 rounded-full"
@@ -1459,7 +1515,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     </div>
                   ))}
                 </div>
-              )}
+              )} */}
             </div>
           ))
         )
