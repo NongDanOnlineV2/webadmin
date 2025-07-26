@@ -136,72 +136,74 @@ const [reporterMap, setReporterMap] = useState({});
               <th className="px-4 py-2 text-left">Hành động</th>
             </tr>
           </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="6" className="text-center p-4">
-                  Đang tải dữ liệu...
-                </td>
-              </tr>
-            ) : reports.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="text-center p-4 text-gray-500">
-                  Không có báo cáo nào
-                </td>
-              </tr>
-            ) : (
-              reports.map((r) => (
-                <tr key={r._id} className="border-t">
-               <td className="px-4 py-2">
-  {reporterMap[r.reporter]?.fullName || "Ẩn danh"}
-</td>
+        <tbody>
+  {loading ? (
+    <tr>
+      <td colSpan="6" className="text-center p-4">
+        Đang tải dữ liệu...
+      </td>
+    </tr>
+  ) : reports.length === 0 ? (
+    <tr>
+      <td colSpan="6" className="text-center p-4 text-gray-500">
+        Không có báo cáo nào
+      </td>
+    </tr>
+  ) : (
+    reports.map((r) => (
+      <tr
+        key={r._id}
+        className="border-t hover:bg-gray-100 cursor-pointer"
+        onClick={() => setSelectedReport(r)}
+      >
+        <td className="px-4 py-2">
+          {reporterMap[r.reporter]?.fullName || "Ẩn danh"}
+        </td>
+        <td className="px-4 py-2">
+          <span
+            className={`px-2 py-1 rounded text-xs font-semibold 
+              ${
+                r.type === "USER"
+                  ? "bg-blue-100 text-blue-800"
+                  : r.type === "POST"
+                  ? "bg-green-100 text-green-800"
+                  : r.type === "VIDEO_FARM"
+                  ? "bg-purple-100 text-purple-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+          >
+            {r.type}
+          </span>
+        </td>
+        <td className="px-4 py-2">{r.reason}</td>
+        <td className="px-4 py-2">{r.status}</td>
+        <td className="px-4 py-2">
+          {new Date(r.createdAt).toLocaleString()}
+        </td>
+        <td className="px-4 py-2 space-x-2" onClick={(e) => e.stopPropagation()}>
+          {/* <button
+            onClick={() => setSelectedReport(r)}
+            className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded"
+          >
+            Chi tiết
+          </button> */}
+          {r.status === 'NEW' && (
+            <button
+              onClick={() => {
+                setSelectedReportId(r._id);
+                setOpenApprove(true);
+              }}
+              className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded"
+            >
+              Duyệt
+            </button>
+          )}
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
 
-
-                  <td className="px-4 py-2">
-  <span
-    className={`px-2 py-1 rounded text-xs font-semibold 
-      ${
-        r.type === "USER"
-          ? "bg-blue-100 text-blue-800"
-          : r.type === "POST"
-          ? "bg-green-100 text-green-800"
-          : r.type === "VIDEO_FARM"
-          ? "bg-purple-100 text-purple-800"
-          : "bg-gray-100 text-gray-800"
-      }`}
-  >
-    {r.type}
-  </span>
-</td>
-                  <td className="px-4 py-2">{r.reason}</td>
-                  <td className="px-4 py-2">{r.status}</td>
-                  <td className="px-4 py-2">
-                    {new Date(r.createdAt).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 space-x-2">
-                    <button
-                      onClick={() => setSelectedReport(r)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded"
-                    >
-                      Chi tiết
-                    </button>
-                 {r.status === 'NEW' && (
-  <button
-    onClick={() => {
-      setSelectedReportId(r._id);
-      setOpenApprove(true);
-    }}
-    className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded"
-  >
-    Duyệt
-  </button>
-)}
-
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
         </table>
       </div>
 
