@@ -185,9 +185,9 @@ const [selectedReportId, setSelectedReportId] = useState(null);
     >
       <h2 className="text-lg font-semibold mb-4">Chi tiết báo cáo</h2>
       <div className="text-sm space-y-3">
-        <div>
+        {/* <div>
           <strong>ID:</strong> {selectedReport._id}
-        </div>
+        </div> */}
 
         <div>
           <strong>Người báo cáo:</strong>{' '}

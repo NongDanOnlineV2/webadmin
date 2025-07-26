@@ -8,6 +8,7 @@ import {
   MenuHandler,
   MenuList,
   MenuItem,
+  Input,
 } from "@material-tailwind/react";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { Audio } from "react-loader-spinner";
@@ -19,6 +20,8 @@ import Select from "react-select";
 import { BaseUrl } from "@/ipconfig";
 
 const API_URL = `${BaseUrl}/answers`;
+const FARM_API = `${BaseUrl}/farms`;
+const QUESTION_API = `${BaseUrl}/questions`;
 let token = localStorage.getItem("token");
 
 const fetchWithAuth = async (url, options = {}) => {
@@ -83,6 +86,11 @@ export function AnswersTable() {
   const [filterOptions, setFilterOptions] = useState([]);
   const [allOptions, setAllOptions] = useState([]);
 
+  const [farmMap, setFarmMap] = useState({});
+  const [questionMap, setQuestionMap] = useState({});
+
+  const [searchFarmName, setSearchFarmName] = useState("");
+
   const loadAnswersByPage = async (page = 1) => {
     try {
       setLoading(true);
@@ -96,7 +104,6 @@ export function AnswersTable() {
       setTotalPages(Math.ceil(result.total / itemsPerPage));
       setCurrentPage(page);
 
-      // Lấy danh sách tất cả các đáp án có thể lọc
       const optionsSet = new Set();
       answers.forEach((ans) => {
         ans.selectedOptions?.forEach((opt) => optionsSet.add(opt));
@@ -110,8 +117,38 @@ export function AnswersTable() {
     }
   };
 
+  const fetchFarmsAndQuestions = async () => {
+    try {
+      const [farmRes, questionRes] = await Promise.all([
+        fetchWithAuth(FARM_API),
+        fetchWithAuth(QUESTION_API),
+      ]);
+
+      const farmsData = await farmRes.json();
+      const questionsData = await questionRes.json();
+
+      if (!farmRes.ok || !questionRes.ok)
+        throw new Error("Không thể tải farm hoặc question");
+
+      const farmMapData = {};
+      (farmsData.data || []).forEach((farm) => {
+        farmMapData[farm._id] = farm.name;
+      });
+      setFarmMap(farmMapData);
+
+      const questionMapData = {};
+      (questionsData.data || []).forEach((q) => {
+        questionMapData[q._id] = q.content;
+      });
+      setQuestionMap(questionMapData);
+    } catch (err) {
+      console.error("Lỗi tải farm/question:", err);
+    }
+  };
+
   useEffect(() => {
     loadAnswersByPage(currentPage);
+    fetchFarmsAndQuestions();
   }, []);
 
   const openAddForm = () => {
@@ -189,26 +226,18 @@ export function AnswersTable() {
         uploadedFiles: form.uploadedFiles,
       };
 
-      if (formType === "edit") {
-        const res = await fetchWithAuth(`${API_URL}/${editData?._id}`, {
-          method: "PUT",
+      const res = await fetchWithAuth(
+        formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL,
+        {
+          method: formType === "edit" ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message);
-        alert("✅ Cập nhật đáp án thành công!");
-      } else {
-        const res = await fetchWithAuth(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message);
-        alert("✅ Thêm đáp án thành công!");
-      }
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message);
 
+      alert(formType === "edit" ? "✅ Cập nhật đáp án thành công!" : "✅ Thêm đáp án thành công!");
       setFormType(null);
       await loadAnswersByPage(currentPage);
     } catch (error) {
@@ -218,7 +247,7 @@ export function AnswersTable() {
   };
 
   const handleDelete = async (id, item) => {
-    const confirmMessage = `Bạn có chắc muốn xóa đáp án này?\n\nFarm ID: ${item.farmId}\nQuestion ID: ${item.questionId}\nĐáp án: ${item.selectedOptions?.join(", ") || "Không có"}`;
+    const confirmMessage = `Bạn có chắc muốn xóa đáp án này?\n\nFarm: ${farmMap[item.farmId] || item.farmId}\nQuestion: ${questionMap[item.questionId] || item.questionId}`;
     if (!window.confirm(confirmMessage)) return;
 
     try {
@@ -236,19 +265,30 @@ export function AnswersTable() {
   };
 
   const filteredAnswers = allAnswers.filter((item) => {
-    if (filterOptions.length === 0) return true;
-    return item.selectedOptions?.some((opt) =>
-      filterOptions.map((f) => f.value).includes(opt)
-    );
+    const matchOptions =
+      filterOptions.length === 0 ||
+      item.selectedOptions?.some((opt) =>
+        filterOptions.map((f) => f.value).includes(opt)
+      );
+
+    const matchFarm =
+      !searchFarmName ||
+      (item.farmName || "").toLowerCase().includes(searchFarmName.toLowerCase());
+
+    return matchOptions && matchFarm;
   });
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <Typography variant="h5">
-          Danh sách câu trả lời 
-        </Typography>
-        <div className="flex gap-4 items-center">
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
+        <Typography variant="h5">Danh sách câu trả lời</Typography>
+        <div className="flex flex-wrap items-center gap-4">
+          <Input
+            label="Tìm theo tên trang trại"
+            value={searchFarmName}
+            onChange={(e) => setSearchFarmName(e.target.value)}
+            className="w-64"
+          />
           <div className="w-72">
             <Select
               isMulti
@@ -280,8 +320,8 @@ export function AnswersTable() {
           <thead className="bg-gray-100">
             <tr>
               <th className="px-4 py-3 text-left">#</th>
-              <th className="px-4 py-3 text-left">Farm ID</th>
-              <th className="px-4 py-3 text-left">Question ID</th>
+              <th className="px-4 py-3 text-left">Farm</th>
+              <th className="px-4 py-3 text-left">Câu hỏi</th>
               <th className="px-4 py-3 text-left">Đáp án chọn</th>
               <th className="px-4 py-3 text-left">Khác</th>
               <th className="px-4 py-3 text-left">Tệp đính kèm</th>
@@ -301,11 +341,14 @@ export function AnswersTable() {
                 <td className="px-4 py-3">
                   {(currentPage - 1) * itemsPerPage + index + 1}
                 </td>
-                <td className="px-4 py-3">{item.farmId}</td>
-                <td className="px-4 py-3">{item.questionId}</td>
+                <td>{item.farmName}</td>
+                <td>{item.questionText}</td>
                 <td className="px-4 py-3">
                   {item.selectedOptions?.map((opt, i) => (
-                    <span key={i} className="bg-blue-100 text-xs text-blue-800 px-2 py-1 rounded mr-1">
+                    <span
+                      key={i}
+                      className="bg-blue-100 text-xs text-blue-800 px-2 py-1 rounded mr-1"
+                    >
                       {opt}
                     </span>
                   ))}

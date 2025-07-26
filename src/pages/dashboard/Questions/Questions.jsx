@@ -170,20 +170,17 @@ export const Questions = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <select
+         <select
             className="border px-3 py-2 rounded"
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
           >
             <option value="">Tất cả loại</option>
-            <option value="text">Ghi văn bản</option>
-            <option value="option">Chọn ABCD</option>
             <option value="single-choice">Chọn 1 đáp án</option>
-            <option value="multiple-choice">Chọn nhiều đáp án</option>
-            <option value="multi-choice">Chọn nhiều</option>
-            <option value="upload">Tải file</option>
-            <option value="link">Link</option>
+            <option value="multi-choice">Chọn nhiều đáp án</option>
+
           </select>
+
         </div>
 
         <AddQuestion

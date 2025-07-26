@@ -315,32 +315,41 @@ const fetchFarms = async (signal = null) => {
             </table>
 
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-4 text-sm">
-                <Button
-                  size="sm"
-                  variant="outlined"
-                  className="rounded-md px-4 py-1"
-                  disabled={currentPage === 1}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                >
-                  TRANG TRƯỚC
-                </Button>
+  <div className="flex justify-center items-center gap-1 mt-4">
+    <Button
+      size="sm"
+      variant="outlined"
+      className="px-3 py-1"
+      disabled={currentPage === 1}
+      onClick={() => handlePageChange(currentPage - 1)}
+    >
+      «
+    </Button>
 
-                <Typography variant="small" className="text-black font-medium">
-                  Trang {currentPage} / {totalPages}
-                </Typography>
+    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+      <Button
+        key={page}
+        size="sm"
+        variant={currentPage === page ? "filled" : "outlined"}
+        className={`px-3 py-1 ${currentPage === page ? "bg-black text-white" : ""}`}
+        onClick={() => handlePageChange(page)}
+      >
+        {page}
+      </Button>
+    ))}
 
-                <Button
-                  size="sm"
-                  variant="outlined"
-                  className="rounded-md px-4 py-1"
-                  disabled={currentPage === totalPages}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                >
-                  TRANG SAU
-                </Button>
-              </div>
-            )}
+    <Button
+      size="sm"
+      variant="outlined"
+      className="px-3 py-1"
+      disabled={currentPage === totalPages}
+      onClick={() => handlePageChange(currentPage + 1)}
+    >
+      »
+    </Button>
+  </div>
+)}
+
           </div>
         )}
       </div>
