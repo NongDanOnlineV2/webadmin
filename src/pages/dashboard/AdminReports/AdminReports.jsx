@@ -117,7 +117,9 @@ const [selectedReportId, setSelectedReportId] = useState(null);
             ) : (
               reports.map((r) => (
                 <tr key={r._id} className="border-t">
-                  <td className="px-4 py-2">{r.reporter?.name || 'Ẩn danh'}</td>
+                 <td className="px-4 py-2">
+  {r.targetUser?.email ? r.targetUser.email.split("@")[0] : "Ẩn danh"}
+</td>
                   <td className="px-4 py-2">
   <span
     className={`px-2 py-1 rounded text-xs font-semibold 
