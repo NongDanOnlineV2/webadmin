@@ -8,58 +8,28 @@ import {
   Button,
   Avatar,
   Typography,
+  Menu,
+  MenuHandler,
+  MenuList,
+  MenuItem,
 } from "@material-tailwind/react";
 
 const RoomTable = () => {
   const [rooms, setRooms] = useState([]);
-  const [usersMap, setUsersMap] = useState({});
+  const [newUserId, setNewUserId] = useState("");
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openAddUserDialog, setOpenAddUserDialog] = useState(false);
+  const [openCreateRoomDialog, setOpenCreateRoomDialog] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
+  const [newRoomMode, setNewRoomMode] = useState("public");
+  const [newRoomOwnerId, setNewRoomOwnerId] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const roomsPerPage = 10;
 
   useEffect(() => {
     fetchData();
   }, []);
-
-  // 🆕 fetchUserById dùng fetch theo page để tìm user theo ownerId
-const fetchUserById = async (ownerId) => {
-  const token = localStorage.getItem("token");
-  const limit = 10;
-  let page = 1;
-  let found = null;
-
-  while (!found) {
-    try {
-      const res = await fetch(`${BaseUrl}/admin-users?page=${page}&limit=${limit}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) break;
-
-      const data = await res.json();
-      const users = data.data || [];
-
-      const matched = users.find((user) => user._id === ownerId);
-      if (matched) {
-        setUsersMap((prev) => ({ ...prev, [ownerId]: matched }));
-        found = matched;
-        return matched;
-      }
-
-      // Dừng lại nếu không còn trang nào nữa
-      if (users.length < limit) break;
-      page++;
-    } catch (err) {
-      console.error("Lỗi khi fetch người dùng:", err);
-      break;
-    }
-  }
-
-  return null;
-};
 
 
   const fetchData = async () => {
@@ -137,11 +107,95 @@ const paginatedRooms = rooms.slice(
     alert("Không thể xoá phòng. Vui lòng thử lại.");
   }
 };
+const handleAddUserToRoom = async (roomId, userId) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${BaseUrl}/chat/room/${roomId}/add-user`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ userId }),
+    });
+
+    if (!res.ok) throw new Error("Thêm người dùng thất bại");
+    alert("Đã thêm người dùng vào phòng");
+    fetchData(); // cập nhật lại danh sách phòng
+  } catch (err) {
+    console.error("Lỗi khi thêm user:", err);
+    alert("Không thể thêm người dùng.");
+  }
+};
+const handleRemoveUserFromRoom = async (roomId, userId) => {
+  // Kiểm tra nếu phòng không phải public thì không cho xoá
+  const room = rooms.find((r) => r.roomId === roomId);
+  if (room?.mode !== "public") {
+    alert("Chỉ có thể xoá thành viên khỏi phòng công khai (public).");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${BaseUrl}/chat/room/${roomId}/remove-user`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ userId }),
+    });
+
+    if (!res.ok) throw new Error("Xoá người dùng thất bại");
+    alert("Đã xoá người dùng khỏi phòng");
+    fetchData();
+  } catch (err) {
+    console.error("Lỗi khi xoá user:", err);
+    alert("Không thể xoá người dùng.");
+  }
+};
+
+const handleCreateRoom = async (roomName, mode) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${BaseUrl}/chat/room`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        roomName,
+        mode,
+      }),
+    });
+
+    if (!res.ok) throw new Error("Tạo phòng thất bại");
+
+    alert("Đã tạo phòng mới");
+    fetchData(); // cập nhật lại danh sách phòng
+  } catch (err) {
+    console.error("Lỗi khi tạo phòng:", err);
+    alert("Không thể tạo phòng.");
+  }
+};
 
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Danh sách phòng</h1>
+      <div className="flex justify-between items-center mb-4"> 
+        <h1 className="text-2xl font-semibold">Danh sách phòng</h1>
+            <Button
+              size="sm"
+              color="blue"
+              onClick={() => setOpenCreateRoomDialog(true)}
+            >
+              Tạo phòng
+            </Button>
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white shadow-md rounded-lg">
           <thead>
@@ -150,7 +204,9 @@ const paginatedRooms = rooms.slice(
               <th className="p-3">Ảnh đại diện</th>
               <th className="p-3">Tên phòng</th>
               <th className="p-3">Room ID</th>
+              <th className="p-3">Số thành viên</th>
               <th className="p-3">Chủ phòng</th>
+              <th className="p-3 text-center">Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -176,7 +232,26 @@ const paginatedRooms = rooms.slice(
                 </td>
                 <td className="p-3">{room.roomName}</td>
                 <td className="p-3 text-sm text-gray-600">{room.roomId}</td>
+                <td className="p-3">{room.users?.length || 0}</td>
                 <td className="p-3 text-sm text-gray-600">{room.ownerName}</td>
+                <td className="p-3 text-center">
+                  <Menu placement="bottom-end"> 
+                    <MenuHandler>
+                      <Button size="sm" variant="text">⋯</Button>
+                    </MenuHandler>
+                    <MenuList>
+                      <MenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedRoom(room);
+                          handleDeleteRoom();
+                        }}
+                      >
+                        🗑 Xoá phòng
+                      </MenuItem>
+                    </MenuList>
+                  </Menu>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -194,9 +269,19 @@ const paginatedRooms = rooms.slice(
         <DialogBody>
           {selectedRoom ? (
             <div className="space-y-4">
-              <div>
-                <strong>Tên phòng:</strong> {selectedRoom.roomName}
+              <div className="flex items-center justify-between">
+                <div>
+                  <strong>Tên phòng:</strong> {selectedRoom.roomName}
+                </div>
+                <Button
+                  size="sm"
+                  variant="gradient"
+                  onClick={() => setOpenAddUserDialog(true)}
+                >
+                  Thêm thành viên
+                </Button>
               </div>
+              
               <div>
                 <strong>Room ID:</strong> {selectedRoom.roomId}
               </div>
@@ -207,24 +292,65 @@ const paginatedRooms = rooms.slice(
                 <strong>Thành viên:</strong>
                 <ul className="mt-2 space-y-2">
                   {selectedRoom.users?.map((user) => (
-                    <li key={user.userId} className="flex items-center gap-2">
-                      <Avatar
-                        src={user.avatar ? `${BaseUrl}${user.avatar}` : ""}
-                        size="sm"
-                      />
-                      <Typography variant="small" className="text-sm">
-                        {user.fullName}{" "}
-                        <span
-                          className={
-                            user.online ? "text-green-600" : "text-gray-400"
-                          }
+                    <li key={user.userId} className="flex items-center gap-2 justify-between">
+                      <div className="flex items-center gap-2">
+                        <Avatar
+                          src={user.avatar ? `${BaseUrl}${user.avatar}` : ""}
+                          size="sm"
+                        />
+                        <Typography variant="small" className="text-sm flex items-center gap-1">
+                          {user.fullName}{" "}
+                          <span className={user.online ? "text-green-600" : "text-gray-400"}>
+                            ({user.online ? "Online" : "Offline"})
+                          </span>
+                          {user.userId === selectedRoom.ownerId && (
+                            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-800 text-[12px] font-medium px-2 py-0.5 border border-yellow-300 shadow-sm">
+                              👑 Chủ phòng
+                            </span>
+                          )}
+                        </Typography>
+                      </div>
+                      {user.userId !== selectedRoom.ownerId && (
+                        <Button
+                          size="sm"
+                          variant="text"
+                          color="red"
+                          onClick={() => handleRemoveUserFromRoom(selectedRoom.roomId, user.userId)}
                         >
-                          ({user.online ? "Online" : "Offline"})
-                        </span>
-                      </Typography>
+                          Xoá
+                        </Button>
+                      )}
                     </li>
                   ))}
                 </ul>
+                <Dialog open={openAddUserDialog} handler={() => setOpenAddUserDialog(false)} size="sm">
+                  <DialogHeader>Thêm thành viên</DialogHeader>
+                  <DialogBody>
+                    <input
+                      type="text"
+                      placeholder="Nhập userId"
+                      className="border px-2 py-1 rounded w-full"
+                      value={newUserId}
+                      onChange={(e) => setNewUserId(e.target.value)}
+                    />
+                  </DialogBody>
+                  <DialogFooter>
+                    <Button
+                      onClick={() => {
+                        handleAddUserToRoom(selectedRoom.roomId, newUserId);
+                        setNewUserId("");
+                        setOpenAddUserDialog(false);
+                      }}
+                      size="sm"
+                      color="blue"
+                    >
+                      Thêm
+                    </Button>
+                    <Button variant="text" onClick={() => setOpenAddUserDialog(false)}>
+                      Đóng
+                    </Button>
+                  </DialogFooter>
+                </Dialog>
               </div>
             </div>
           ) : (
@@ -232,14 +358,60 @@ const paginatedRooms = rooms.slice(
           )}
         </DialogBody>
         <DialogFooter>
-            <Button variant="outlined" color="red" onClick={handleDeleteRoom}>
-                Xoá phòng
-            </Button>
           <Button variant="text" onClick={() => setOpenDialog(false)}>
             Đóng
           </Button>
         </DialogFooter>
       </Dialog>
+
+      <Dialog open={openCreateRoomDialog} handler={() => setOpenCreateRoomDialog(false)} size="sm">
+  <DialogHeader>Tạo phòng mới</DialogHeader>
+  <DialogBody className="space-y-4">
+    <div>
+      <label className="block text-sm font-medium text-gray-700">Tên phòng</label>
+      <input
+        type="text"
+        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+        value={newRoomName}
+        onChange={(e) => setNewRoomName(e.target.value)}
+        placeholder="Nhập tên phòng"
+      />
+    </div>
+    <div>
+      <label className="block text-sm font-medium text-gray-700">Chế độ</label>
+      <select
+        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+        value={newRoomMode}
+        onChange={(e) => setNewRoomMode(e.target.value)}
+      >
+        <option value="public">Công khai</option>
+        <option value="private">Riêng tư</option>
+      </select>
+    </div>
+  </DialogBody>
+  <DialogFooter>
+    <Button
+      onClick={() => {
+        if (!newRoomName || !newRoomMode) {
+          alert("Vui lòng nhập đầy đủ thông tin");
+          return;
+        }
+        handleCreateRoom(newRoomName, newRoomMode);
+        setOpenCreateRoomDialog(false);
+        setNewRoomName("");
+        setNewRoomMode("public");
+      }}
+      color="blue"
+      size="sm"
+    >
+      Tạo
+    </Button>
+    <Button variant="text" onClick={() => setOpenCreateRoomDialog(false)}>Đóng</Button>
+  </DialogFooter>
+</Dialog>
+
+
+
       <div className="flex justify-center items-center gap-1 mt-4 flex-wrap">
   {/* First page */}
   <Button
