@@ -7,6 +7,7 @@ export * from "@/pages/dashboard/post/Post";
 export * from "@/pages/dashboard/AdminReports"
 export * from "@/pages/dashboard/AdminCommentPost/CommentPost";
 export { default as RoomTable } from "./chat/chat";
+export * from "@/pages/dashboard/AdminAddress/Address";
 export { default as Users } from "./user/users";
 export { default as ChinhSach } from "@/pages/dashboard/ChinhSach"
 

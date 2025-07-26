@@ -8,7 +8,8 @@ import {
   NewspaperIcon,
   ReceiptPercentIcon,
   ChatBubbleLeftEllipsisIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  MapPinIcon
 } from "@heroicons/react/24/solid";
 
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
@@ -20,6 +21,7 @@ import ChinhSachCookie from "@/pages/dashboard/ChinhSachCookie";
 import DieuKhoanDieuKien from "@/pages/dashboard/DieuKhoanDieuKien";
 import ResetPassword from "./pages/auth/ResetPassword";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import Address from "./pages/dashboard/AdminAddress/Address";
 
 import { ViewfinderCircleIcon,VideoCameraIcon,ChatBubbleOvalLeftEllipsisIcon  } from "@heroicons/react/24/outline";
 import { Comment } from "react-loader-spinner";
@@ -88,12 +90,21 @@ export const routes = [
         path: "/CommentPost",
          element: <CommentPost />,
 
+
       },
        {
         icon: <ChatBubbleOvalLeftEllipsisIcon {...icon} />,
         name: "Chat",
         path: "/chat",
          element: <RoomTable />,
+
+      }, 
+       {
+        icon: <MapPinIcon {...icon} />,
+        name: "Address",
+        path: "/Address",
+         element: <Address />,
+
 
       },
 {

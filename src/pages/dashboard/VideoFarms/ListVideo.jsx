@@ -14,16 +14,12 @@ import Pagination from './Pagination';
 const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
   const token = localStorage.getItem('token');
   
-  // Nếu có search hoặc filter status, lấy nhiều video để lọc client-side
   const actualLimit = (searchTerm || status) ? 100 : limit;
   
   const params = new URLSearchParams({
     page: (searchTerm || status) ? 1 : page.toString(), 
     limit: actualLimit.toString()
-  });
-  
-  // Không truyền search và status lên API để lấy tất cả video
-  
+  });  
   try {
     const res = await axios.get(`${BaseUrl}/admin-video-farm?${params}`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -38,9 +34,7 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
     } else if (typeof res.data === 'object' && res.data !== null) {
       videos = res.data.data || res.data.videos || [];
     }
-    
-    // Lọc theo search term trên client
-    if (searchTerm && searchTerm.trim()) {
+        if (searchTerm && searchTerm.trim()) {
       const keyword = searchTerm.trim().toLowerCase();
       videos = videos.filter(v =>
         (v.title && v.title.toLowerCase().includes(keyword)) ||
@@ -204,10 +198,8 @@ export const ListVideo = () => {
       // Gọi với status mới ngay lập tức
       performFilterSearch(actualSearchTerm, status, 1);
     } else if (actualSearchTerm) {
-      // Nếu bỏ filter nhưng vẫn có search term
       performSearchWithTerm(actualSearchTerm, 1);
     } else {
-      // Nếu không có gì thì reset về trang thường
       setIsSearchMode(false);
       setSearchResults([]);
     }
