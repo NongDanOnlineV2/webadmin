@@ -218,8 +218,9 @@ export default function FarmDetail({ open, onClose, farmId }) {
                   color="blue"
                   className="w-fit px-4 py-2 text-sm"
                 >
-                  Xem danh sách video 
+                  Xem danh sách video
                 </Button>
+
               </div>
 
             {farm.description && (
@@ -255,122 +256,130 @@ export default function FarmDetail({ open, onClose, farmId }) {
               )}
             </div>
 
-            <Dialog open={showVideos} handler={() => setShowVideos(false)} size="lg">
-              <DialogHeader>Danh sách video ({videoCount})</DialogHeader>
-              <DialogBody className="max-h-[70vh] overflow-y-auto">
-                {loadingVideos ? (
-                  <Typography className="text-sm text-blue-500">Đang tải danh sách video...</Typography>
-                ) : videos.length === 0 ? (
-                  <Typography className="text-sm italic text-gray-500">Chưa có video nào</Typography>
-                ) : (
-                  <div className="border border-gray-200 rounded-md">
-                    <table className="min-w-full table-auto text-sm text-left">
-                      <thead className="bg-gray-100 sticky top-0 z-10">
-                        <tr>
-                          <th className="border px-3 py-2">#</th>
-                          <th className="border px-3 py-2">Tiêu đề</th>
-                          <th className="border px-3 py-2">Người đăng</th>
-                          <th className="border px-3 py-2">Ngày đăng</th>
-                          <th className="border px-3 py-2">Trạng thái</th>
-                          <th className="border px-3 py-2">Xem</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {videos.map((video, idx) => (
-                          <tr key={video._id || idx} className="hover:bg-gray-50">
-                            <td className="border px-3 py-2">{idx + 1}</td>
-                            <td className="border px-3 py-2">{video.title}</td>
-                            <td className="border px-3 py-2">
-                              {video.uploadedBy?.fullName || video.uploadedBy?.name || "—"}
-                            </td>
-                            <td className="border px-3 py-2">
-                              {new Date(video.createdAt).toLocaleDateString()}
-                            </td>
-                            <td className="border px-3 py-2">
-                              <span
-                                className={`px-2 py-1 rounded text-xs font-semibold
-                                  ${video.status === "active"
-                                    ? "text-green-700 bg-green-100"
-                                    : video.status === "pending"
-                                    ? "text-yellow-700 bg-yellow-100"
-                                    : video.status === "deleted"
-                                    ? "text-red-700 bg-red-100"
-                                    : "text-gray-700 bg-gray-100"}`}
-                              >
-                                {video.status || "Không rõ"}
-                              </span>
-                            </td>
-                            <td className="border px-3 py-2">
-                              <Button
-                                variant="text"
-                                size="sm"
-                                color="blue"
-                                onClick={() => setSelectedVideo(video)}
-                                className="flex items-center gap-1"
-                              >
-                                <PlayIcon className="h-4 w-4" />
-                                Xem
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </DialogBody>
-              <DialogFooter>
-                <Button onClick={() => setShowVideos(false)} color="blue">Đóng</Button>
-              </DialogFooter>
-              <Dialog open={!!selectedVideo} handler={() => setSelectedVideo(null)} size="lg">
-              <DialogHeader>{selectedVideo?.title || "Xem video"}</DialogHeader>
-              <DialogBody divider className="flex justify-center">
-                {selectedVideo ? (() => {
-                  const videoSrc =
-                    selectedVideo.youtubeLink?.endsWith(".mp4")
-                      ? selectedVideo.youtubeLink
-                      : selectedVideo.localFilePath
-                      ? selectedVideo.localFilePath.startsWith("http")
-                        ? selectedVideo.localFilePath
-                        : `${BaseUrl}${selectedVideo.localFilePath}`
-                      : null;
+{/* Dialog xem video chi tiết (đã có sẵn) */}
+<Dialog open={!!selectedVideo} handler={() => setSelectedVideo(null)} size="lg">
+  <DialogHeader>{selectedVideo?.title || "Xem video"}</DialogHeader>
+  <DialogBody divider className="flex justify-center">
+    {selectedVideo ? (() => {
+      if (selectedVideo.status === "deleted") {
+        return (
+          <Typography className="text-red-500 text-center font-semibold">
+            Video này đã bị xoá.
+          </Typography>
+        );
+      }
 
-                  if (videoSrc) {
-                    return (
-                      <video controls className="max-h-[70vh] w-full rounded shadow">
-                        <source src={videoSrc} type="video/mp4" />
-                        Trình duyệt của bạn không hỗ trợ phát video.
-                      </video>
-                    );
-                  }
+      const { youtubeLink, localFilePath } = selectedVideo;
 
-                  if (selectedVideo.youtubeLink) {
-                    const youtubeId = selectedVideo.youtubeLink.match(/(?:v=|\/embed\/|\.be\/)([^\s&?]+)/)?.[1];
-                    return (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${youtubeId}`}
-                        title="YouTube video"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="h-[360px] rounded shadow w-full"
-                      ></iframe>
-                    );
-                  }
+      const videoSrc = (() => {
+        if (youtubeLink?.includes("youtube") || youtubeLink?.includes("youtu.be")) {
+          const youtubeId = youtubeLink.match(/(?:v=|\/embed\/|\.be\/)([^\s&?]+)/)?.[1];
+          if (youtubeId) return `https://www.youtube.com/embed/${youtubeId}`;
+        }
 
-                  return <Typography className="text-red-500">Không tìm thấy video.</Typography>;
-                })() : (
-                  <Typography className="text-red-500">Không tìm thấy video.</Typography>
-                )}
-              </DialogBody>
-              <DialogFooter>
-                <Button color="blue" onClick={() => setSelectedVideo(null)}>
-                  Đóng
-                </Button>
-              </DialogFooter>
-            </Dialog>
-            </Dialog>
+        if (youtubeLink && youtubeLink.endsWith(".mp4")) return youtubeLink;
 
-            
+        if (localFilePath) {
+          const path = localFilePath.startsWith("/") ? localFilePath : `/${localFilePath}`;
+          return `${BaseUrl}${path}`;
+        }
+
+        return null;
+      })();
+
+      if (!videoSrc) {
+        return (
+          <Typography className="text-red-500 text-center">
+            Không tìm thấy đường dẫn video hợp lệ.
+          </Typography>
+        );
+      }
+
+      if (videoSrc.includes("youtube.com/embed")) {
+        return (
+          <iframe
+            src={videoSrc}
+            title="YouTube video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="h-[360px] rounded shadow w-full"
+          ></iframe>
+        );
+      }
+
+      if (videoSrc.endsWith(".mp4")) {
+        return (
+          <video controls className="max-h-[70vh] w-full rounded shadow">
+            <source src={videoSrc} type="video/mp4" />
+            Trình duyệt của bạn không hỗ trợ phát video.
+          </video>
+        );
+      }
+
+      return (
+        <Typography className="text-red-500 text-center">
+          Không phát được video.
+        </Typography>
+      );
+    })() : (
+      <Typography className="text-red-500 text-center">
+        Không tìm thấy video.
+      </Typography>
+    )}
+  </DialogBody>
+  <DialogFooter>
+    <Button color="blue" onClick={() => setSelectedVideo(null)}>
+      Đóng
+    </Button>
+  </DialogFooter>
+</Dialog>
+
+{/* ✅ Dialog danh sách video mới được tích hợp */}
+<Dialog open={showVideos} handler={() => setShowVideos(false)} size="lg">
+  <DialogHeader>Danh sách video nông trại</DialogHeader>
+  <DialogBody className="space-y-4 max-h-[70vh] overflow-y-auto">
+    {loadingVideos ? (
+      <Typography className="text-sm text-blue-500">Đang tải video...</Typography>
+    ) : videos.length === 0 ? (
+      <Typography className="text-sm text-gray-500 italic">Chưa có video nào.</Typography>
+    ) : (
+      videos.map((video, idx) => (
+        <div
+          key={video._id || idx}
+          className="border p-3 rounded-md bg-gray-50 hover:bg-gray-100 cursor-pointer"
+          onClick={() => {
+            if (video.status === "deleted") {
+              alert("Video này đã bị xoá.");
+              return;
+            }
+            setSelectedVideo(video);
+            setShowVideos(false);
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <PlayIcon className="w-5 h-5 text-blue-500" />
+            <div>
+              <Typography className="text-sm font-medium text-gray-800">{video.title || "Video không tiêu đề"}</Typography>
+              <Typography className="text-xs text-gray-500">
+                Trạng thái:{" "}
+                {video.status === "uploaded"
+                  ? "Đã tải lên"
+                  : video.status === "pending"
+                  ? "Đang xử lý"
+                  : video.status === "deleted"
+                  ? "Đã xoá"
+                  : video.status}
+              </Typography>
+            </div>
+          </div>
+        </div>
+      ))
+    )}
+  </DialogBody>
+  <DialogFooter>
+    <Button color="blue" onClick={() => setShowVideos(false)}>Đóng</Button>
+  </DialogFooter>
+</Dialog>
 
             <div className="mt-6">
               <Button onClick={handleToggleChanges} color="blue" variant="outlined" size="sm">

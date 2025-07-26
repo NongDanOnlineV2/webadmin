@@ -76,13 +76,17 @@ export function Farms() {
   };
 
   const deleteFarm = async (id) => {
-    try {
-      await axios.delete(`${BaseUrl}/adminfarms/${id}`, getOpts());
-      await fetchFarms();
-    } catch (err) {
-      alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
-    }
-  };
+  setIsDeleting(true);
+  try {
+    await axios.delete(`${BaseUrl}/adminfarms/${id}`, getOpts());
+    await fetchFarms();
+  } catch (err) {
+    alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
+  } finally {
+    setIsDeleting(false);
+  }
+};
+
 
   const changeStatus = async (id, action) => {
   const actionMap = {
@@ -151,13 +155,6 @@ const fetchFarms = async (signal = null) => {
 
     setFarms(farms);
     setTotalPage(Math.ceil(total / itemsPerPage));
-    // setFarmCache((prev) => ({
-    //   ...prev,
-    //   [cacheKey]: {
-    //     farms: farms,
-    //     totalPages: Math.ceil(total / itemsPerPage),
-    //   },
-    // }));
   } catch (err) {
     if (!axios.isCancel(err)) {
       setError(err.response?.data?.message || err.message);
