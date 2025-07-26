@@ -203,7 +203,6 @@ const handleCreateRoom = async (roomName, mode) => {
               <th className="p-3">STT</th>
               <th className="p-3">Ảnh đại diện</th>
               <th className="p-3">Tên phòng</th>
-              <th className="p-3">Room ID</th>
               <th className="p-3">Số thành viên</th>
               <th className="p-3">Chủ phòng</th>
               <th className="p-3 text-center">Hành động</th>
@@ -231,26 +230,18 @@ const handleCreateRoom = async (roomName, mode) => {
                   )}
                 </td>
                 <td className="p-3">{room.roomName}</td>
-                <td className="p-3 text-sm text-gray-600">{room.roomId}</td>
                 <td className="p-3">{room.users?.length || 0}</td>
                 <td className="p-3 text-sm text-gray-600">{room.ownerName}</td>
                 <td className="p-3 text-center">
-                  <Menu placement="bottom-end"> 
-                    <MenuHandler>
-                      <Button size="sm" variant="text">⋯</Button>
-                    </MenuHandler>
-                    <MenuList>
-                      <MenuItem
+                      <Button
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedRoom(room);
                           handleDeleteRoom();
                         }}
                       >
-                        🗑 Xoá phòng
-                      </MenuItem>
-                    </MenuList>
-                  </Menu>
+                        Xoá phòng
+                      </Button>
                 </td>
               </tr>
             ))}
@@ -280,10 +271,6 @@ const handleCreateRoom = async (roomName, mode) => {
                 >
                   Thêm thành viên
                 </Button>
-              </div>
-              
-              <div>
-                <strong>Room ID:</strong> {selectedRoom.roomId}
               </div>
               <div>
                 <strong>Chế độ:</strong> {selectedRoom.mode}
