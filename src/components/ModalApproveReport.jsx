@@ -10,7 +10,7 @@ Option,
 Input,
 } from "@material-tailwind/react";
 import axios from "axios";
-import { BaseUrl } from "@/ipconfig"; // nếu bạn dùng file ipconfig
+import { BaseUrl } from "@/ipconfig"; 
 
 const actions = [
 { value: "DEACTIVATE_USER", label: "Khóa tài khoản" },

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { BaseUrl } from '@/ipconfig';
 import Pagination from '@/components/Pagination';
-import ModalApproveReport from "@/components/ModalApproveReport"; // hoặc đường dẫn tương ứng
+import ModalApproveReport from "@/components/ModalApproveReport"; 
 export default function AdminReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
