@@ -86,43 +86,15 @@ export default function CommentVideo({ open, onClose, videoId }) {
     }
   };
 
-  const handleHideComment = async (commentIndex) => {
-    if (!window.confirm("Bạn có chắc muốn ẩn bình luận này?")) return;
-    try {
-      await hideComment(videoId, commentIndex);
-      load();
-    } catch (err) {
-      console.error("Lỗi khi ẩn bình luận:", err.response?.data || err);
-      alert("Không thể ẩn bình luận.");
-    }
-  };
 
-  const handleHideReply = async (commentIndex, replyIndex) => {
-    if (!window.confirm("Bạn có chắc muốn ẩn phản hồi này?")) return;
-    try {
-      await hideReply(videoId, commentIndex, replyIndex);
-      load();
-    } catch (err) {
-      console.error("Lỗi khi ẩn phản hồi:", err.response?.data || err);
-      alert("Không thể ẩn phản hồi.");
-    }
-  };
+
+
 
   return (
     <Dialog open={open} handler={onClose} size="lg">
       <DialogHeader className="flex justify-between items-center">
         <span>Bình luận video</span>
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showHidden}
-              onChange={(e) => setShowHidden(e.target.checked)}
-              className="rounded"
-            />
-            <span className="text-sm">Hiện comment đã ẩn</span>
-          </label>
-        </div>
+      
       </DialogHeader>
 
       <DialogBody className="h-[70vh] overflow-y-auto">
@@ -207,14 +179,6 @@ export default function CommentVideo({ open, onClose, videoId }) {
                           >
                             Trả lời
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="text"
-                            color="red"
-                            onClick={() => { handleHideComment(c.index) }}
-                          >
-                            Ẩn
-                          </Button>
                         </div>
                       )}
                     </div>
@@ -277,14 +241,7 @@ export default function CommentVideo({ open, onClose, videoId }) {
                                   >
                                     Trả lời
                                   </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="text"
-                                    color="red"
-                                    onClick={() => { handleHideReply(c.index, r.index) }}
-                                  >
-                                    Ẩn
-                                  </Button>
+                               
                                 </div>
                               )}
                             </div>
