@@ -5,12 +5,16 @@ import { useState,useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Audio } from 'react-loader-spinner'
 import { Typography } from '@material-tailwind/react'
+import UserAddressDialog from './UserAddressDialog'
+
 export const Address = () => {
-  const [addess,setAddress]=useState([])
+  const [address,setAddress]=useState([])
   const [loading,setLoading]=useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(9)
   const [addressCount, setAddressCount] = useState({})
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filteredAddresses, setFilteredAddresses] = useState([])
   const [formData, setFormData] = useState({
     addressName: '',
     address: '',
@@ -18,7 +22,9 @@ export const Address = () => {
     province: '',
     userId: ''
   })
-const navigate=useNavigate()
+  const [showAddressDialog, setShowAddressDialog] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
+  const navigate=useNavigate()
   const tokenUser = localStorage.getItem('token')
 
   const callAddress= async()=>{
@@ -55,10 +61,27 @@ const navigate=useNavigate()
 useEffect(()=>{
   callAddress()
 },[])
+
+useEffect(() => {
+  if (!searchTerm.trim()) {
+    setFilteredAddresses(address)
+  } else {
+    const filtered = address.filter(item => {
+      const userName = item.userId?.fullName?.toLowerCase() || ''
+      const userEmail = item.userId?.email?.toLowerCase() || ''
+      const search = searchTerm.toLowerCase()
+      
+      return userName.includes(search) || userEmail.includes(search)
+    })
+    setFilteredAddresses(filtered)
+  }
+  setCurrentPage(1)
+}, [searchTerm, address])
+
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = addess.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.ceil(addess.length / itemsPerPage)
+  const currentItems = filteredAddresses.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredAddresses.length / itemsPerPage)
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber)
@@ -78,14 +101,71 @@ useEffect(()=>{
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [addess.length])
+  }, [address.length])
+
+  const handleClearSearch = () => {
+    setSearchTerm('')
+  }
+
+  const handleViewAddresses = (user) => {
+    setSelectedUser(user)
+    setShowAddressDialog(true)
+  }
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-              <Typography variant="h5" color="blue-gray" className="font-semibold">
-                Quản lý Địa chỉ
-              </Typography>
+        <Typography variant="h5" color="blue-gray" className="font-semibold">
+          Quản lý Địa chỉ
+        </Typography>
+      </div>
+      <div className="mb-6 bg-white rounded-lg shadow-sm p-4 border">
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 min-w-0">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tìm kiếm người dùng
+            </label>
+            <div className="relative flex gap-2">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm theo tên hoặc email người dùng..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchTerm && (
+                <button
+                  onClick={handleClearSearch}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Xóa
+                </button>
+              )}
             </div>
+          </div>
+        </div>
+
+        {searchTerm && (
+          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-blue-700">
+                <span className="font-medium">Tìm kiếm:</span> "{searchTerm}" - 
+                <span className="font-medium"> {filteredAddresses.length} kết quả</span>
+              </p>
+              <button
+                onClick={handleClearSearch}
+                className="text-blue-700 hover:text-blue-900 text-sm font-medium"
+              >
+                Xóa bộ lọc
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <Audio color="#4fa94d" height={80} width={80} />
@@ -121,9 +201,11 @@ useEffect(()=>{
             <tbody className="divide-y divide-gray-200">
               {currentItems.map((item) => (
                 <tr key={item.userId?.id || item.userId?._id || item._id} className="hover:bg-gray-50 transition-colors cursor-pointer" 
-                onClick={(e)=>{navigate(`/dashboard/AddressDetail/${item.userId?.id}`)
-                 e.stopPropagation()}
-                }>
+                onClick={(e)=>{
+                  handleViewAddresses(item)
+                  e.stopPropagation()
+                }}
+                >
                   <td className="px-6 py-4 whitespace-nowrap" >
                     <div className="text-sm font-medium text-gray-900">
                       {item.userId?.fullName || 'N/A'}
@@ -164,14 +246,16 @@ useEffect(()=>{
             </tbody>
           </table>
           
-          {addess.length === 0 && (
+          {filteredAddresses.length === 0 && (
             <div className="text-center py-12">
-              <div className="text-gray-500">Không có dữ liệu địa chỉ</div>
+              <div className="text-gray-500">
+                {searchTerm ? `Không tìm thấy người dùng nào với từ khóa "${searchTerm}"` : 'Không có dữ liệu địa chỉ'}
+              </div>
             </div>
           )}
 
           {/* Pagination */}
-          {addess.length > 0 && totalPages > 1 && (
+          {filteredAddresses.length > 0 && totalPages > 1 && (
             <div className="flex items-center justify-center border-t border-gray-200 bg-white px-4 py-3">
               <nav className="flex items-center space-x-1">
                 {/* Previous button */}
@@ -224,7 +308,13 @@ useEffect(()=>{
         </div>
       )}
 
-   
+      {/* User Address Dialog */}
+      <UserAddressDialog
+        open={showAddressDialog}
+        onClose={() => setShowAddressDialog(false)}
+        userId={selectedUser?.userId?.id}
+        userName={selectedUser?.userId?.fullName}
+      />
     </div>
   )
 }

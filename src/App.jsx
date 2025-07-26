@@ -12,7 +12,6 @@ import VideoById from "./pages/dashboard/VideoFarms/VideoById";
 import ResetPasswordWrapper from "@/pages/auth/ResetPasswordWrapper";
 import ResetPassword from "./pages/auth/ResetPassword";
 import ForgotPassword from "./pages/auth/ForgotPassword";
-import AddressDetail from "./pages/dashboard/AdminAddress/AddressDetail";
 function App() {
   const navigate = useNavigate();
 
@@ -48,7 +47,6 @@ function App() {
         <Route path="CommentPostbyIdPost/:postId" element={<CommentPostbyIdPost />} />
         <Route path="VideoFarms/VideoById/:id" element={<VideoById />} />
         <Route path="users/:id" element={<UserDetail />} />
-         <Route path="AddressDetail/:id" element={<AddressDetail />} />
 
       </Route>
 
