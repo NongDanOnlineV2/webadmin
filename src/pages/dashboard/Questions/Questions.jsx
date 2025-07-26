@@ -34,12 +34,14 @@ export const Questions = () => {
 
   const tokenUser = localStorage.getItem('token');
 
+  // ✅ Load dữ liệu (hỗ trợ filter từ API nếu có)
   const getData = async (page = 1) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${BaseUrl}/admin-questions?page=${page}&limit=5`, {
-        headers: { Authorization: `Bearer ${tokenUser}` },
-      });
+      const res = await axios.get(
+        `${BaseUrl}/admin-questions?page=${page}&limit=5&search=${searchTerm}&type=${filterType}`,
+        { headers: { Authorization: `Bearer ${tokenUser}` } }
+      );
       if (res.status === 200) {
         setQuestions(res.data.data);
         setTotalPages(res.data.totalPages || 1);
@@ -53,8 +55,9 @@ export const Questions = () => {
 
   useEffect(() => {
     getData(currentPage);
-  }, [currentPage]);
+  }, [currentPage, searchTerm, filterType]);
 
+  // ✅ Dialog sửa
   const handleOpenDialog = (item) => {
     setEditData(item);
     setEditValue({
@@ -120,6 +123,7 @@ export const Questions = () => {
     }
   };
 
+  // ✅ Dialog thêm
   const handleOpenAddDialog = () => {
     setAddValue({ text: '', options: [''], type: 'option', link: '' });
     setAddDialog(true);
@@ -162,7 +166,7 @@ export const Questions = () => {
     }
   };
 
-  // ✅ Lọc dữ liệu chỉ khi searchTerm & filterType được set (nhấn nút tìm kiếm)
+  // ✅ Nếu muốn lọc phía client (khi API chưa hỗ trợ)
   const filteredQuestions = questions.filter((item) => {
     const matchesSearch = item.text.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === '' || item.type === filterType;
@@ -172,8 +176,7 @@ export const Questions = () => {
   return (
     <div>
       {/* 🔹 Thanh tìm kiếm + lọc */}
-            <div className="flex items-center gap-3">
-        {/* Ô tìm kiếm */}
+      <div className="flex items-center gap-3">
         <input
           type="text"
           placeholder="Tìm kiếm câu hỏi..."
@@ -182,7 +185,6 @@ export const Questions = () => {
           className="h-10 w-64 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none text-sm"
         />
 
-        {/* Dropdown lọc */}
         <select
           className="h-10 w-48 px-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none"
           value={tempFilterType}
@@ -191,14 +193,18 @@ export const Questions = () => {
           <option value="">Tất cả loại</option>
           <option value="single-choice">Chọn 1 đáp án</option>
           <option value="multi-choice">Chọn nhiều đáp án</option>
+          <option value="multiple-choice">upload file</option>
+          <option value="option">nhập đáp án</option>
         </select>
 
-        {/* Nút tìm kiếm */}
+        {/* ✅ Nút tìm kiếm */}
         <button
           className="h-10 px-5 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors"
           onClick={() => {
             setSearchTerm(tempSearchTerm);
             setFilterType(tempFilterType);
+            setCurrentPage(1);  // ✅ Reset về trang đầu
+            getData(1);         // ✅ Gọi lại API
           }}
         >
           Tìm kiếm
@@ -216,7 +222,7 @@ export const Questions = () => {
         </DialogFooter>
       </Dialog>
 
-      {/* Nội dung danh sách */}
+      {/* Danh sách câu hỏi */}
       {loading ? (
         <div className="flex justify-center items-center h-40">
           <Oval height={80} width={80} color="blue" visible={true} ariaLabel="oval-loading" />
@@ -242,7 +248,6 @@ export const Questions = () => {
               </Menu>
             </div>
 
-            {/* Hiển thị các loại câu hỏi */}
             <div className="flex gap-4 mt-8 flex-wrap">
               {["single-choice", "multiple-choice", "multi-choice", "option"].includes(item.type) ? (
                 item.options?.map((opt, idx) => (
