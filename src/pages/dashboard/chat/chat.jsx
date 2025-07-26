@@ -23,7 +23,7 @@ const RoomTable = () => {
   const [openCreateRoomDialog, setOpenCreateRoomDialog] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomMode, setNewRoomMode] = useState("public");
-  const [newRoomOwnerId, setNewRoomOwnerId] = useState("");
+  const [showPublicRooms, setShowPublicRooms] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const roomsPerPage = 10;
 
@@ -182,19 +182,48 @@ const handleCreateRoom = async (roomName, mode) => {
     alert("Không thể tạo phòng.");
   }
 };
+const fetchPublicRooms = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${BaseUrl}/chat/rooms/public`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error("Lỗi fetch phòng công khai");
+    setRooms(data); 
+    setShowPublicRooms(true); 
+    setCurrentPage(1); 
+  } catch (err) {
+    console.error("Lỗi khi fetch phòng công khai:", err);
+    alert("Không thể lấy danh sách phòng công khai.");
+  }
+};
 
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4"> 
         <h1 className="text-2xl font-semibold">Danh sách phòng</h1>
-            <Button
-              size="sm"
-              color="blue"
-              onClick={() => setOpenCreateRoomDialog(true)}
-            >
-              Tạo phòng
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outlined"
+                onClick={fetchPublicRooms}
+                color="blue"
+              >
+                Xem phòng công khai
+              </Button>
+              <Button
+                size="sm"
+                variant="outlined"
+                onClick={() => setOpenCreateRoomDialog(true)}
+                color="blue"
+              >
+                Tạo phòng
+              </Button>
+            </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white shadow-md rounded-lg">
@@ -203,7 +232,6 @@ const handleCreateRoom = async (roomName, mode) => {
               <th className="p-3">STT</th>
               <th className="p-3">Ảnh đại diện</th>
               <th className="p-3">Tên phòng</th>
-              <th className="p-3">Room ID</th>
               <th className="p-3">Số thành viên</th>
               <th className="p-3">Chủ phòng</th>
               <th className="p-3 text-center">Hành động</th>
@@ -231,26 +259,18 @@ const handleCreateRoom = async (roomName, mode) => {
                   )}
                 </td>
                 <td className="p-3">{room.roomName}</td>
-                <td className="p-3 text-sm text-gray-600">{room.roomId}</td>
                 <td className="p-3">{room.users?.length || 0}</td>
                 <td className="p-3 text-sm text-gray-600">{room.ownerName}</td>
                 <td className="p-3 text-center">
-                  <Menu placement="bottom-end"> 
-                    <MenuHandler>
-                      <Button size="sm" variant="text">⋯</Button>
-                    </MenuHandler>
-                    <MenuList>
-                      <MenuItem
+                      <Button
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedRoom(room);
                           handleDeleteRoom();
                         }}
                       >
-                        🗑 Xoá phòng
-                      </MenuItem>
-                    </MenuList>
-                  </Menu>
+                        Xoá phòng
+                      </Button>
                 </td>
               </tr>
             ))}
@@ -280,10 +300,6 @@ const handleCreateRoom = async (roomName, mode) => {
                 >
                   Thêm thành viên
                 </Button>
-              </div>
-              
-              <div>
-                <strong>Room ID:</strong> {selectedRoom.roomId}
               </div>
               <div>
                 <strong>Chế độ:</strong> {selectedRoom.mode}
