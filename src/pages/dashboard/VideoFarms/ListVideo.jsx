@@ -24,7 +24,6 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
     const res = await axios.get(`${BaseUrl}/admin-video-farm?${params}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    console.log("📦 Full API Response:", res.data);
         
     let videos = [];
     if (Array.isArray(res.data.data)) {
@@ -62,13 +61,12 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
       };
     }
     
-    console.log(videos);
     return {
       videos,
       totalPages: res.data.totalPages || 1
     };
   } catch (error) {
-    console.error('❌ API Error:', error);
+
     return { videos: [], totalPages: 1 };
   }
 };
@@ -99,7 +97,7 @@ export const ListVideo = () => {
   // State lưu kết quả search
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchMode, setIsSearchMode] = useState(false);
-  
+  console.log(videos)
   const limit = 9;
 
   const getStatusInVietnamese = (status) => {
@@ -376,8 +374,7 @@ export const ListVideo = () => {
 
   const openConfirmDialog = (type, video) => {
     if (!video || !video._id) {
-      console.error('Video không hợp lệ:', video);
-      return;
+      return null
     }
     setConfirmDialog({ open: true, type, video });
   };
@@ -388,17 +385,6 @@ export const ListVideo = () => {
         <Typography variant="h5" color="blue-gray" className="font-semibold">
           Quản lý Video
         </Typography>
-        <Button 
-          size="sm" 
-          className="flex items-center gap-2"
-          onClick={() => window.location.reload()}
-          disabled={loading}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Làm mới
-        </Button>
       </div>
 
       <div className="mb-6 bg-white rounded-lg shadow-sm p-4 border">
@@ -537,10 +523,10 @@ export const ListVideo = () => {
                       <>
                     {item.youtubeLink ? (
                       item.youtubeLink.endsWith('.m3u8') ? (
-                        <HlsPlayer src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`} className="w-full h-full object-cover rounded-t-lg" />
+                        <HlsPlayer src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}/${item.youtubeLink}`} className="w-full h-full object-cover rounded-t-lg" />
                       ) : item.youtubeLink.endsWith('.mp4') ? (
                         <video
-                          src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`}
+                          src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}/${item.youtubeLink}`}
                           controls
                           className="w-full h-full object-cover rounded-t-lg"
                         >
@@ -559,7 +545,7 @@ export const ListVideo = () => {
                         ></iframe>
                       ) : (
                         <audio
-                          src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}${item.youtubeLink}`}
+                          src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}/${item.youtubeLink}`}
                           controls
                           className="w-full h-full object-cover rounded-t-lg"
                         >
@@ -568,10 +554,10 @@ export const ListVideo = () => {
                       ))
                     ) : item.localFilePath ? (
                       item.localFilePath.endsWith('.m3u8') ? (
-                        <HlsPlayer src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`} className="w-full h-full object-cover rounded-t-lg" />
+                        <HlsPlayer src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}/${item.localFilePath}`} className="w-full h-full object-cover rounded-t-lg" />
                       ) : item.localFilePath.endsWith('.mp4') ? (
                         <video
-                          src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`}
+                          src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}/${item.localFilePath}`}
                           controls
                           className="w-full h-full object-cover rounded-t-lg"
                         >
@@ -579,7 +565,7 @@ export const ListVideo = () => {
                         </video>
                       ) : (
                         <audio
-                          src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}${item.localFilePath}`}
+                          src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}/${item.localFilePath}`}
                           controls
                           className="w-full h-full object-cover rounded-t-lg"
                         >
@@ -593,8 +579,43 @@ export const ListVideo = () => {
                     )}
                     </>
                   ) : (
-                    <div className="flex justify-center items-center h-full text-gray-500">
-                      <span className="text-sm"> ▶ Nhấn để phát video</span> 
+                    <div className="flex justify-center items-center h-full text-gray-500 relative">
+                      {item.thumbnailPath ? (
+                        <div className="relative w-full h-full">
+                          <img
+                            src={item.thumbnailPath.startsWith('http') ? item.thumbnailPath : `${BaseUrl}${item.thumbnailPath}`}
+                            alt={item.title || 'Video thumbnail'}
+                            className="w-full h-full object-cover rounded-t-lg"
+                           
+                            
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-30 flex justify-center items-center opacity-0 hover:opacity-100 transition-opacity">
+                            <div className="text-center text-white">
+                              <div className="text-4xl mb-2">▶️</div>
+                              <span className="text-sm">Nhấn để phát video</span>
+                            </div>
+                          </div>
+                          {item.status === 'pending' && (
+                            <div className="absolute top-2 right-2">
+                              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                Chờ duyệt
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center" style={{ display: item.thumbnailPath ? 'none' : 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <div className="text-4xl mb-2">▶️</div>
+                          <span className="text-sm">Nhấn để phát video</span>
+                          {item.status === 'pending' && (
+                            <div className="mt-1">
+                              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                Chờ duyệt
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                   </div>
@@ -709,7 +730,9 @@ export const ListVideo = () => {
                         className="flex items-center gap-1 text-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
                       >
                         <span>💬</span>
-                        <span className="text-sm">{item.commentCount||0}</span>
+                         <span>Bình luận</span>
+
+                        {/* <span className="text-sm">{item.commentCount||0}</span> */}
                       </button>
                     </div>
                   </div>
@@ -819,7 +842,6 @@ export const ListVideo = () => {
                       }
                     }
                   } catch (error) {
-                    console.error('Error:', error);
                     alert(`❌ Có lỗi xảy ra: ${error.message || error}`);
                   } finally {
                     setIsProcessing(false);
