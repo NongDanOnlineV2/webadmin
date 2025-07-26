@@ -23,7 +23,7 @@ const RoomTable = () => {
   const [openCreateRoomDialog, setOpenCreateRoomDialog] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomMode, setNewRoomMode] = useState("public");
-  const [newRoomOwnerId, setNewRoomOwnerId] = useState("");
+  const [showPublicRooms, setShowPublicRooms] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const roomsPerPage = 10;
 
@@ -182,19 +182,48 @@ const handleCreateRoom = async (roomName, mode) => {
     alert("Không thể tạo phòng.");
   }
 };
+const fetchPublicRooms = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${BaseUrl}/chat/rooms/public`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error("Lỗi fetch phòng công khai");
+    setRooms(data); 
+    setShowPublicRooms(true); 
+    setCurrentPage(1); 
+  } catch (err) {
+    console.error("Lỗi khi fetch phòng công khai:", err);
+    alert("Không thể lấy danh sách phòng công khai.");
+  }
+};
 
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4"> 
         <h1 className="text-2xl font-semibold">Danh sách phòng</h1>
-            <Button
-              size="sm"
-              color="blue"
-              onClick={() => setOpenCreateRoomDialog(true)}
-            >
-              Tạo phòng
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outlined"
+                onClick={fetchPublicRooms}
+                color="blue"
+              >
+                Xem phòng công khai
+              </Button>
+              <Button
+                size="sm"
+                variant="outlined"
+                onClick={() => setOpenCreateRoomDialog(true)}
+                color="blue"
+              >
+                Tạo phòng
+              </Button>
+            </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white shadow-md rounded-lg">
