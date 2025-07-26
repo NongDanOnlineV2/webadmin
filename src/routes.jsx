@@ -4,12 +4,12 @@ import {
   TableCellsIcon,
   InformationCircleIcon,
   ServerStackIcon,
-  RectangleStackIcon,
   NewspaperIcon,
   ReceiptPercentIcon,
   ChatBubbleLeftEllipsisIcon,
   ShieldCheckIcon,
-  MapPinIcon
+  MapPinIcon,
+  ChatBubbleBottomCenterIcon
 } from "@heroicons/react/24/solid";
 
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
@@ -93,7 +93,7 @@ export const routes = [
 
       },
        {
-        icon: <ChatBubbleOvalLeftEllipsisIcon {...icon} />,
+        icon: <ChatBubbleBottomCenterIcon {...icon} />,
         name: "Chat",
         path: "/chat",
          element: <RoomTable />,

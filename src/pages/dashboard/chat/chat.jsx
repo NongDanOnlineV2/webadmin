@@ -12,6 +12,7 @@ import {
 
 const RoomTable = () => {
   const [rooms, setRooms] = useState([]);
+  const [usersMap, setUsersMap] = useState({});
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -20,6 +21,46 @@ const RoomTable = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // 🆕 fetchUserById dùng fetch theo page để tìm user theo ownerId
+const fetchUserById = async (ownerId) => {
+  const token = localStorage.getItem("token");
+  const limit = 10;
+  let page = 1;
+  let found = null;
+
+  while (!found) {
+    try {
+      const res = await fetch(`${BaseUrl}/admin-users?page=${page}&limit=${limit}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) break;
+
+      const data = await res.json();
+      const users = data.data || [];
+
+      const matched = users.find((user) => user._id === ownerId);
+      if (matched) {
+        setUsersMap((prev) => ({ ...prev, [ownerId]: matched }));
+        found = matched;
+        return matched;
+      }
+
+      // Dừng lại nếu không còn trang nào nữa
+      if (users.length < limit) break;
+      page++;
+    } catch (err) {
+      console.error("Lỗi khi fetch người dùng:", err);
+      break;
+    }
+  }
+
+  return null;
+};
+
 
   const fetchData = async () => {
   try {
