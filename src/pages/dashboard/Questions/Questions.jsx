@@ -155,9 +155,37 @@ export const Questions = () => {
     }
   };
 
+  const filteredQuestions = questions.filter((item) => {
+    const matchesSearch = item.text.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === '' || item.type === filterType;
+    return matchesSearch && matchesType;
+  });
+
   return (
     <div>
-      <div className="flex justify-between mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex gap-2">
+          <Input
+            label="Tìm kiếm câu hỏi..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <select
+            className="border px-3 py-2 rounded"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+          >
+            <option value="">Tất cả loại</option>
+            <option value="text">Ghi văn bản</option>
+            <option value="option">Chọn ABCD</option>
+            <option value="single-choice">Chọn 1 đáp án</option>
+            <option value="multiple-choice">Chọn nhiều đáp án</option>
+            <option value="multi-choice">Chọn nhiều</option>
+            <option value="upload">Tải file</option>
+            <option value="link">Link</option>
+          </select>
+        </div>
+
         <AddQuestion
           handleAddChange={handleAddChange}
           handleAddSave={handleAddSave}
@@ -175,9 +203,7 @@ export const Questions = () => {
           <AnswersTable />
         </DialogBody>
         <DialogFooter>
-          <Button variant="text" onClick={() => setShowAnswersDialog(false)}>
-            Đóng
-          </Button>
+          <Button variant="text" onClick={() => setShowAnswersDialog(false)}>Đóng</Button>
         </DialogFooter>
       </Dialog>
 
@@ -185,10 +211,10 @@ export const Questions = () => {
         <div className="flex justify-center items-center h-40">
           <Oval height={80} width={80} color="blue" visible={true} ariaLabel="oval-loading" />
         </div>
-      ) : questions.length === 0 ? (
-        <div className="text-center text-gray-500 mt-8">Không có câu hỏi nào.</div>
+      ) : filteredQuestions.length === 0 ? (
+        <div className="text-center text-gray-500 mt-8">Không có câu hỏi phù hợp.</div>
       ) : (
-        questions.map((item) => (
+        filteredQuestions.map((item) => (
           <div key={item._id} className="mb-6 p-4 border rounded-lg bg-white shadow">
             <div className="flex justify-between">
               <div className="font-semibold mb-2">{item.text}</div>
@@ -205,8 +231,8 @@ export const Questions = () => {
                 </MenuList>
               </Menu>
             </div>
-            <div className="flex gap-4 mt-8">
-              {["single-choice", "multiple-choice", "multi-choice"].includes(item.type) ? (
+            <div className="flex gap-4 mt-8 flex-wrap">
+              {["single-choice", "multiple-choice", "multi-choice", "option"].includes(item.type) ? (
                 item.options?.map((opt, idx) => (
                   <button key={idx} className="px-4 py-2 bg-blue-gray-400 hover:bg-blue-gray-600 text-white rounded">
                     {opt}

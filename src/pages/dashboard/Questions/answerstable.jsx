@@ -14,10 +14,11 @@ import { Audio } from "react-loader-spinner";
 import axios from "axios";
 import AnswersTableDetail from "./answerstabledetail";
 import AnswerAddForm from "./AnswerAddForm";
-import AnswerEditForm from "./AnswerEditForm"
+import AnswerEditForm from "./AnswerEditForm";
+import Select from "react-select";
 import { BaseUrl } from "@/ipconfig";
+
 const API_URL = `${BaseUrl}/answers`;
-const FILE_BASE_URL = "https://api-ndolv2.nongdanonline.cc";
 let token = localStorage.getItem("token");
 
 const fetchWithAuth = async (url, options = {}) => {
@@ -60,14 +61,14 @@ const fetchWithAuth = async (url, options = {}) => {
 };
 
 export function AnswersTable() {
-  const [allAnswers, setAllAnswers] = useState([]); // Tất cả data
+  const [allAnswers, setAllAnswers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
+
   const [formType, setFormType] = useState(null);
   const [editData, setEditData] = useState(null);
-  const [allAnswersCache, setAllAnswersCache] = useState(null);
   const [form, setForm] = useState({
     farmId: "",
     questionId: "",
@@ -79,24 +80,28 @@ export function AnswersTable() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
 
-  const loadAllAnswers = async () => {
+  const [filterOptions, setFilterOptions] = useState([]);
+  const [allOptions, setAllOptions] = useState([]);
+
+  const loadAnswersByPage = async (page = 1) => {
     try {
-  
-      if (allAnswersCache) {
-        setAllAnswers(allAnswersCache);
-        setTotalPages(Math.ceil(allAnswersCache.length / itemsPerPage));
-        setLoading(false);
-        return;
-      }
-            setLoading(true);
+      setLoading(true);
+      const res = await fetchWithAuth(`${API_URL}?page=${page}&limit=${itemsPerPage}`);
+      const result = await res.json();
 
-      const res = await fetchWithAuth(API_URL);
-      const data = await res.json();
-      const answersData = Array.isArray(data) ? data : [];
+      if (!res.ok) throw new Error(result.message || "Không thể tải dữ liệu");
 
-      setAllAnswers(answersData);
-      setAllAnswersCache(answersData); // Cache tất cả
-      setTotalPages(Math.ceil(answersData.length / itemsPerPage));
+      const answers = result.data || [];
+      setAllAnswers(answers);
+      setTotalPages(Math.ceil(result.total / itemsPerPage));
+      setCurrentPage(page);
+
+      // Lấy danh sách tất cả các đáp án có thể lọc
+      const optionsSet = new Set();
+      answers.forEach((ans) => {
+        ans.selectedOptions?.forEach((opt) => optionsSet.add(opt));
+      });
+      setAllOptions(Array.from(optionsSet));
     } catch (err) {
       console.error("Lỗi khi tải dữ liệu:", err);
       setAllAnswers([]);
@@ -105,22 +110,9 @@ export function AnswersTable() {
     }
   };
 
-  const clearCache = () => {
-    setAllAnswersCache(null);
-  };
-
   useEffect(() => {
-    loadAllAnswers();
+    loadAnswersByPage(currentPage);
   }, []);
-
-  // Lấy data cho trang hiện tại - client-side pagination
-  const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return allAnswers.slice(startIndex, endIndex);
-  };
-
-  const currentPageData = getCurrentPageData();
 
   const openAddForm = () => {
     setForm({
@@ -174,7 +166,6 @@ export function AnswersTable() {
   };
 
   const handleSubmit = async () => {
-    // Validate form
     if (!form.farmId || !form.questionId) {
       alert("Vui lòng chọn Farm và Câu hỏi");
       return;
@@ -190,52 +181,36 @@ export function AnswersTable() {
     }
 
     try {
-      if (formType === "edit") {
-        // Sửa đáp án - gọi API PUT
-        const payload = {
-          farmId: form.farmId,
-          questionId: form.questionId,
-          selectedOptions: form.selectedOptions,
-          otherText: form.otherText,
-          uploadedFiles: form.uploadedFiles,
-        };
+      const payload = {
+        farmId: form.farmId,
+        questionId: form.questionId,
+        selectedOptions: form.selectedOptions,
+        otherText: form.otherText,
+        uploadedFiles: form.uploadedFiles,
+      };
 
+      if (formType === "edit") {
         const res = await fetchWithAuth(`${API_URL}/${editData?._id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-
         const result = await res.json();
-        if (!res.ok) throw new Error(result.message || "Không thể cập nhật đáp án");
-
+        if (!res.ok) throw new Error(result.message);
         alert("✅ Cập nhật đáp án thành công!");
       } else {
-        // Thêm đáp án mới - gọi API POST
-        const payload = {
-          farmId: form.farmId,
-          questionId: form.questionId,
-          selectedOptions: form.selectedOptions,
-          otherText: form.otherText,
-          uploadedFiles: form.uploadedFiles,
-        };
-
         const res = await fetchWithAuth(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-
         const result = await res.json();
-        if (!res.ok) throw new Error(result.message || "Không thể thêm đáp án");
-
+        if (!res.ok) throw new Error(result.message);
         alert("✅ Thêm đáp án thành công!");
       }
 
       setFormType(null);
-      clearCache();
-      await loadAllAnswers();
-
+      await loadAnswersByPage(currentPage);
     } catch (error) {
       console.error("Submit error:", error);
       alert(`❌ ${error.message || "Có lỗi xảy ra"}`);
@@ -244,45 +219,56 @@ export function AnswersTable() {
 
   const handleDelete = async (id, item) => {
     const confirmMessage = `Bạn có chắc muốn xóa đáp án này?\n\nFarm ID: ${item.farmId}\nQuestion ID: ${item.questionId}\nĐáp án: ${item.selectedOptions?.join(", ") || "Không có"}`;
-    
     if (!window.confirm(confirmMessage)) return;
 
     try {
-      const res = await fetchWithAuth(`${API_URL}/${id}`, { 
-        method: "DELETE" 
-      });
-      
+      const res = await fetchWithAuth(`${API_URL}/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `Không thể xóa đáp án (${res.status})`);
+        throw new Error(errorData.message || `Không thể xóa đáp án`);
       }
-
       alert("✅ Xóa đáp án thành công!");
-      clearCache();
-      await loadAllAnswers();
-
+      await loadAnswersByPage(currentPage);
     } catch (error) {
       console.error("Delete error:", error);
       alert(`❌ Lỗi khi xóa: ${error.message}`);
     }
   };
 
+  const filteredAnswers = allAnswers.filter((item) => {
+    if (filterOptions.length === 0) return true;
+    return item.selectedOptions?.some((opt) =>
+      filterOptions.map((f) => f.value).includes(opt)
+    );
+  });
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <Typography variant="h5">
-          Danh sách câu trả lời ({allAnswers.length} items)
+          Danh sách câu trả lời 
         </Typography>
-        <Menu placement="bottom-end">
-          <MenuHandler>
-            <IconButton variant="text">
-              <EllipsisVerticalIcon className="h-6 w-6" />
-            </IconButton>
-          </MenuHandler>
-          <MenuList>
-            <MenuItem onClick={openAddForm}>Thêm mới</MenuItem>
-          </MenuList>
-        </Menu>
+        <div className="flex gap-4 items-center">
+          <div className="w-72">
+            <Select
+              isMulti
+              options={allOptions.map((opt) => ({ value: opt, label: opt }))}
+              value={filterOptions}
+              onChange={setFilterOptions}
+              placeholder="Lọc theo đáp án..."
+            />
+          </div>
+          <Menu placement="bottom-end">
+            <MenuHandler>
+              <IconButton variant="text">
+                <EllipsisVerticalIcon className="h-6 w-6" />
+              </IconButton>
+            </MenuHandler>
+            <MenuList>
+              <MenuItem onClick={openAddForm}>Thêm mới</MenuItem>
+            </MenuList>
+          </Menu>
+        </div>
       </div>
 
       {loading ? (
@@ -303,7 +289,7 @@ export function AnswersTable() {
             </tr>
           </thead>
           <tbody>
-            {currentPageData.map((item, index) => (
+            {filteredAnswers.map((item, index) => (
               <tr
                 key={item._id}
                 className="hover:bg-gray-50 transition cursor-pointer"
@@ -315,61 +301,32 @@ export function AnswersTable() {
                 <td className="px-4 py-3">
                   {(currentPage - 1) * itemsPerPage + index + 1}
                 </td>
+                <td className="px-4 py-3">{item.farmId}</td>
+                <td className="px-4 py-3">{item.questionId}</td>
                 <td className="px-4 py-3">
-                  <span className="text-gray-600 text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                    {item.farmId}
-                  </span>
+                  {item.selectedOptions?.map((opt, i) => (
+                    <span key={i} className="bg-blue-100 text-xs text-blue-800 px-2 py-1 rounded mr-1">
+                      {opt}
+                    </span>
+                  ))}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-gray-600 text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                    {item.questionId}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="max-w-xs">
-                    {item.selectedOptions?.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {item.selectedOptions.map((option, i) => (
-                          <span
-                            key={i}
-                            className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
-                          >
-                            {option}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="max-w-xs truncate">
-                    {item.otherText ? (
-                      <span className="text-gray-700" title={item.otherText}>
-                        {item.otherText}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </div>
+                  {item.otherText || <span className="text-gray-400">—</span>}
                 </td>
                 <td className="px-4 py-3">
                   {item.uploadedFiles?.length > 0 ? (
-                    <div className="flex flex-col gap-1">
-                      {item.uploadedFiles.map((file, i) => (
-                        <a
-                          key={i}
-                          href={`${BaseUrl}${file}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 text-xs underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          📎 File {i + 1}
-                        </a>
-                      ))}
-                    </div>
+                    item.uploadedFiles.map((file, i) => (
+                      <a
+                        key={i}
+                        href={`${BaseUrl}${file}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-blue-600 underline text-xs block"
+                      >
+                        📎 File {i + 1}
+                      </a>
+                    ))
                   ) : (
                     <span className="text-gray-400">—</span>
                   )}
@@ -387,11 +344,7 @@ export function AnswersTable() {
                           e.stopPropagation();
                           openEditForm(item);
                         }}
-                        className="flex items-center gap-2"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
                         Sửa đáp án
                       </MenuItem>
                       <MenuItem
@@ -399,11 +352,8 @@ export function AnswersTable() {
                           e.stopPropagation();
                           handleDelete(item._id, item);
                         }}
-                        className="text-red-500 flex items-center gap-2"
+                        className="text-red-500"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
                         Xóa đáp án
                       </MenuItem>
                     </MenuList>
@@ -420,7 +370,7 @@ export function AnswersTable() {
           variant="outlined"
           size="sm"
           disabled={currentPage === 1}
-          onClick={() => setCurrentPage((p) => p - 1)}
+          onClick={() => loadAnswersByPage(currentPage - 1)}
         >
           Trang trước
         </Button>
@@ -431,17 +381,13 @@ export function AnswersTable() {
           variant="outlined"
           size="sm"
           disabled={currentPage >= totalPages}
-          onClick={() => setCurrentPage((p) => p + 1)}
+          onClick={() => loadAnswersByPage(currentPage + 1)}
         >
           Trang sau
         </Button>
       </div>
 
-      <Dialog
-        open={formType !== null}
-        handler={() => setFormType(null)}
-        size="xl"
-      >
+      <Dialog open={formType !== null} handler={() => setFormType(null)} size="xl">
         {formType === "add" ? (
           <AnswerAddForm
             open
