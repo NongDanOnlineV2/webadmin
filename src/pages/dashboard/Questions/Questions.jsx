@@ -199,7 +199,7 @@ export const Questions = () => {
 
         {/* ✅ Nút tìm kiếm */}
         <button
-          className="h-10 px-5 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors"
+          className="h-10 px-5 bg-black 500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors"
           onClick={() => {
             setSearchTerm(tempSearchTerm);
             setFilterType(tempFilterType);

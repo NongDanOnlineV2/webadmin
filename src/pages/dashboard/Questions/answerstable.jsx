@@ -270,34 +270,26 @@ export function AnswersTable() {
       {/* Header */}
       <div className="flex justify-between items-start flex-wrap gap-4 mb-6">
   {/* BÊN TRÁI: Ô tìm kiếm */}
-  <div className="flex flex-wrap items-center gap-3">
+ <div className="flex items-end gap-3 flex-wrap">
+  <div className="min-w-[200px]">
     <Input
       label="Tìm trang trại"
       value={searchFarmName}
       onChange={(e) => setSearchFarmName(e.target.value)}
-      className="min-w-[180px]"
     />
-    <Button
-      color="green"
-      onClick={() => {
-        setIsSearching(true);
-        loadAnswersByPage(1, true);
-      }}
-    >
-      Tìm kiếm
-    </Button>
-    <Button
-      color="blue"
-      onClick={() => {
-        setSearchFarmName("");
-        setFilterOptions([]);
-        setIsSearching(false);
-        loadAnswersByPage(1, false);
-      }}
-    >
-      Cài lại
-    </Button>
   </div>
+
+  <Button
+    className="bg-black text-white"
+    onClick={() => {
+      setIsSearching(true);
+      loadAnswersByPage(1, true);
+    }}
+  >
+    Tìm kiếm
+  </Button>
+</div>
+
 
   {/* BÊN PHẢI: Bộ lọc đáp án và menu */}
   <div className="w-full md:w-[320px] overflow-hidden">
