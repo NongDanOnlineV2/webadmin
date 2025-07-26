@@ -16,8 +16,15 @@ export const Questions = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // ✅ state chính để lọc
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
+
+  // ✅ state tạm để nhập trước khi bấm tìm
+  const [tempSearchTerm, setTempSearchTerm] = useState('');
+  const [tempFilterType, setTempFilterType] = useState('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editData, setEditData] = useState(null);
   const [editValue, setEditValue] = useState({ options: [] });
@@ -155,6 +162,7 @@ export const Questions = () => {
     }
   };
 
+  // ✅ Lọc dữ liệu chỉ khi searchTerm & filterType được set (nhấn nút tìm kiếm)
   const filteredQuestions = questions.filter((item) => {
     const matchesSearch = item.text.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === '' || item.type === filterType;
@@ -163,37 +171,41 @@ export const Questions = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex gap-2">
-          <Input
-            label="Tìm kiếm câu hỏi..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-         <select
-            className="border px-3 py-2 rounded"
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-          >
-            <option value="">Tất cả loại</option>
-            <option value="single-choice">Chọn 1 đáp án</option>
-            <option value="multi-choice">Chọn nhiều đáp án</option>
-
-          </select>
-
-        </div>
-
-        <AddQuestion
-          handleAddChange={handleAddChange}
-          handleAddSave={handleAddSave}
-          handleCloseAddDialog={handleCloseAddDialog}
-          handleOpenAddDialog={handleOpenAddDialog}
-          addDialog={addDialog}
-          addValue={addValue}
-          setAddValue={setAddValue}
+      {/* 🔹 Thanh tìm kiếm + lọc */}
+            <div className="flex items-center gap-3">
+        {/* Ô tìm kiếm */}
+        <input
+          type="text"
+          placeholder="Tìm kiếm câu hỏi..."
+          value={tempSearchTerm}
+          onChange={(e) => setTempSearchTerm(e.target.value)}
+          className="h-10 w-64 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none text-sm"
         />
+
+        {/* Dropdown lọc */}
+        <select
+          className="h-10 w-48 px-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+          value={tempFilterType}
+          onChange={(e) => setTempFilterType(e.target.value)}
+        >
+          <option value="">Tất cả loại</option>
+          <option value="single-choice">Chọn 1 đáp án</option>
+          <option value="multi-choice">Chọn nhiều đáp án</option>
+        </select>
+
+        {/* Nút tìm kiếm */}
+        <button
+          className="h-10 px-5 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors"
+          onClick={() => {
+            setSearchTerm(tempSearchTerm);
+            setFilterType(tempFilterType);
+          }}
+        >
+          Tìm kiếm
+        </button>
       </div>
 
+      {/* Dialog hiển thị câu trả lời */}
       <Dialog open={showAnswersDialog} handler={() => setShowAnswersDialog(false)} size="xl">
         <DialogHeader>Danh sách câu trả lời</DialogHeader>
         <DialogBody className="max-h-[70vh] overflow-y-auto">
@@ -204,6 +216,7 @@ export const Questions = () => {
         </DialogFooter>
       </Dialog>
 
+      {/* Nội dung danh sách */}
       {loading ? (
         <div className="flex justify-center items-center h-40">
           <Oval height={80} width={80} color="blue" visible={true} ariaLabel="oval-loading" />
@@ -228,6 +241,8 @@ export const Questions = () => {
                 </MenuList>
               </Menu>
             </div>
+
+            {/* Hiển thị các loại câu hỏi */}
             <div className="flex gap-4 mt-8 flex-wrap">
               {["single-choice", "multiple-choice", "multi-choice", "option"].includes(item.type) ? (
                 item.options?.map((opt, idx) => (
@@ -247,6 +262,7 @@ export const Questions = () => {
         ))
       )}
 
+      {/* Phân trang */}
       <div className="flex justify-center items-center gap-2 mt-6">
         <Button
           size="sm"
@@ -269,6 +285,7 @@ export const Questions = () => {
         </Button>
       </div>
 
+      {/* Dialog chỉnh sửa câu hỏi */}
       <EditQuestion
         setEditValue={setEditValue}
         editData={editData}
