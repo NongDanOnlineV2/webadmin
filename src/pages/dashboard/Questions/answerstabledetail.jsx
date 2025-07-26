@@ -23,27 +23,44 @@ const InfoRow = ({ label, value }) => (
 const AnswersTableDetail = ({ open, onClose, data }) => {
   if (!data) return null;
 
-    const formattedDate = data.createdAt
-    ? new Date(data.createdAt).toLocaleString("vi-VN", {
-        dateStyle: "medium",
-        timeStyle: "short",
+  const formatDate = (dateStr) =>
+    dateStr
+      ? new Date(dateStr).toLocaleString("vi-VN", {
+          dateStyle: "medium",
+          timeStyle: "short",
         })
-    : "—";
+      : "Không có dữ liệu";
+
   return (
     <Dialog open={open} handler={onClose} size="lg">
       <DialogHeader>Chi tiết câu trả lời</DialogHeader>
       <DialogBody divider className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <InfoRow label="ID trang trại" value={data.farmId} />
         <InfoRow label="Tên Farm" value={data.farm?.name} />
         <InfoRow label="Chủ sở hữu" value={data.farm?.ownerName} />
-
+        <InfoRow label="Mã câu hỏi" value={data.questionId} />
         <InfoRow label="Tên Câu hỏi" value={data.question?.text} />
-        <InfoRow label="Ngày tạo" value={formattedDate} />
 
-        <InfoRow
-          label="Đáp án đã chọn"
-          value={data.selectedOptions?.join(", ")}
-        />
-        <InfoRow label="Khác" value={data.otherText} />
+        <div className="col-span-2">
+          <Typography variant="small" color="blue-gray" className="font-medium">
+            Đáp án đã chọn:
+          </Typography>
+          {data.selectedOptions?.length > 0 ? (
+            <ul className="list-disc list-inside text-gray-700 text-sm mt-1">
+              {data.selectedOptions.map((option, idx) => (
+                <li key={idx}>{option}</li>
+              ))}
+            </ul>
+          ) : (
+            <Typography variant="small" color="gray">
+              Không có
+            </Typography>
+          )}
+        </div>
+
+        <InfoRow label="Khác (Văn bản khác)" value={data.otherText} />
+        <InfoRow label="Date create" value={formatDate(data.createdAt)} />
+        <InfoRow label="Date updated" value={formatDate(data.updatedAt)} />
 
         <div className="col-span-2">
           <Typography variant="small" color="blue-gray" className="font-medium">

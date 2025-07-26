@@ -82,6 +82,7 @@ export function AnswersTable() {
   const [farmMap, setFarmMap] = useState({});
   const [questionMap, setQuestionMap] = useState({});
   const [searchFarmName, setSearchFarmName] = useState("");
+  const [isSearching, setIsSearching] = useState(false); // ✅ kiểm soát search mode
 
   // ✅ Load toàn bộ options từ API
   const loadAllOptions = async () => {
@@ -106,80 +107,84 @@ export function AnswersTable() {
     return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
   };
 
-  // ✅ Load danh sách câu trả lời theo trang + filter + search
- const loadAnswersByPage = async (page = 1) => {
-  try {
-    setLoading(true);
-    const res = await fetchWithAuth(`${API_URL}?limit=9999`); // ✅ lấy tất cả dữ liệu
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.message);
+  // ✅ Load danh sách câu trả lời
+  const loadAnswersByPage = async (page = 1, searchMode = false) => {
+    try {
+      setLoading(true);
+      const limit = searchMode ? 9999 : itemsPerPage; // ✅ load theo chế độ
+      const res = await fetchWithAuth(`${API_URL}?limit=${limit}&page=${page}`);
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message);
 
-    let data = result.data || [];
+      let data = result.data || [];
 
-    // ✅ Lọc trước khi phân trang
-    if (searchFarmName) {
-      data = data.filter(ans =>
-        ans.farmName?.toLowerCase().includes(searchFarmName.toLowerCase())
-      );
+      // ✅ Nếu đang search, lọc farmName + filterOptions
+      if (searchMode && searchFarmName) {
+        data = data.filter((ans) =>
+          ans.farmName?.toLowerCase().includes(searchFarmName.toLowerCase())
+        );
+      }
+
+      if (searchMode && filterOptions.length > 0) {
+        const selectedValues = filterOptions.map((opt) => opt.value.toLowerCase());
+        data = data.filter((ans) =>
+          ans.selectedOptions?.some((opt) =>
+            selectedValues.includes(opt.toLowerCase())
+          )
+        );
+      }
+
+      // ✅ Phân trang client
+      const startIndex = (page - 1) * itemsPerPage;
+      const paginated = data.slice(startIndex, startIndex + itemsPerPage);
+
+      setAllAnswers(paginated);
+      setTotalPages(Math.ceil(data.length / itemsPerPage));
+      setCurrentPage(page);
+    } catch (err) {
+      console.error("Lỗi khi tải dữ liệu:", err);
+      setAllAnswers([]);
+    } finally {
+      setLoading(false);
     }
-
-    // ✅ Tính lại phân trang sau khi lọc
-    const startIndex = (page - 1) * itemsPerPage;
-    const paginated = data.slice(startIndex, startIndex + itemsPerPage);
-
-    setAllAnswers(paginated);
-    setTotalPages(Math.ceil(data.length / itemsPerPage));
-    setCurrentPage(page);
-  } catch (err) {
-    console.error("Lỗi khi tải dữ liệu:", err);
-    setAllAnswers([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // ✅ Load farm & question map
   const fetchFarmsAndQuestions = async () => {
-  try {
-    const [farmRes, questionRes] = await Promise.all([
-      fetchWithAuth(FARM_API),
-      fetchWithAuth(QUESTION_API),
-    ]);
+    try {
+      const [farmRes, questionRes] = await Promise.all([
+        fetchWithAuth(FARM_API),
+        fetchWithAuth(QUESTION_API),
+      ]);
 
-    if (!farmRes.ok) throw new Error(`FARM_API lỗi ${farmRes.status}`);
-    if (!questionRes.ok) throw new Error(`QUESTION_API lỗi ${questionRes.status}`);
+      if (!farmRes.ok) throw new Error(`FARM_API lỗi ${farmRes.status}`);
+      if (!questionRes.ok) throw new Error(`QUESTION_API lỗi ${questionRes.status}`);
 
-    const farmsData = await farmRes.json();
-    const questionsData = await questionRes.json();
+      const farmsData = await farmRes.json();
+      const questionsData = await questionRes.json();
 
-    const farmMapData = {};
-    (farmsData.data || []).forEach((farm) => {
-      farmMapData[farm._id] = farm.name;
-    });
-    setFarmMap(farmMapData);
+      const farmMapData = {};
+      (farmsData.data || []).forEach((farm) => {
+        farmMapData[farm._id] = farm.name;
+      });
+      setFarmMap(farmMapData);
 
-    const questionMapData = {};
-    (questionsData.data || []).forEach((q) => {
-      questionMapData[q._id] = q.content;
-    });
-    setQuestionMap(questionMapData);
-  } catch (err) {
-    console.error("🚨 Lỗi tải farm/question:", err.message);
-  }
-};
+      const questionMapData = {};
+      (questionsData.data || []).forEach((q) => {
+        questionMapData[q._id] = q.content;
+      });
+      setQuestionMap(questionMapData);
+    } catch (err) {
+      console.error("🚨 Lỗi tải farm/question:", err.message);
+    }
+  };
 
-
-  // ✅ Gọi API khi mount
+  // ✅ Lần đầu load chỉ 10 record
   useEffect(() => {
-    loadAnswersByPage(1);
+    loadAnswersByPage(1, false);
     loadAllOptions();
     fetchFarmsAndQuestions();
   }, []);
-
-  // ✅ Chỉ lọc theo filterOptions tự động, search sẽ bấm nút mới load
-  useEffect(() => {
-    loadAnswersByPage(1);
-  }, [filterOptions]);
 
   // Form thêm/sửa
   const openAddForm = () => {
@@ -242,7 +247,7 @@ export function AnswersTable() {
 
       alert(formType === "edit" ? "✅ Cập nhật đáp án thành công!" : "✅ Thêm đáp án thành công!");
       setFormType(null);
-      loadAnswersByPage(currentPage);
+      loadAnswersByPage(currentPage, isSearching);
     } catch (err) {
       alert(`❌ ${err.message}`);
     }
@@ -254,7 +259,7 @@ export function AnswersTable() {
       const res = await fetchWithAuth(`${API_URL}/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error((await res.json()).message);
       alert("✅ Xóa thành công!");
-      loadAnswersByPage(currentPage);
+      loadAnswersByPage(currentPage, isSearching);
     } catch (err) {
       alert(`❌ ${err.message}`);
     }
@@ -263,42 +268,67 @@ export function AnswersTable() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
-        <Typography variant="h5">Danh sách câu trả lời</Typography>
-        <div className="flex flex-wrap items-center gap-4">
-          <Input
-            label="Tìm theo tên trang trại"
-            value={searchFarmName}
-            onChange={(e) => setSearchFarmName(e.target.value)}
-            className="w-64"
-          />
+      <div className="flex justify-between items-start flex-wrap gap-4 mb-6">
+  {/* BÊN TRÁI: Ô tìm kiếm */}
+  <div className="flex flex-wrap items-center gap-3">
+    <Input
+      label="Tìm trang trại"
+      value={searchFarmName}
+      onChange={(e) => setSearchFarmName(e.target.value)}
+      className="min-w-[180px]"
+    />
+    <Button
+      color="green"
+      onClick={() => {
+        setIsSearching(true);
+        loadAnswersByPage(1, true);
+      }}
+    >
+      Tìm kiếm
+    </Button>
+    <Button
+      color="blue"
+      onClick={() => {
+        setSearchFarmName("");
+        setFilterOptions([]);
+        setIsSearching(false);
+        loadAnswersByPage(1, false);
+      }}
+    >
+      Cài lại
+    </Button>
+  </div>
 
-          {/* ✅ Nút bấm để bắt đầu tìm kiếm */}
-          <Button color="green" onClick={() => loadAnswersByPage(1)}>
-             Tìm kiếm
-          </Button>
-
-          <div className="w-72">
-            <Select
-              isMulti
-              options={allOptions.map((opt) => ({ value: opt, label: opt }))}
-              value={filterOptions}
-              onChange={setFilterOptions}
-              placeholder="Lọc theo đáp án..."
-            />
-          </div>
-          <Menu placement="bottom-end">
-            <MenuHandler>
-              <IconButton variant="text">
-                <EllipsisVerticalIcon className="h-6 w-6" />
-              </IconButton>
-            </MenuHandler>
-            <MenuList>
-              <MenuItem onClick={openAddForm}>Thêm mới</MenuItem>
-            </MenuList>
-          </Menu>
-        </div>
-      </div>
+  {/* BÊN PHẢI: Bộ lọc đáp án và menu */}
+  <div className="w-full md:w-[320px] overflow-hidden">
+  <div className="truncate">
+    <Select
+      isMulti
+      options={allOptions.map((opt) => ({ value: opt, label: opt }))}
+      value={filterOptions}
+      onChange={setFilterOptions}
+      placeholder="Chọn câu trả lời để lọc..."
+      className="truncate"
+      styles={{
+        control: (base) => ({
+          ...base,
+          maxWidth: '100%',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }),
+        multiValue: (base) => ({
+          ...base,
+          maxWidth: '100%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }),
+      }}
+    />
+  </div>
+</div>
+</div>
 
       {/* Table */}
       {loading ? (
@@ -328,19 +358,12 @@ export function AnswersTable() {
                   setDetailOpen(true);
                 }}
               >
-                <td className="px-4 py-3">
-                  {(currentPage - 1) * itemsPerPage + index + 1}
-                </td>
+                <td className="px-4 py-3">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                 <td>{item.farmName}</td>
-                <td title={item.questionText}>
-                  {truncateText(item.questionText, 30)}
-                </td>
+                <td title={item.questionText}>{truncateText(item.questionText, 30)}</td>
                 <td>
                   {item.selectedOptions?.map((opt, i) => (
-                    <span
-                      key={i}
-                      className="bg-blue-100 text-xs px-2 py-1 rounded mr-1"
-                    >
+                    <span key={i} className="bg-blue-100 text-xs px-2 py-1 rounded mr-1">
                       {opt}
                     </span>
                   ))}
@@ -349,13 +372,7 @@ export function AnswersTable() {
                 <td>
                   {item.uploadedFiles?.length > 0
                     ? item.uploadedFiles.map((f, i) => (
-                        <a
-                          key={i}
-                          href={`${BaseUrl}${f}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 underline text-xs block"
-                        >
+                        <a key={i} href={`${BaseUrl}${f}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-xs block">
                           📎 File {i + 1}
                         </a>
                       ))
@@ -397,23 +414,11 @@ export function AnswersTable() {
 
       {/* Pagination */}
       <div className="flex items-center justify-center gap-4 mt-6">
-        <Button
-          variant="outlined"
-          size="sm"
-          disabled={currentPage === 1}
-          onClick={() => loadAnswersByPage(currentPage - 1)}
-        >
+        <Button variant="outlined" size="sm" disabled={currentPage === 1} onClick={() => loadAnswersByPage(currentPage - 1, isSearching)}>
           Trang trước
         </Button>
-        <span>
-          Trang {currentPage}/{totalPages}
-        </span>
-        <Button
-          variant="outlined"
-          size="sm"
-          disabled={currentPage >= totalPages}
-          onClick={() => loadAnswersByPage(currentPage + 1)}
-        >
+        <span>Trang {currentPage}/{totalPages}</span>
+        <Button variant="outlined" size="sm" disabled={currentPage >= totalPages} onClick={() => loadAnswersByPage(currentPage + 1, isSearching)}>
           Trang sau
         </Button>
       </div>
@@ -421,25 +426,9 @@ export function AnswersTable() {
       {/* Form Add/Edit */}
       <Dialog open={formType !== null} handler={() => setFormType(null)} size="xl">
         {formType === "add" ? (
-          <AnswerAddForm
-            open
-            setOpen={() => setFormType(null)}
-            form={form}
-            setForm={setForm}
-            uploading={uploading}
-            handleUploadImage={handleUploadImage}
-            handleSubmit={handleSubmit}
-          />
+          <AnswerAddForm open setOpen={() => setFormType(null)} form={form} setForm={setForm} uploading={uploading} handleUploadImage={handleUploadImage} handleSubmit={handleSubmit} />
         ) : formType === "edit" ? (
-          <AnswerEditForm
-            open
-            setOpen={() => setFormType(null)}
-            form={form}
-            setForm={setForm}
-            uploading={uploading}
-            handleUploadImage={handleUploadImage}
-            handleSubmit={handleSubmit}
-          />
+          <AnswerEditForm open setOpen={() => setFormType(null)} form={form} setForm={setForm} uploading={uploading} handleUploadImage={handleUploadImage} handleSubmit={handleSubmit} />
         ) : null}
       </Dialog>
 
