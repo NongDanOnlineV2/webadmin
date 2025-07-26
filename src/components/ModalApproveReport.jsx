@@ -10,11 +10,10 @@ Option,
 Input,
 } from "@material-tailwind/react";
 import axios from "axios";
+import { BaseUrl } from "@/ipconfig"; // nếu bạn dùng file ipconfig
 
 const actions = [
 { value: "DEACTIVATE_USER", label: "Khóa tài khoản" },
-{ value: "DELETE_POST", label: "Xoá bài viết" },
-{ value: "REJECT_REPORT", label: "Từ chối báo cáo" },
 ];
 
 export default function ModalApproveReport({ open, onClose, reportId, token, onSuccess }) {
@@ -23,15 +22,14 @@ const [note, setNote] = useState("");
 const [loading, setLoading] = useState(false);
 
 const handleApprove = async () => {
-if (!action || !note) return alert("Vui lòng chọn hành động và nhập ghi chú");
-
-scss
-Copy
-Edit
+if (!action || !note) {
+alert("Vui lòng chọn hành động và nhập ghi chú");
+return;
+}
 try {
   setLoading(true);
   await axios.post(
-    `https://api-ndol2.nongdanonline.cc/admin-reports/${reportId}/approve`,
+    `${BaseUrl}/admin-reports/${reportId}/approve`,
     {
       action,
       actionNote: note,
@@ -44,7 +42,8 @@ try {
   onClose();
   if (onSuccess) onSuccess();
 } catch (err) {
-  alert("Duyệt thất bại: " + err?.response?.data?.message || "Lỗi không xác định");
+  const msg = err?.response?.data?.message || "Lỗi không xác định";
+  alert("Duyệt thất bại: " + msg);
 } finally {
   setLoading(false);
 }

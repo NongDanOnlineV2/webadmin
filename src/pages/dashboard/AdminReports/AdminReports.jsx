@@ -118,7 +118,22 @@ const [selectedReportId, setSelectedReportId] = useState(null);
               reports.map((r) => (
                 <tr key={r._id} className="border-t">
                   <td className="px-4 py-2">{r.reporter?.name || 'Ẩn danh'}</td>
-                  <td className="px-4 py-2">{r.type}</td>
+                  <td className="px-4 py-2">
+  <span
+    className={`px-2 py-1 rounded text-xs font-semibold 
+      ${
+        r.type === "USER"
+          ? "bg-blue-100 text-blue-800"
+          : r.type === "POST"
+          ? "bg-green-100 text-green-800"
+          : r.type === "VIDEO_FARM"
+          ? "bg-purple-100 text-purple-800"
+          : "bg-gray-100 text-gray-800"
+      }`}
+  >
+    {r.type}
+  </span>
+</td>
                   <td className="px-4 py-2">{r.reason}</td>
                   <td className="px-4 py-2">{r.status}</td>
                   <td className="px-4 py-2">
@@ -131,14 +146,18 @@ const [selectedReportId, setSelectedReportId] = useState(null);
                     >
                       Chi tiết
                     </button>
-                    {r.status === 'NEW' && (
-                      <button
-                        onClick={() => handleApprove(r._id)}
-                        className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded"
-                      >
-                        Duyệt
-                      </button>
-                    )}
+                 {r.status === 'NEW' && (
+  <button
+    onClick={() => {
+      setSelectedReportId(r._id);
+      setOpenApprove(true);
+    }}
+    className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded"
+  >
+    Duyệt
+  </button>
+)}
+
                   </td>
                 </tr>
               ))
@@ -233,6 +252,18 @@ const [selectedReportId, setSelectedReportId] = useState(null);
     </div>
   </div>
 )}
+{/* modal duyệt */}
+    <ModalApproveReport
+      open={openApprove}
+      onClose={() => setOpenApprove(false)}
+      reportId={selectedReportId}
+      token={token}
+      onSuccess={() => {
+        setOpenApprove(false);
+        fetchReports();
+      }}
+    />
+
     </div>
   );
 }
