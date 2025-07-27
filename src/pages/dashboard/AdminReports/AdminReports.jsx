@@ -3,6 +3,8 @@ import axios from 'axios';
 import { BaseUrl } from '@/ipconfig';
 import Pagination from '@/components/Pagination';
 import ModalApproveReport from "@/components/ModalApproveReport"; // hoặc đường dẫn tương ứng
+import { Typography } from "@material-tailwind/react";
+
 export default function AdminReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,7 +17,8 @@ export default function AdminReports() {
 const [selectedReportId, setSelectedReportId] = useState(null);
 const [users, setUsers] = useState([]);
 const [reporterMap, setReporterMap] = useState({});
-const [targetUserMap, setTargetUserMap] = useState({});
+const [reportedUser, setReportedUser] = useState(null);
+
   const token = localStorage.getItem('token');
 
   const fetchReports = async () => {
@@ -41,11 +44,6 @@ const [targetUserMap, setTargetUserMap] = useState({});
 useEffect(() => {
   const fetchUserInfos = async () => {
     const reporterIds = [...new Set(reports.map((r) => r.reporter).filter(Boolean))];
-    const targetUserIds = [...new Set(
-      reports
-        .map((r) => r.targetUser?._id)
-        .filter(Boolean)
-    )];
 
     const fetchAndSet = async (ids, setMap, existingMap) => {
       for (const id of ids) {
@@ -69,7 +67,6 @@ useEffect(() => {
 
     if (token) {
       await fetchAndSet(reporterIds, setReporterMap, reporterMap);
-      await fetchAndSet(targetUserIds, setTargetUserMap, targetUserMap);
     }
   };
 
@@ -77,6 +74,30 @@ useEffect(() => {
     fetchUserInfos();
   }
 }, [reports, token]);
+useEffect(() => {
+    setReportedUser(null);
+  const fetchReportedUser = async () => {
+    try {
+      if (selectedReport?.targetUser?.id) {
+        const res = await axios.get(
+          `https://api-ndolv2.nongdanonline.cc/admin-users/${selectedReport.targetUser.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setReportedUser(res.data);
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy người bị báo cáo:", error);
+      setReportedUser(null);
+    }
+  };
+
+  fetchReportedUser();
+}, [selectedReport, token]);
+
 
 
   useEffect(() => {
@@ -236,18 +257,10 @@ useEffect(() => {
 
         <div>
           <strong>Đối tượng bị báo cáo:</strong>{' '}
-          {selectedReport.targetUser ? (
-            <div className="flex items-center gap-2 mt-1">
-              {/* <img
-                src={targetUserMap[selectedReport.targetUser._id]?.avatar || '/no-avatar.png'}
-                alt="target"
-                className="w-8 h-8 rounded-full object-cover"
-              /> */}
-              <span>{targetUserMap[selectedReport.targetUser._id]?.fullName || selectedReport.targetUser._id}</span>
-            </div>
-          ) : (
-            'Không rõ'
-          )}
+<Typography variant="small" className="font-normal text-blue-gray-500">
+  {reportedUser?.fullName || "Đang tải..."}
+</Typography>
+
         </div>
 
         <div>
