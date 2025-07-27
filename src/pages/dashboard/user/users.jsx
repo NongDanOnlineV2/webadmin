@@ -10,6 +10,7 @@ import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import { BaseUrl } from '@/ipconfig';
 import CreatableSelect from 'react-select/creatable';
+import noAvatar from "@/assets/no-avatar.png";
 const allFarms = { current: [] };
 const allVideos = { current: [] };
 const allPosts = { current: [] };
@@ -36,6 +37,7 @@ export default function Users() {
   const [searchText, setSearchText] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [userAddresses, setUserAddresses] = useState([]);
+  const fallbackAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -426,9 +428,15 @@ const handleDelete = async (userId) => {
           <tbody>
             {Array.isArray(users) && users.map(user => (
             <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
-              <td className="p-2">
-                <Avatar src={user.avatar ? `${BaseUrl}${user.avatar}` : ""} size="sm" />
-              </td>
+            <td className="p-2">
+  <Avatar
+    src={user.avatar ? `${BaseUrl}${user.avatar}` : fallbackAvatar}
+    alt={user.fullName}
+    size="sm"
+    onError={(e) => (e.target.src = fallbackAvatar)}
+  />
+</td>
+
               <td className="p-2">{user.fullName}</td>
               <td className="p-2">{user.email}</td>
               <td className="p-2">{user.phone || "N/A"}</td>
