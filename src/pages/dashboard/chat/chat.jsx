@@ -156,7 +156,6 @@ const handleRemoveUserFromRoom = async (roomId, userId) => {
     alert("Không thể xoá người dùng.");
   }
 };
-
 const handleCreateRoom = async (roomName, mode) => {
   try {
     const token = localStorage.getItem("token");
@@ -200,7 +199,6 @@ const fetchPublicRooms = async () => {
     alert("Không thể lấy danh sách phòng công khai.");
   }
 };
-
 
   return (
     <div className="p-6">
