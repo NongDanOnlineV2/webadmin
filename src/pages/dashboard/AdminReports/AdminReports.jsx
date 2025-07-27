@@ -15,7 +15,7 @@ export default function AdminReports() {
 const [selectedReportId, setSelectedReportId] = useState(null);
 const [users, setUsers] = useState([]);
 const [reporterMap, setReporterMap] = useState({});
-
+const [targetUserMap, setTargetUserMap] = useState({});
   const token = localStorage.getItem('token');
 
   const fetchReports = async () => {
@@ -38,51 +38,45 @@ const [reporterMap, setReporterMap] = useState({});
     }
   };
 
+useEffect(() => {
+  const fetchUserInfos = async () => {
+    const reporterIds = [...new Set(reports.map((r) => r.reporter).filter(Boolean))];
+    const targetUserIds = [...new Set(
+      reports
+        .map((r) => r.targetUser?._id)
+        .filter(Boolean)
+    )];
 
-  const handleApprove = async (id) => {
-    const confirm = window.confirm('Bạn chắc chắn muốn duyệt báo cáo này?');
-    if (!confirm) return;
-    try {
-      await axios.post(`${BaseUrl}/admin-reports/${id}/approve`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert('Duyệt thành công');
-      fetchReports();
-    } catch (err) {
-      alert('Lỗi khi duyệt báo cáo');
-    }
-  };
-  useEffect(() => {
-  const fetchReporterInfo = async () => {
-    const uniqueIds = [...new Set(reports.map(r => r.reporter))];
-
-    for (const id of uniqueIds) {
-      if (!reporterMap[id]) {
-        try {
-          const res =axios.get(`https://api-ndolv2.nongdanonline.cc/admin-users/${id}`, {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-})
-.then(res => {
-  setReporterMap(prev => ({ ...prev, [id]: res.data }));
-})
-.catch(err => {
-  console.error("Lỗi fetch reporter id:", id, err);
-});
-
-          setReporterMap(prev => ({ ...prev, [id]: res.data }));
-        } catch (err) {
-          console.error("Lỗi fetch reporter:", err);
+    const fetchAndSet = async (ids, setMap, existingMap) => {
+      for (const id of ids) {
+        if (!existingMap[id]) {
+          try {
+            const res = await axios.get(
+              `https://api-ndolv2.nongdanonline.cc/admin-users/${id}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+            setMap((prev) => ({ ...prev, [id]: res.data }));
+          } catch (err) {
+            console.error(`Lỗi fetch user id ${id}:`, err);
+          }
         }
       }
+    };
+
+    if (token) {
+      await fetchAndSet(reporterIds, setReporterMap, reporterMap);
+      await fetchAndSet(targetUserIds, setTargetUserMap, targetUserMap);
     }
   };
 
-  if (reports.length > 0) {
-    fetchReporterInfo();
+  if (reports.length > 0 && token) {
+    fetchUserInfos();
   }
-}, [reports]);
+}, [reports, token]);
 
 
   useEffect(() => {
@@ -213,7 +207,7 @@ const [reporterMap, setReporterMap] = useState({});
       </div>
 
       {/* Modal chi tiết */}
-     {selectedReport && (
+    {selectedReport && (
   <div
     className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
     onClick={() => setSelectedReport(null)}
@@ -224,20 +218,16 @@ const [reporterMap, setReporterMap] = useState({});
     >
       <h2 className="text-lg font-semibold mb-4">Chi tiết báo cáo</h2>
       <div className="text-sm space-y-3">
-        {/* <div>
-          <strong>ID:</strong> {selectedReport._id}
-        </div> */}
-
         <div>
           <strong>Người báo cáo:</strong>{' '}
           {selectedReport.reporter ? (
             <div className="flex items-center gap-2 mt-1">
-              <img
-                src={selectedReport.reporter.avatar}
+              {/* <img
+                src={reporterMap[selectedReport.reporter]?.avatar || '/no-avatar.png'}
                 alt="avatar"
                 className="w-8 h-8 rounded-full object-cover"
-              />
-              <span>{selectedReport.reporter._id}</span>
+              /> */}
+              <span>{reporterMap[selectedReport.reporter]?.fullName || selectedReport.reporter}</span>
             </div>
           ) : (
             'Ẩn danh'
@@ -245,15 +235,15 @@ const [reporterMap, setReporterMap] = useState({});
         </div>
 
         <div>
-          <strong>Đối tượng bị báo cáo:</strong>
+          <strong>Đối tượng bị báo cáo:</strong>{' '}
           {selectedReport.targetUser ? (
             <div className="flex items-center gap-2 mt-1">
-              <img
-                src={selectedReport.targetUser.avatar}
+              {/* <img
+                src={targetUserMap[selectedReport.targetUser._id]?.avatar || '/no-avatar.png'}
                 alt="target"
                 className="w-8 h-8 rounded-full object-cover"
-              />
-              <span>{selectedReport.targetUser._id}</span>
+              /> */}
+              <span>{targetUserMap[selectedReport.targetUser._id]?.fullName || selectedReport.targetUser._id}</span>
             </div>
           ) : (
             'Không rõ'
@@ -277,10 +267,6 @@ const [reporterMap, setReporterMap] = useState({});
           <strong>Cập nhật lần cuối:</strong>{' '}
           {new Date(selectedReport.updatedAt).toLocaleString()}
         </div>
-        {/* <div>
-          <strong>Hành động xử lý:</strong>{' '}
-          {selectedReport.handledAction || 'Chưa xử lý'}
-        </div> */}
       </div>
       <div className="text-right mt-6">
         <button
@@ -293,6 +279,7 @@ const [reporterMap, setReporterMap] = useState({});
     </div>
   </div>
 )}
+
 {/* modal duyệt */}
     <ModalApproveReport
       open={openApprove}
