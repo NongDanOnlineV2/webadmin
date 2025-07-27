@@ -258,8 +258,12 @@ useEffect(() => {
         <div>
           <strong>Đối tượng bị báo cáo:</strong>{' '}
 <Typography variant="small" className="font-normal text-blue-gray-500">
-  {reportedUser?.fullName || "Đang tải..."}
+  {selectedReport?.type === "USER" && (reportedObject?.fullName || "Đang tải...")}
+  {selectedReport?.type === "POST" && (reportedObject?.title || "Đang tải...")}
+  {selectedReport?.type === "FARM" && (reportedObject?.name || "Đang tải...")}
+  {selectedReport?.type === "VIDEO" && (reportedObject?.title || "Đang tải...")}
 </Typography>
+
 
         </div>
 
