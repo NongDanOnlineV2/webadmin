@@ -205,14 +205,14 @@ const fetchPublicRooms = async () => {
       <div className="flex justify-between items-center mb-4"> 
         <h1 className="text-2xl font-semibold">Danh sách phòng</h1>
             <div className="flex gap-2">
-              <Button
+              {/* <Button
                 size="sm"
                 variant="outlined"
                 onClick={fetchPublicRooms}
                 color="blue"
               >
                 Xem phòng công khai
-              </Button>
+              </Button> */}
               <Button
                 size="sm"
                 variant="outlined"
