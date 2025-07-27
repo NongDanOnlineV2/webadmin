@@ -18,6 +18,7 @@ const [selectedReportId, setSelectedReportId] = useState(null);
 const [users, setUsers] = useState([]);
 const [reporterMap, setReporterMap] = useState({});
 const [reportedUser, setReportedUser] = useState(null);
+const [reportedObject, setReportedObject] = useState(null);
 
   const token = localStorage.getItem('token');
 
@@ -74,30 +75,68 @@ useEffect(() => {
     fetchUserInfos();
   }
 }, [reports, token]);
+//cấm đụng vào//
+// useEffect(() => {
+//     setReportedUser(null);
+//   const fetchReportedUser = async () => {
+//     try {
+//       if (selectedReport?.targetUser?.id) {
+//         const res = await axios.get(
+//           `https://api-ndolv2.nongdanonline.cc/admin-users/${selectedReport.targetUser.id}`,
+//           {
+//             headers: {
+//               Authorization: `Bearer ${token}`,
+//             },
+//           }
+//         );
+//         setReportedUser(res.data);
+//       }
+//     } catch (error) {
+//       console.error("Lỗi khi lấy người bị báo cáo:", error);
+//       setReportedUser(null);
+//     }
+//   };
+
+//   fetchReportedUser();
+// }, [selectedReport, token]);
+//người đụng vào bị ngu //
 useEffect(() => {
-    setReportedUser(null);
-  const fetchReportedUser = async () => {
+  setReportedObject(null);
+
+  const fetchReportedObject = async () => {
+    if (!selectedReport || !selectedReport.type) return;
+
+    let url = "";
+    let id = "";
+
+    switch (selectedReport.type) {
+      case "USER":
+        id = selectedReport.targetUser?.id;
+        url = `${BaseUrl}/admin-users/${id}`;
+        break;
+      case "POST":
+        id = selectedReport.targetPost?.id;
+        url = `${BaseUrl}/admin-post-feed/${id}`;
+        break;
+      default:
+        return;
+    }
+
+    if (!id) return;
+
     try {
-      if (selectedReport?.targetUser?.id) {
-        const res = await axios.get(
-          `https://api-ndolv2.nongdanonline.cc/admin-users/${selectedReport.targetUser.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setReportedUser(res.data);
-      }
-    } catch (error) {
-      console.error("Lỗi khi lấy người bị báo cáo:", error);
-      setReportedUser(null);
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setReportedObject(res.data);
+    } catch (err) {
+      console.error("Lỗi khi fetch object bị report:", err);
+      setReportedObject(null);
     }
   };
 
-  fetchReportedUser();
+  fetchReportedObject();
 }, [selectedReport, token]);
-
 
 
   useEffect(() => {
@@ -260,9 +299,8 @@ useEffect(() => {
 <Typography variant="small" className="font-normal text-blue-gray-500">
   {selectedReport?.type === "USER" && (reportedObject?.fullName || "Đang tải...")}
   {selectedReport?.type === "POST" && (reportedObject?.title || "Đang tải...")}
-  {selectedReport?.type === "FARM" && (reportedObject?.name || "Đang tải...")}
-  {selectedReport?.type === "VIDEO" && (reportedObject?.title || "Đang tải...")}
 </Typography>
+
 
 
         </div>
