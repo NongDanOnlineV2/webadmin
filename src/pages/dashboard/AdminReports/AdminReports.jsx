@@ -3,8 +3,8 @@ import axios from 'axios';
 import { BaseUrl } from '@/ipconfig';
 import Pagination from '@/components/Pagination';
 import ModalApproveReport from "@/components/ModalApproveReport"; // hoặc đường dẫn tương ứng
-import { Typography, Dialog, DialogHeader, DialogBody, DialogFooter,Textarea,Button } from "@material-tailwind/react";
-import ModalRejectReport from '@/components/ModalRejectReport';
+import { Typography } from "@material-tailwind/react";
+
 export default function AdminReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -19,9 +19,6 @@ const [users, setUsers] = useState([]);
 const [reporterMap, setReporterMap] = useState({});
 const [reportedUser, setReportedUser] = useState(null);
 const [reportedObject, setReportedObject] = useState(null);
-const [openReject, setOpenReject] = useState(false);
-const [rejectReason, setRejectReason] = useState("");
-const [selectedReportType, setSelectedReportType] = useState(null);
 
   const token = localStorage.getItem('token');
 
@@ -78,7 +75,31 @@ useEffect(() => {
     fetchUserInfos();
   }
 }, [reports, token]);
+//cấm đụng vào//
+// useEffect(() => {
+//     setReportedUser(null);
+//   const fetchReportedUser = async () => {
+//     try {
+//       if (selectedReport?.targetUser?.id) {
+//         const res = await axios.get(
+//           `https://api-ndolv2.nongdanonline.cc/admin-users/${selectedReport.targetUser.id}`,
+//           {
+//             headers: {
+//               Authorization: `Bearer ${token}`,
+//             },
+//           }
+//         );
+//         setReportedUser(res.data);
+//       }
+//     } catch (error) {
+//       console.error("Lỗi khi lấy người bị báo cáo:", error);
+//       setReportedUser(null);
+//     }
+//   };
 
+//   fetchReportedUser();
+// }, [selectedReport, token]);
+//người đụng vào bị ngu //
 useEffect(() => {
   setReportedObject(null);
 
@@ -152,7 +173,7 @@ useEffect(() => {
           <option value="">-- Tất cả loại --</option>
           <option value="USER">Người dùng</option>
           <option value="POST">Bài viết</option>
-          <option value="VIDEO_FARM">Video </option>
+          <option value="VIDEO_FARM">Video / Trang trại</option>
         </select>
       </div>
 
@@ -209,45 +230,29 @@ useEffect(() => {
           </span>
         </td>
         <td className="px-4 py-2">{r.reason}</td>
-        <td>
-  {r.status === "NEW" ? "Chưa xử lý" : r.status === "RESOLVED" ? "Đã xử lý" : r.status}
-</td>
-
+        <td className="px-4 py-2">{r.status}</td>
         <td className="px-4 py-2">
           {new Date(r.createdAt).toLocaleString()}
         </td>
-      <td className="px-4 py-2 space-x-2" onClick={(e) => e.stopPropagation()}>
-  {r.status === 'NEW' && (
-    <>
-      <button
- onClick={() => {
-  setSelectedReport(null);
-  setSelectedReportId(r._id);
-  setSelectedReportType(r.type); // THÊM DÒNG NÀY
-  setOpenReject(true);
-}}
-
-  className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded"
->
-  Từ chối
-</button>
-
-      <button
-      onClick={() => {
-  setSelectedReport(null);
-  setSelectedReportId(r._id);
-  setSelectedReportType(r.type); // THÊM DÒNG NÀY
-  setOpenApprove(true);
-}}
-
-        className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded"
-      >
-        Duyệt
-      </button>
-    </>
-  )}
-</td>
-
+        <td className="px-4 py-2 space-x-2" onClick={(e) => e.stopPropagation()}>
+          {/* <button
+            onClick={() => setSelectedReport(r)}
+            className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded"
+          >
+            Chi tiết
+          </button> */}
+          {r.status === 'NEW' && (
+            <button
+              onClick={() => {
+                setSelectedReportId(r._id);
+                setOpenApprove(true);
+              }}
+              className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded"
+            >
+              Duyệt
+            </button>
+          )}
+        </td>
       </tr>
     ))
   )}
@@ -329,76 +334,18 @@ useEffect(() => {
     </div>
   </div>
 )}
-{/* Dialog từ chối
-<Dialog open={openReject} handler={setOpenReject}>
-  <DialogHeader>Từ chối báo cáo</DialogHeader>
-  <DialogBody>
-    <Textarea
-      label="Lý do từ chối"
-      value={rejectReason}
-      onChange={(e) => setRejectReason(e.target.value)}
-      required
-    />
-  </DialogBody>
-  <DialogFooter>
-    <Button
-      variant="text"
-      color="gray"
-      onClick={() => {
-        setOpenReject(false);
-        setRejectReason("");
-      }}
-      className="mr-2"
-    >
-      Hủy
-    </Button>
-    <Button
-      variant="filled"
-      color="red"
-      onClick={async () => {
-        try {
-          await api.put(`/admin-reports/${selectedReportId}/approve`, {
-            reason: rejectReason,
-          });
-          toast.success("Từ chối báo cáo thành công");
-          setOpenReject(false);
-          setRejectReason("");
-          fetchReports(); // Gọi lại danh sách báo cáo
-        } catch (error) {
-          console.error("Lỗi từ chối:", error);
-          toast.error("Từ chối thất bại");
-        }
-      }}
-    >
-      Xác nhận
-    </Button>
-  </DialogFooter>
-</Dialog> */}
-<ModalRejectReport
-  open={openReject}
-  onClose={() => setOpenReject(false)}
-  reportId={selectedReportId}
-  reportType={selectedReportType}
-  token={token}
-  onSuccess={() => {
-    fetchReports();          // Làm mới danh sách báo cáo
-    setOpenReject(false);    // Đóng modal
-  }}
-/>
-
-
 
 {/* modal duyệt */}
-<ModalApproveReport
-  open={openApprove}
-  onClose={() => setOpenApprove(false)}
-  reportId={selectedReportId}
-  reportType={selectedReportType}
-  token={token}
-  onSuccess={fetchReports}
-/>
-
-
+    <ModalApproveReport
+      open={openApprove}
+      onClose={() => setOpenApprove(false)}
+      reportId={selectedReportId}
+      token={token}
+      onSuccess={() => {
+        setOpenApprove(false);
+        fetchReports();
+      }}
+    />
 
     </div>
   );
