@@ -211,7 +211,7 @@ export const Questions = () => {
         </button>
         <button
           onClick={handleOpenAddDialog}
-          className="h-10 px-5 bg-black text-white text-sm font-medium rounded-md "
+          className="h-10 px-5 bg-black text-white text-sm font-medium rounded-md transition-colors"
         >
           Thêm câu hỏi
         </button>
