@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogHeader,
@@ -10,50 +10,40 @@ import {
 import axios from "axios";
 import { BaseUrl } from "@/ipconfig";
 
-export default function ModalApproveReport({
+export default function ModalRejectReport({
   open,
   onClose,
   reportId,
-  reportType,
   token,
   onSuccess,
 }) {
-  const [action, setAction] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Tự động xác định action từ reportType
-  useEffect(() => {
-    if (reportType === "USER") setAction("DEACTIVATE_USER");
-    else if (reportType === "POST") setAction("DELETE_POST");
-    else if (reportType === "VIDEO_FARM") setAction("DELETE_VIDEO");
-    else setAction("");
-  }, [reportType]);
-
-  const handleApprove = async () => {
-    if (!action || !note) {
-      alert("Vui lòng nhập lý do");
+  const handleReject = async () => {
+    if (!note) {
+      alert("Vui lòng nhập lý do từ chối");
       return;
     }
 
     try {
       setLoading(true);
       await axios.post(
-        `${BaseUrl}/admin-reports/${reportId}/approve`,
+        `${BaseUrl}/admin-reports/${reportId}/approve`, // vẫn gọi approve
         {
-          action,
+          action: "REJECT",
           actionNote: note,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      alert("Duyệt báo cáo thành công");
+      alert("Từ chối báo cáo thành công");
       onClose();
       if (onSuccess) onSuccess();
     } catch (err) {
       const msg = err?.response?.data?.message || "Lỗi không xác định";
-      alert("Duyệt thất bại: " + msg);
+      alert("Từ chối thất bại: " + msg);
     } finally {
       setLoading(false);
     }
@@ -61,13 +51,8 @@ export default function ModalApproveReport({
 
   return (
     <Dialog open={open} handler={onClose}>
-      <DialogHeader>Duyệt báo cáo</DialogHeader>
+      <DialogHeader>Từ chối báo cáo</DialogHeader>
       <DialogBody className="space-y-4">
-        <div>
-          <p className="text-blue-700 font-medium">
-            {action || "Không xác định"}
-          </p>
-        </div>
         <div>
           <label className="block text-sm font-medium">Lý do</label>
           <Input
@@ -81,8 +66,8 @@ export default function ModalApproveReport({
         <Button variant="text" onClick={onClose} className="mr-2">
           Hủy
         </Button>
-        <Button color="green" onClick={handleApprove} disabled={loading}>
-          {loading ? "Đang xử lý..." : "Xác nhận"}
+        <Button color="red" onClick={handleReject} disabled={loading}>
+          {loading ? "Đang xử lý..." : "Từ chối"}
         </Button>
       </DialogFooter>
     </Dialog>
