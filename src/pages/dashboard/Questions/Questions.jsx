@@ -3,10 +3,9 @@ import axios from 'axios';
 import { BaseUrl } from '@/ipconfig';
 import { Oval } from 'react-loader-spinner';
 import AddQuestion from './AddQuestion';
-import AnswersTable from './answerstable';
 import {
   MenuHandler, Menu, IconButton, MenuList, MenuItem,
-  Input, Dialog, DialogBody, DialogHeader, DialogFooter, Button
+ Button
 } from '@material-tailwind/react';
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import EditQuestion from './EditQuestion';
@@ -21,7 +20,6 @@ export const Questions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
 
-  // ✅ state tạm để nhập trước khi bấm tìm
   const [tempSearchTerm, setTempSearchTerm] = useState('');
   const [tempFilterType, setTempFilterType] = useState('');
 
@@ -30,8 +28,7 @@ export const Questions = () => {
   const [editValue, setEditValue] = useState({ options: [] });
   const [addDialog, setAddDialog] = useState(false);
   const [addValue, setAddValue] = useState({ text: '', options: [''], type: 'option', link: '' });
-  const [showAnswersDialog, setShowAnswersDialog] = useState(false);
-
+console.log(questions)
   const tokenUser = localStorage.getItem('token');
 
   // ✅ Load dữ liệu (hỗ trợ filter từ API nếu có)
@@ -65,6 +62,7 @@ export const Questions = () => {
       options: Array.isArray(item.options) ? [...item.options] : [],
       type: item.type,
       link: item.link || '',
+      isRequired: item.isRequired || false
     });
     setOpenDialog(true);
   };
@@ -166,69 +164,49 @@ export const Questions = () => {
     }
   };
 
-  // ✅ Nếu muốn lọc phía client (khi API chưa hỗ trợ)
+  const [searchInput, setSearchInput] = useState('');
+  const [filterInput, setFilterInput] = useState('');
+
+  // Lọc dữ liệu realtime khi search hoặc filter thay đổi
   const filteredQuestions = questions.filter((item) => {
-    const matchesSearch = item.text.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === '' || item.type === filterType;
+    const matchesSearch = item.text.toLowerCase().includes(searchInput.toLowerCase());
+    const matchesType = filterInput === '' || item.type === filterInput;
     return matchesSearch && matchesType;
   });
 
   return (
     <div>
-      {/* 🔹 Thanh tìm kiếm + lọc */}
-      <div className="flex items-center gap-3 ">
+      <div className="flex items-center gap-3 mb-4">
         <input
           type="text"
           placeholder="Tìm kiếm câu hỏi..."
-          value={tempSearchTerm}
-          onChange={(e) => setTempSearchTerm(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="h-10 w-64 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none text-sm"
         />
-
         <select
           className="h-10 w-48 px-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-          value={tempFilterType}
-          onChange={(e) => setTempFilterType(e.target.value)}
+          value={filterInput}
+          onChange={(e) => setFilterInput(e.target.value)}
         >
           <option value="">Tất cả loại</option>
           <option value="single-choice">Chọn 1 đáp án</option>
           <option value="multi-choice">Chọn nhiều đáp án</option>
-          <option value="multiple-choice">upload file</option>
-          <option value="option">nhập đáp án</option>
+          <option value="text">Nhập thông tin</option>
+          <option value="upload">Upload ảnh</option>
         </select>
-
-        {/* ✅ Nút tìm kiếm */}
-        <button
-          className="h-10 px-5 bg-black 500 text-white text-sm font-medium rounded-md "
-          onClick={() => {
-            setSearchTerm(tempSearchTerm);
-            setFilterType(tempFilterType);
-            setCurrentPage(1);  
-            getData(1);         
-          }}
-        >
-          Tìm kiếm
-        </button>
-        <button
-          onClick={handleOpenAddDialog}
-          className="h-10 px-5 bg-black text-white text-sm font-medium rounded-md "
-        >
-          Thêm câu hỏi
-        </button>
       </div>
 
-      {/* Dialog hiển thị câu trả lời */}
-      <Dialog open={showAnswersDialog} handler={() => setShowAnswersDialog(false)} size="xl">
-        <DialogHeader>Danh sách câu trả lời</DialogHeader>
-        <DialogBody className="max-h-[70vh] overflow-y-auto">
-          <AnswersTable />
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="text" onClick={() => setShowAnswersDialog(false)}>Đóng</Button>
-        </DialogFooter>
-      </Dialog>
+      <div className="flex justify-end my-4">
+        <Button
+          color="blue"
+          onClick={handleOpenAddDialog}
+          className="px-6 py-2"
+        >
+          Thêm câu hỏi
+        </Button>
+      </div>
 
-      {/* Danh sách câu hỏi */}
       {loading ? (
         <div className="flex justify-center items-center h-40">
           <Oval height={80} width={80} color="blue" visible={true} ariaLabel="oval-loading" />
@@ -252,7 +230,7 @@ export const Questions = () => {
                 </MenuList>
               </Menu>
             </div>
-
+            {/* Hiển thị các loại câu hỏi */}
             <div className="flex gap-4 mt-8 flex-wrap">
               {["single-choice", "multiple-choice", "multi-choice", "option"].includes(item.type) ? (
                 item.options?.map((opt, idx) => (
@@ -295,28 +273,32 @@ export const Questions = () => {
         </Button>
       </div>
 
+      <EditQuestion
+        editData={editData}
+        editValue={editValue}
+        setEditValue={setEditValue}
+        setEditData={setEditData}
+        handleCloseDialog={handleCloseDialog}
+        handleEditChange={handleEditChange}
+        handleSave={handleSave}
+        open={openDialog}
+      />
+
       <AddQuestion
         handleAddChange={handleAddChange}
         handleAddSave={handleAddSave}
         handleCloseAddDialog={handleCloseAddDialog}
         handleOpenAddDialog={handleOpenAddDialog}
-        addDialog={addDialog}
+        open={addDialog}
         addValue={addValue}
         setAddValue={setAddValue}
       />
 
-      {/* Dialog chỉnh sửa câu hỏi */}
-      <EditQuestion
-        setEditValue={setEditValue}
-        editData={editData}
-        editValue={editValue}
-        handleCloseDialog={handleCloseDialog}
-        handleEditChange={handleEditChange}
-        handleSave={handleSave}
-        openDialog={openDialog}
-      />
+
     </div>
   );
 };
+
+
 
 export default Questions;

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { BaseUrl } from "@/ipconfig";
+import { jwtDecode } from "jwt-decode";
 import {
   Dialog,
   DialogHeader,
@@ -23,7 +24,7 @@ const RoomTable = () => {
   const [openCreateRoomDialog, setOpenCreateRoomDialog] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomMode, setNewRoomMode] = useState("public");
-  const [showPublicRooms, setShowPublicRooms] = useState(false);
+  const [roomFilter, setRoomFilter] = useState("all"); 
   const [currentPage, setCurrentPage] = useState(1);
   const roomsPerPage = 10;
 
@@ -67,10 +68,15 @@ const RoomTable = () => {
     console.error("Lỗi khi tải dữ liệu:", err);
   }
 };
+const filteredRooms = rooms.filter((room) => {
+  if (roomFilter === "public") return room.mode === "public";
+  if (roomFilter === "private") return room.mode === "private";
+  return true; 
+});
 
 const totalPages = Math.ceil(rooms.length / roomsPerPage);
 
-const paginatedRooms = rooms.slice(
+const paginatedRooms = filteredRooms.slice(
   (currentPage - 1) * roomsPerPage,
   currentPage * roomsPerPage
 );
@@ -160,6 +166,9 @@ const handleCreateRoom = async (roomName, mode) => {
   try {
     const token = localStorage.getItem("token");
 
+    const decoded = jwtDecode(token);
+    const ownerId = decoded?.user?._id || decoded?._id;
+
     const res = await fetch(`${BaseUrl}/chat/room`, {
       method: "POST",
       headers: {
@@ -169,6 +178,7 @@ const handleCreateRoom = async (roomName, mode) => {
       body: JSON.stringify({
         roomName,
         mode,
+        ownerId,
       }),
     });
 
@@ -181,38 +191,24 @@ const handleCreateRoom = async (roomName, mode) => {
     alert("Không thể tạo phòng.");
   }
 };
-const fetchPublicRooms = async () => {
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${BaseUrl}/chat/rooms/public`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error("Lỗi fetch phòng công khai");
-    setRooms(data); 
-    setShowPublicRooms(true); 
-    setCurrentPage(1); 
-  } catch (err) {
-    console.error("Lỗi khi fetch phòng công khai:", err);
-    alert("Không thể lấy danh sách phòng công khai.");
-  }
-};
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4"> 
         <h1 className="text-2xl font-semibold">Danh sách phòng</h1>
             <div className="flex gap-2">
-              {/* <Button
-                size="sm"
-                variant="outlined"
-                onClick={fetchPublicRooms}
-                color="blue"
+               <select
+                className="border px-3 py-1 rounded-md"
+                value={roomFilter}
+                onChange={(e) => {
+                  setRoomFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
               >
-                Xem phòng công khai
-              </Button> */}
+                <option value="all">Tất cả chế độ</option>
+                <option value="public">Công khai (public)</option>
+                <option value="private">Riêng tư (private)</option>
+              </select>
               <Button
                 size="sm"
                 variant="outlined"
@@ -221,6 +217,7 @@ const fetchPublicRooms = async () => {
               >
                 Tạo phòng
               </Button>
+             
             </div>
       </div>
       <div className="overflow-x-auto">

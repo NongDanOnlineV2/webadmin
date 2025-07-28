@@ -40,7 +40,7 @@ export function SignIn() {
 
     try {
       const BASE_URL = useDefaultApi
-        ? "http://103.48.193.165:5222"
+        ? "https://api-ndolv2.nongdanonline.cc"
         : customApiUrl.trim();
       if (!BASE_URL) {
         alert("Vui lòng nhập URL API tùy chỉnh.");
