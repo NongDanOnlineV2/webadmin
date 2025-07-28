@@ -28,10 +28,8 @@ export const Questions = () => {
   const [editValue, setEditValue] = useState({ options: [] });
   const [addDialog, setAddDialog] = useState(false);
   const [addValue, setAddValue] = useState({ text: '', options: [''], type: 'option', link: '' });
-console.log(questions)
   const tokenUser = localStorage.getItem('token');
 
-  // ✅ Load dữ liệu (hỗ trợ filter từ API nếu có)
   const getData = async (page = 1) => {
     setLoading(true);
     try {
@@ -53,8 +51,9 @@ console.log(questions)
   useEffect(() => {
     getData(currentPage);
   }, [currentPage, searchTerm, filterType]);
+ 
+console.log(questions)
 
-  // ✅ Dialog sửa
   const handleOpenDialog = (item) => {
     setEditData(item);
     setEditValue({
@@ -62,7 +61,8 @@ console.log(questions)
       options: Array.isArray(item.options) ? [...item.options] : [],
       type: item.type,
       link: item.link || '',
-      isRequired: item.isRequired || false
+      isRequired: item.isRequired || false,
+      allowOtherText: ['single-choice', 'multi-choice', 'multiple-choice'].includes(item.type) ? true : false
     });
     setOpenDialog(true);
   };
@@ -83,20 +83,26 @@ console.log(questions)
     }
   };
 
-  const handleSave = async () => {
-    if (!editValue.text || editValue.text.trim() === '') {
+  const handleSave = async (customEditValue) => {
+    const valueToSave = customEditValue || editValue;
+    if (!valueToSave.text || valueToSave.text.trim() === '') {
       alert('Vui lòng nhập nội dung câu hỏi!');
       return;
     }
     if (
-      ['option', 'single-choice', 'multiple-choice', 'multi-choice'].includes(editValue.type) &&
-      editValue.options.some(opt => !opt || opt.trim() === '')
+      ['option', 'single-choice', 'multiple-choice', 'multi-choice'].includes(valueToSave.type) &&
+      valueToSave.options.some(opt => !opt || opt.trim() === '')
     ) {
       alert('Vui lòng điền đủ tất cả các đáp án!');
       return;
     }
+    const payload = {
+      ...valueToSave,
+      options: valueToSave.options,
+      allowOtherText: false 
+    };
     try {
-      await axios.put(`${BaseUrl}/admin-questions/${editData._id}`, editValue, {
+      await axios.put(`${BaseUrl}/admin-questions/${editData._id}`, payload, {
         headers: { Authorization: `Bearer ${tokenUser}` },
       });
       alert("Lưu thành công");
@@ -234,9 +240,25 @@ console.log(questions)
             <div className="flex gap-4 mt-8 flex-wrap">
               {["single-choice", "multiple-choice", "multi-choice", "option"].includes(item.type) ? (
                 item.options?.map((opt, idx) => (
-                  <button key={idx} className="px-4 py-2 bg-blue-gray-400 hover:bg-blue-gray-600 text-white rounded">
-                    {opt}
-                  </button>
+                  <React.Fragment key={idx}>
+                    {opt === '{text}' || item.allowOtherText ? (
+                      <div className="flex items-center gap-2">
+                        <span className="px-4 py-2 bg-blue-50 text-blue-700 rounded font-semibold border border-blue-200 italic">
+                          Khác (người dùng sẽ nhập đáp án)
+                        </span>
+                        <input
+                          type="text"
+                          className="border px-3 py-2 rounded w-full max-w-xs focus:ring-2 focus:ring-blue-400 outline-none"
+                          placeholder="Nhập đáp án khác..."
+                          disabled
+                        />
+                      </div>
+                    ) : (
+                      <button className="px-4 py-2 bg-blue-gray-400 hover:bg-blue-gray-600 text-white rounded font-medium shadow">
+                        {opt}
+                      </button>
+                    )}
+                  </React.Fragment>
                 ))
               ) : item.type === 'upload' ? (
                 <input type="file" accept="image/*" className="border px-3 py-2 rounded w-full max-w-xs" disabled />
@@ -298,6 +320,7 @@ console.log(questions)
     </div>
   );
 };
+
 
 
 

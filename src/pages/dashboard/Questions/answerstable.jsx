@@ -111,26 +111,18 @@ export function AnswersTable() {
   const loadAnswersByPage = async (page = 1, searchMode = false) => {
     try {
       setLoading(true);
-      const limit = searchMode ? 9999 : itemsPerPage; 
+      const limit = searchMode ? 9999 : itemsPerPage;
       const res = await fetchWithAuth(`${API_URL}?limit=${limit}&page=${page}`);
       const result = await res.json();
       if (!res.ok) throw new Error(result.message);
 
       let data = result.data || [];
 
-      // ✅ Nếu đang search, lọc farmName + filterOptions
-      if (searchMode && searchFarmName) {
-        data = data.filter((ans) =>
-          ans.farmName?.toLowerCase().includes(searchFarmName.toLowerCase())
-        );
-      }
-
-      if (searchMode && filterOptions.length > 0) {
-        const selectedValues = filterOptions.map((opt) => opt.value.toLowerCase());
-        data = data.filter((ans) =>
-          ans.selectedOptions?.some((opt) =>
-            selectedValues.includes(opt.toLowerCase())
-          )
+      // Nếu searchMode, chỉ lọc theo tên trang trại nếu có
+      if (searchMode && searchFarmName.trim()) {
+        const search = searchFarmName.toLowerCase();
+        data = data.filter(ans =>
+          ans.farmName?.toLowerCase().includes(search)
         );
       }
 
@@ -148,8 +140,7 @@ export function AnswersTable() {
       setLoading(false);
     }
   };
-
-  // ✅ Load farm & question map
+console.log(allAnswers)
   const fetchFarmsAndQuestions = async () => {
     try {
       const [farmRes, questionRes] = await Promise.all([
@@ -192,13 +183,16 @@ export function AnswersTable() {
     setEditData(null);
   };
 
+  // Sửa lại hàm openEditForm để không crash khi dữ liệu thiếu hoặc không đúng kiểu
   const openEditForm = (data) => {
     setForm({
-      farmId: data.farmId || "",
-      questionId: data.questionId || "",
-      selectedOptions: data.selectedOptions || [],
-      otherText: data.otherText || "",
-      uploadedFiles: data.uploadedFiles || [],
+      farmId: typeof data.farmId === "string" ? data.farmId : "",
+      farmName: typeof data.farmName === "string" ? data.farmName : "",
+      questionId: typeof data.questionId === "string" ? data.questionId : "",
+      questionText: typeof data.questionText === "string" ? data.questionText : "",
+      selectedOptions: Array.isArray(data.selectedOptions) ? [...data.selectedOptions] : [],
+      otherText: typeof data.otherText === "string" ? data.otherText : "",
+      uploadedFiles: Array.isArray(data.uploadedFiles) ? [...data.uploadedFiles] : [],
     });
     setEditData(data);
     setFormType("edit");
@@ -268,58 +262,26 @@ export function AnswersTable() {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-start flex-wrap gap-4 mb-6">
-  {/* BÊN TRÁI: Ô tìm kiếm */}
- <div className="flex items-end gap-3 flex-wrap">
-  <div className="min-w-[200px]">
-    <Input
-      label="Tìm trang trại"
-      value={searchFarmName}
-      onChange={(e) => setSearchFarmName(e.target.value)}
-    />
-  </div>
-
-  <Button
-    className="bg-black text-white"
-    onClick={() => {
-      setIsSearching(true);
-      loadAnswersByPage(1, true);
-    }}
-  >
-    Tìm kiếm
-  </Button>
-</div>
-
-
-  {/* BÊN PHẢI: Bộ lọc đáp án và menu */}
-  <div className="w-full md:w-[320px] overflow-hidden">
-  <div className="truncate">
-    <Select
-      isMulti
-      options={allOptions.map((opt) => ({ value: opt, label: opt }))}
-      value={filterOptions}
-      onChange={setFilterOptions}
-      placeholder="Chọn câu trả lời để lọc..."
-      className="truncate"
-      styles={{
-        control: (base) => ({
-          ...base,
-          maxWidth: '100%',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }),
-        multiValue: (base) => ({
-          ...base,
-          maxWidth: '100%',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }),
-      }}
-    />
-  </div>
-</div>
-</div>
+        {/* BÊN TRÁI: Ô tìm kiếm */}
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="min-w-[200px]">
+            <Input
+              label="Tìm trang trại"
+              value={searchFarmName}
+              onChange={(e) => setSearchFarmName(e.target.value)}
+            />
+          </div>
+          <Button
+            className="bg-black text-white"
+            onClick={() => {
+              setIsSearching(true);
+              loadAnswersByPage(1, true);
+            }}
+          >
+            Tìm kiếm
+          </Button>
+        </div>
+      </div>
 
       {/* Table */}
       {loading ? (
@@ -428,5 +390,6 @@ export function AnswersTable() {
     </div>
   );
 }
+
 
 export default AnswersTable;
