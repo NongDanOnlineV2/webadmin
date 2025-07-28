@@ -41,7 +41,7 @@ export default function Users() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const BaseUrl = "https://api-ndolv2.nongdanonline.cc";
+
 const fetchAllData = async () => {
     try {
       const getAllPages = async (endpoint) => {
