@@ -10,7 +10,7 @@ export { default as RoomTable } from "./chat/chat";
 export * from "@/pages/dashboard/AdminAddress/Address";
 export { default as Users } from "./user/users";
 export { default as ChinhSach } from "@/pages/dashboard/ChinhSach"
-
+export { default as AdminRank } from "@/pages/dashboard/Adminrank/AdminRank";
 
 
 

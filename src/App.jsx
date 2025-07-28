@@ -12,6 +12,8 @@ import VideoById from "./pages/dashboard/VideoFarms/VideoById";
 import ResetPasswordWrapper from "@/pages/auth/ResetPasswordWrapper";
 import ResetPassword from "./pages/auth/ResetPassword";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import {AdminRank} from "@/pages/dashboard";
+
 function App() {
   const navigate = useNavigate();
 
