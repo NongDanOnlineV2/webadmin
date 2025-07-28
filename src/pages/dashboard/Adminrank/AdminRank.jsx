@@ -129,8 +129,9 @@ export default function AdminRank() {
               <thead>
                 <tr className="border-b border-gray-300">
                   <th className="p-2">Tên</th>
-                  <th className="p-2">Điểm tối đa</th>
                   <th className="p-2">Điểm tối thiểu</th>
+                  <th className="p-2">Điểm tối đa</th>
+                  
                   <th className="p-2">Huy hiệu</th>
                   <th className="p-2">Lợi ích</th>
                   <th className="p-2 text-right">Thao tác</th>
@@ -140,41 +141,41 @@ export default function AdminRank() {
                 {ranks.map((rank) => (
                   <tr key={rank._id} className="border-b border-gray-200">
                     <td className="p-2">{rank.name}</td>
+                    <td className="p-2">{rank.minPoint}</td>
                    <td className="p-2">{rank.maxPoint}</td>
-                   <td className="p-2">{rank.minPoint}</td>
                     <td className="p-2">
                       <img src={rank.badge} alt="badge" className="h-8 w-8 object-contain" />
                     </td>
                     <td className="p-2">
-                      <ul className="list-disc list-inside text-sm text-gray-700">
+                      <ul className="list-none list-inside text-sm text-gray-700">
                         {rank.benefits?.map((b, i) => (
                           <li key={i}>{b}</li>
                         ))}
                       </ul>
                     </td>
                    <td className="p-2 text-right">
-  <Menu placement="left-start">
-    <MenuHandler>
-      <IconButton variant="text">
-        <EllipsisVerticalIcon className="h-5 w-5" />
-      </IconButton>
-    </MenuHandler>
-    <MenuList>
-      <MenuItem
-        onClick={() => handleOpenModal(rank)}
-        className="flex items-center gap-2 text-blue-600"
-      >
-        <PencilIcon className="h-4 w-4" /> Chỉnh sửa
-      </MenuItem>
-      <MenuItem
-        onClick={() => handleDelete(rank._id)}
-        className="flex items-center gap-2 text-red-500"
-      >
-        <TrashIcon className="h-4 w-4" /> Xóa
-      </MenuItem>
-    </MenuList>
-  </Menu>
-</td>
+                    <Menu placement="left-start">
+                      <MenuHandler>
+                        <IconButton variant="text">
+                          <EllipsisVerticalIcon className="h-5 w-5" />
+                        </IconButton>
+                      </MenuHandler>
+                      <MenuList>
+                        <MenuItem
+                          onClick={() => handleOpenModal(rank)}
+                          className="flex items-center gap-2 text-blue-600"
+                        >
+                          <PencilIcon className="h-4 w-4" /> Chỉnh sửa
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => handleDelete(rank._id)}
+                          className="flex items-center gap-2 text-red-500"
+                        >
+                          <TrashIcon className="h-4 w-4" /> Xóa
+                        </MenuItem>
+                      </MenuList>
+                    </Menu>
+                  </td>
 
                   </tr>
                 ))}
