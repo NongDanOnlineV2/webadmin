@@ -176,7 +176,7 @@ export const Questions = () => {
   return (
     <div>
       {/* 🔹 Thanh tìm kiếm + lọc */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 ">
         <input
           type="text"
           placeholder="Tìm kiếm câu hỏi..."
@@ -199,15 +199,21 @@ export const Questions = () => {
 
         {/* ✅ Nút tìm kiếm */}
         <button
-          className="h-10 px-5 bg-black 500 text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors"
+          className="h-10 px-5 bg-black 500 text-white text-sm font-medium rounded-md "
           onClick={() => {
             setSearchTerm(tempSearchTerm);
             setFilterType(tempFilterType);
-            setCurrentPage(1);  // ✅ Reset về trang đầu
-            getData(1);         // ✅ Gọi lại API
+            setCurrentPage(1);  
+            getData(1);         
           }}
         >
           Tìm kiếm
+        </button>
+        <button
+          onClick={handleOpenAddDialog}
+          className="h-10 px-5 bg-black text-white text-sm font-medium rounded-md "
+        >
+          Thêm câu hỏi
         </button>
       </div>
 
@@ -243,7 +249,6 @@ export const Questions = () => {
                 <MenuList>
                   <MenuItem onClick={() => handleOpenDialog(item)}>Cập nhật</MenuItem>
                   <MenuItem onClick={() => handleDelete(item._id)} className="text-red-500">Xoá</MenuItem>
-                  <MenuItem onClick={handleOpenAddDialog}>Thêm câu hỏi</MenuItem>
                 </MenuList>
               </Menu>
             </div>
@@ -289,6 +294,16 @@ export const Questions = () => {
           Trang sau
         </Button>
       </div>
+
+      <AddQuestion
+        handleAddChange={handleAddChange}
+        handleAddSave={handleAddSave}
+        handleCloseAddDialog={handleCloseAddDialog}
+        handleOpenAddDialog={handleOpenAddDialog}
+        addDialog={addDialog}
+        addValue={addValue}
+        setAddValue={setAddValue}
+      />
 
       {/* Dialog chỉnh sửa câu hỏi */}
       <EditQuestion

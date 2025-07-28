@@ -40,6 +40,7 @@ export const AddQuestion = ({
                 onChange={handleAddChange}
                 className="border px-3 py-2 rounded w-full mb-2"
               >
+                <option value="">--</option>
                 <option value="single-choice">Chọn 1 đáp án</option>
                 <option value="multi-choice">Chọn nhiều đáp án</option>
                 <option value="text">Nhập thông tin</option>
