@@ -606,7 +606,7 @@ if(CommentsDialog?.postId) {
                         
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-gray-600">Thẻ:</span> 
-                          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium break-all">
                             {post.tags || "Không có thẻ"}
                           </span>
                         </div>

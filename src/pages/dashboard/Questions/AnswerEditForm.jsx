@@ -45,15 +45,15 @@ export default function AnswersTable() {
   const openEditForm = (data) => {
     setForm({
       _id: data._id,
-      farmId: data.farmId || "",
-      farmName: data.farm?.name || "",
-      farmOwner: data.farm?.ownerName || "",
-      questionId: data.questionId || "",
-      questionText: data.question?.text || "",
-      createdAt: new Date(data.createdAt).toLocaleDateString("vi-VN") || "",
-      selectedOptions: data.selectedOptions || [],
-      otherText: data.otherText || "",
-      uploadedFiles: data.uploadedFiles || [],
+      farmId: typeof data.farmId === "string" ? data.farmId : "",
+      farmName: typeof data.farm?.name === "string" ? data.farm?.name : "",
+      farmOwner: typeof data.farm?.ownerName === "string" ? data.farm?.ownerName : "",
+      questionId: typeof data.questionId === "string" ? data.questionId : "",
+      questionText: typeof data.question?.text === "string" ? data.question?.text : "",
+      createdAt: data.createdAt ? new Date(data.createdAt).toLocaleDateString("vi-VN") : "",
+      selectedOptions: Array.isArray(data.selectedOptions) ? [...data.selectedOptions] : [],
+      otherText: typeof data.otherText === "string" ? data.otherText : "",
+      uploadedFiles: Array.isArray(data.uploadedFiles) ? [...data.uploadedFiles] : [],
     });
     setOpenEdit(true);
   };
