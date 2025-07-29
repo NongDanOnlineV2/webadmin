@@ -8,6 +8,8 @@ import { useParams } from "react-router-dom";
 import PostLikeUserDialog from "./listpostlikeUser"
 import { BaseUrl } from "@/ipconfig";
 import HlsPlayer from "../VideoFarms/HlsPlayer";
+import ChatRoomDialog from "./ChatRoomDialog";
+import { connectSocket, getSocket } from "./socket";
 export default function UserDetail() {
   const { id } = useParams();
   const [user, setUser] = useState(null);
@@ -52,6 +54,10 @@ export default function UserDetail() {
   const [hasMoreFarms, setHasMoreFarms] = useState(true);
   const [postPage, setPostPage] = useState(1);
   const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [connected, setConnected] = useState(false);
+  const [chatRoomId, setChatRoomId] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const socketRef = useRef(null);
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -83,7 +89,6 @@ export default function UserDetail() {
     setOpenPostCommentDialog(true); 
   }
 };
-
 const handleOpenEditAddress = (addr) => {
   setEditingAddress(addr);
   setAddressForm({
@@ -94,7 +99,6 @@ const handleOpenEditAddress = (addr) => {
   });
   setEditAddressOpen(true);
 };
-
 const handleUpdateAddress = async () => {
   if (!editingAddress || !editingAddress._id) {
     console.error("Không tìm thấy ID địa chỉ để cập nhật", editingAddress);
@@ -129,7 +133,6 @@ const handleUpdateAddress = async () => {
     alert("Cập nhật địa chỉ thất bại!");
   }
 };
-
 const handleDeleteAddress = async (addressId) => {
   const confirmDelete = window.confirm("Bạn có chắc chắn muốn xoá địa chỉ này?");
   if (!confirmDelete) return;
@@ -154,7 +157,6 @@ const handleDeleteAddress = async (addressId) => {
     alert("Xoá địa chỉ thất bại!");
   }
 };
-
 const fetchPostLikesUsers = async (postId, postTitle) => {
   if (postLikesCache[postId]) {
     setSelectedPostTitle(postTitle);
@@ -184,9 +186,7 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
     console.error(`Error fetching likes for post ${postId}:`, err);
   }
 };
-
   useEffect(() => {
-    console.log("DEBUG: id from useParams:", id);
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -206,7 +206,6 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
 
     fetchData();
   }, [id]);
-
 const fetchAddresses = async () => {
   const token = localStorage.getItem("token");
   try {
@@ -221,7 +220,6 @@ const fetchAddresses = async () => {
     alert("Không thể tải địa chỉ người dùng!");
   }
 };
-
 const handleOpenFarms = async () => {
   if (loadingFarms) return;
 
@@ -280,7 +278,6 @@ const handleLoadMoreFarms = async () => {
     setLoadingFarms(false);
   }
 };
-
 const handleOpenPosts = async () => {
   if (loadingPosts) return;
 
@@ -340,8 +337,6 @@ const handleLoadMorePosts = async () => {
     setLoadingPosts(false);
   }
 };
-
-
 const handleOpenVideos = async () => {
   if (loadingVideos) return;
 
@@ -374,7 +369,6 @@ const handleOpenVideos = async () => {
     setLoadingVideos(false);
   }
 };
-
 const handleLoadMoreVideos = async () => {
   if (loadingVideos || !hasMoreVideos) return;
 
@@ -401,7 +395,6 @@ const handleLoadMoreVideos = async () => {
     setLoadingVideos(false);
   }
 };
-
 const fetchVideoLikesUsers = async (videoId, videoTitle) => {
   if (videoLikesCache[videoId]) {
     setSelectedVideoTitle(videoTitle);
@@ -440,7 +433,6 @@ const fetchVideoLikesUsers = async (videoId, videoTitle) => {
     console.error(`Error fetching likes for video ${videoId}:`, err);
   }
 };
-
 const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   if (videoCommentsCache[videoId]) {
     setSelectedVideoTitle(videoTitle);
@@ -479,7 +471,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     console.error(`Error fetching comments for video ${videoId}:`, err);
   }
 };
-
   const showFarmVideos = async (farmId, farmName) => {
   setLoadingVideos(true); 
   try {
@@ -500,6 +491,58 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     setLoadingVideos(false);
   }
 };
+
+// socket
+useEffect(() => {
+  if (socketRef.current) return;
+
+  const socket = connectSocket();
+  socketRef.current = socket;
+
+  socket.on("connect", () => {
+    console.log("socket connected");
+    setConnected(true);
+    socket.emit("bulkJoinRooms");
+  })
+
+  socket.on("disconnect", () => {
+    console.log("socket disconnected");
+    setConnected(false);
+    socket.connect(); 
+  });
+
+  socket.on("noti", ({type, data}) =>{
+    console.log("[NOTI]", type, data);
+    if (type === "roomReady") {
+      alert(`✅ Đã tạo phòng chat riêng: ${data.roomId}`)
+      setChatRoomId(data.roomId);
+      setChatOpen(true);
+    }
+  });
+
+  return () => {
+    socket.off("connect");
+    socket.off("disconnect");
+    socket.off("noti");
+  }
+}, []);
+
+const handleStartPrivateChat = (targetUserId, targetFullName) => {
+    const socket = socketRef.current;
+    if (!socket || socket.disconnected) {
+      alert("⚠️ Socket chưa kết nối!");
+      return;
+    }
+
+    socket.emit("startPrivateChat", {
+      targetUserId,
+      targetFullName,
+    });
+
+    console.log("📤 Gửi yêu cầu tạo phòng với:", targetUserId);
+  };
+  // end socket
+
   const handlePlay = (videoId) => setPlayingVideoId(videoId);
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?._id) || String(f.createBy) === String(user?._id));
   const userPosts = posts
@@ -570,7 +613,15 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             </div>
           </div>
         </div>
-
+        <div className="mt-6 text-right">
+        <Button
+          color="blue"
+          onClick={() => handleStartPrivateChat(user._id, user.fullName)}
+          className="bg-blue-500"
+        >
+          💬 Nhắn tin
+        </Button>
+      </div>        
       </Card>
 
       <Card>
@@ -1533,6 +1584,15 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           postTitle={selectedPostTitle}
           likeUsers={selectedPostLikes}
         />
+
+        {chatOpen && chatRoomId && (
+          <ChatRoomDialog
+            open={chatOpen}
+            onClose={() => setChatOpen(false)}
+            roomId={chatRoomId}
+          />
+        )}
+
     </div>
   );
 }
