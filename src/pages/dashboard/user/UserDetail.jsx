@@ -494,8 +494,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 };
 
 // socket
-
-
 const handleStartPrivateChat = (targetUserId, targetFullName) => {
   let socket = socketRef.current;
 

@@ -33,7 +33,6 @@ export function PostList() {
   const [totalPages, setTotalPages] = useState(1);
   const [sortTitle, setSortTitle] = useState("");
   const [sortDescription, setSortDescription] = useState("");
-  const [sortAuthor, setSortAuthor] = useState("");
   const [sortDate, setSortDate] = useState("");
   const [filterImage, setFilterImage] = useState("");
   const [filterSortLikes, setFilterSortLikes] = useState("");
