@@ -20,9 +20,6 @@ export const Questions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
 
-  const [tempSearchTerm, setTempSearchTerm] = useState('');
-  const [tempFilterType, setTempFilterType] = useState('');
-
   const [openDialog, setOpenDialog] = useState(false);
   const [editData, setEditData] = useState(null);
   const [editValue, setEditValue] = useState({ options: [] });
