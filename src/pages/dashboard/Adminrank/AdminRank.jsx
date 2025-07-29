@@ -8,12 +8,15 @@ import {
   PencilIcon, TrashIcon, PlusIcon, EllipsisVerticalIcon
 } from "@heroicons/react/24/solid";
 import { BaseUrl } from "@/ipconfig";
+import axios from "axios";
 
 export default function AdminRank() {
   const [ranks, setRanks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [editData, setEditData] = useState(null);
+    const tokenUser = localStorage.getItem('token');
+
   const [form, setForm] = useState({
     name: "",
     maxPoint: "",
@@ -26,7 +29,7 @@ export default function AdminRank() {
   const fetchRanks = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`${BaseUrl}/admin-ranks`);
+      const res = await axios.get(`${BaseUrl}/admin-ranks`,{ headers: { Authorization: `Bearer ${tokenUser}`}});
       setRanks(res.data);
     } catch (err) {
       console.error("Fetch ranks error:", err);

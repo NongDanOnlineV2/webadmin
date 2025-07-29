@@ -67,7 +67,7 @@ export function PostList() {
     );
     const json = await res.json();
 
-    if (res.ok) {
+    if (res.ok) { 
       const fetchPosts = json.data || [];
       if (filterStatus !== "") {
         fetchPosts = fetchPosts.filter((post) => String(post.status) === filterStatus);

@@ -15,26 +15,18 @@ export const Questions = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
-  // ✅ state chính để lọc
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('');
-
-  const [tempSearchTerm, setTempSearchTerm] = useState('');
-  const [tempFilterType, setTempFilterType] = useState('');
-
   const [openDialog, setOpenDialog] = useState(false);
   const [editData, setEditData] = useState(null);
   const [editValue, setEditValue] = useState({ options: [] });
   const [addDialog, setAddDialog] = useState(false);
   const [addValue, setAddValue] = useState({ text: '', options: [''], type: 'option', link: '' });
   const tokenUser = localStorage.getItem('token');
-
+   const limit=5
   const getData = async (page = 1) => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `${BaseUrl}/admin-questions?page=${page}&limit=5&search=${searchTerm}&type=${filterType}`,
+        `${BaseUrl}/admin-questions?page=${page}&limit=${limit}`,
         { headers: { Authorization: `Bearer ${tokenUser}` } }
       );
       if (res.status === 200) {
@@ -50,9 +42,8 @@ export const Questions = () => {
 
   useEffect(() => {
     getData(currentPage);
-  }, [currentPage, searchTerm, filterType]);
+  }, [currentPage]);
  
-console.log(questions)
 
   const handleOpenDialog = (item) => {
     setEditData(item);
@@ -127,7 +118,6 @@ console.log(questions)
     }
   };
 
-  // ✅ Dialog thêm
   const handleOpenAddDialog = () => {
     setAddValue({ text: '', options: [''], type: 'option', link: '' });
     setAddDialog(true);
@@ -173,7 +163,6 @@ console.log(questions)
   const [searchInput, setSearchInput] = useState('');
   const [filterInput, setFilterInput] = useState('');
 
-  // Lọc dữ liệu realtime khi search hoặc filter thay đổi
   const filteredQuestions = questions.filter((item) => {
     const matchesSearch = item.text.toLowerCase().includes(searchInput.toLowerCase());
     const matchesType = filterInput === '' || item.type === filterInput;

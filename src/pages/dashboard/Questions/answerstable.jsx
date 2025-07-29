@@ -14,47 +14,12 @@ import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { Audio } from "react-loader-spinner";
 import Select from "react-select";
 import AnswersTableDetail from "./answerstabledetail";
-import AnswerAddForm from "./AnswerAddForm";
-import AnswerEditForm from "./AnswerEditForm";
 import { BaseUrl } from "@/ipconfig";
+import axios from "axios";
 
 const API_URL = `${BaseUrl}/answers`;
-const FARM_API = `${BaseUrl}/farms`;
-const QUESTION_API = `${BaseUrl}/questions`;
+
 let token = localStorage.getItem("token");
-
-const fetchWithAuth = async (url, options = {}) => {
-  let res = await fetch(url, {
-    ...options,
-    headers: { ...(options.headers || {}), Authorization: `Bearer ${token}` },
-  });
-
-  if (res.status === 401 || res.status === 403) {
-    const refreshToken = localStorage.getItem("refreshToken");
-    const refreshRes = await fetch(
-      `${BaseUrl}/auth/refresh-token`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      }
-    );
-
-    if (refreshRes.ok) {
-      const refreshData = await refreshRes.json();
-      localStorage.setItem("token", refreshData.accessToken);
-      token = refreshData.accessToken;
-      res = await fetch(url, {
-        ...options,
-        headers: { ...(options.headers || {}), Authorization: `Bearer ${token}` },
-      });
-    } else {
-      throw new Error("Vui lòng đăng nhập lại!");
-    }
-  }
-
-  return res;
-};
 
 export function AnswersTable() {
   const [allAnswers, setAllAnswers] = useState([]);
@@ -63,75 +28,36 @@ export function AnswersTable() {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
-  const [formType, setFormType] = useState(null);
-  const [editData, setEditData] = useState(null);
-  const [form, setForm] = useState({
-    farmId: "",
-    questionId: "",
-    selectedOptions: [],
-    otherText: "",
-    uploadedFiles: [],
-  });
 
   const [uploading, setUploading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
 
-  const [filterOptions, setFilterOptions] = useState([]);
-  const [allOptions, setAllOptions] = useState([]);
-  const [farmMap, setFarmMap] = useState({});
-  const [questionMap, setQuestionMap] = useState({});
   const [searchFarmName, setSearchFarmName] = useState("");
-  const [isSearching, setIsSearching] = useState(false); // ✅ kiểm soát search mode
-
-  // ✅ Load toàn bộ options từ API
-  // const loadAllOptions = async () => {
-  //   try {
-  //     const res = await fetchWithAuth(`${API_URL}?limit=9999`);
-  //     const result = await res.json();
-  //     if (!res.ok) throw new Error(result.message);
-
-  //     const optionsSet = new Set();
-  //     (result.data || []).forEach((ans) =>
-  //       ans.selectedOptions?.forEach((opt) => optionsSet.add(opt))
-  //     );
-
-  //     setAllOptions(Array.from(optionsSet));
-  //   } catch (err) {
-  //     console.error("Lỗi tải options:", err);
-  //   }
-  // };
-
+  const [isSearching, setIsSearching] = useState(false); 
+console.log(allAnswers)
+ 
   const truncateText = (text, maxLength = 50) => {
     if (!text) return "";
     return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
   };
 
-  // ✅ Load danh sách câu trả lời
   const loadAnswersByPage = async (page = 1, searchMode = false) => {
     try {
       setLoading(true);
-      const limit = searchMode ? 9999 : itemsPerPage;
-      const res = await fetchWithAuth(`${API_URL}?limit=${limit}&page=${page}`);
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message);
+      const res = await axios.get(`${API_URL}?limit=${itemsPerPage}&page=${page}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      let data = result.data || [];
-
-      // Nếu searchMode, chỉ lọc theo tên trang trại nếu có
+      let data = res.data.data || [];
       if (searchMode && searchFarmName.trim()) {
         const search = searchFarmName.toLowerCase();
         data = data.filter(ans =>
           ans.farmName?.toLowerCase().includes(search)
         );
       }
-
-      // ✅ Phân trang client
-      const startIndex = (page - 1) * itemsPerPage;
-      const paginated = data.slice(startIndex, startIndex + itemsPerPage);
-
-      setAllAnswers(paginated);
-      setTotalPages(Math.ceil(data.length / itemsPerPage));
+      setAllAnswers(data);
+      setTotalPages(res.data.totalPages || 1);
       setCurrentPage(page);
     } catch (err) {
       console.error("Lỗi khi tải dữ liệu:", err);
@@ -140,122 +66,29 @@ export function AnswersTable() {
       setLoading(false);
     }
   };
-console.log(allAnswers)
-  const fetchFarmsAndQuestions = async () => {
-    try {
-      const [farmRes, questionRes] = await Promise.all([
-        fetchWithAuth(FARM_API),
-        fetchWithAuth(QUESTION_API),
-      ]);
 
-      if (!farmRes.ok) throw new Error(`FARM_API lỗi ${farmRes.status}`);
-      if (!questionRes.ok) throw new Error(`QUESTION_API lỗi ${questionRes.status}`);
-
-      const farmsData = await farmRes.json();
-      const questionsData = await questionRes.json();
-
-      const farmMapData = {};
-      (farmsData.data || []).forEach((farm) => {
-        farmMapData[farm._id] = farm.name;
-      });
-      setFarmMap(farmMapData);
-
-      const questionMapData = {};
-      (questionsData.data || []).forEach((q) => {
-        questionMapData[q._id] = q.content;
-      });
-      setQuestionMap(questionMapData);
-    } catch (err) {
-      console.error("🚨 Lỗi tải farm/question:", err.message);
-    }
-  };
-
-  // ✅ Lần đầu load chỉ 10 record
   useEffect(() => {
     loadAnswersByPage(1, false);
-    fetchFarmsAndQuestions();
   }, []);
-
-  // Form thêm/sửa
-  const openAddForm = () => {
-    setForm({ farmId: "", questionId: "", selectedOptions: [], otherText: "", uploadedFiles: [] });
-    setFormType("add");
-    setEditData(null);
-  };
-
-  // Sửa lại hàm openEditForm để không crash khi dữ liệu thiếu hoặc không đúng kiểu
-  const openEditForm = (data) => {
-    setForm({
-      farmId: typeof data.farmId === "string" ? data.farmId : "",
-      farmName: typeof data.farmName === "string" ? data.farmName : "",
-      questionId: typeof data.questionId === "string" ? data.questionId : "",
-      questionText: typeof data.questionText === "string" ? data.questionText : "",
-      selectedOptions: Array.isArray(data.selectedOptions) ? [...data.selectedOptions] : [],
-      otherText: typeof data.otherText === "string" ? data.otherText : "",
-      uploadedFiles: Array.isArray(data.uploadedFiles) ? [...data.uploadedFiles] : [],
-    });
-    setEditData(data);
-    setFormType("edit");
-  };
-
-  const handleUploadImage = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-    setUploading(true);
-
-    try {
-      const res = await fetchWithAuth(`${API_URL}/upload-image`, { method: "POST", body: formData });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message);
-
-      setForm((prev) => ({ ...prev, uploadedFiles: [...prev.uploadedFiles, result.path] }));
-    } catch (err) {
-      alert(`Upload lỗi: ${err.message}`);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!form.farmId || !form.questionId) {
-      alert("Vui lòng chọn Farm và Câu hỏi");
-      return;
-    }
-
-    try {
-      const payload = { ...form };
-      const res = await fetchWithAuth(
-        formType === "edit" ? `${API_URL}/${editData?._id}` : API_URL,
-        {
-          method: formType === "edit" ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message);
-
-      alert(formType === "edit" ? "✅ Cập nhật đáp án thành công!" : "✅ Thêm đáp án thành công!");
-      setFormType(null);
-      loadAnswersByPage(currentPage, isSearching);
-    } catch (err) {
-      alert(`❌ ${err.message}`);
-    }
-  };
 
   const handleDelete = async (id, item) => {
     if (!window.confirm(`Xóa đáp án của Farm: ${farmMap[item.farmId]}?`)) return;
     try {
       const res = await fetchWithAuth(`${API_URL}/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error((await res.json()).message);
+      if (!res.ok) alert((await res.json()).message);
       alert("✅ Xóa thành công!");
       loadAnswersByPage(currentPage, isSearching);
     } catch (err) {
       alert(`❌ ${err.message}`);
     }
+  };
+
+ 
+
+
+  const handleRowClick = (item) => {
+    setSelectedAnswer(item);
+    setDetailOpen(true);
   };
 
   return (
@@ -306,22 +139,22 @@ console.log(allAnswers)
               <tr
                 key={item._id}
                 className="hover:bg-gray-50 cursor-pointer"
-                onClick={() => {
-                  setSelectedAnswer(item);
-                  setDetailOpen(true);
-                }}
+                onClick={() => handleRowClick(item)}
               >
                 <td className="px-4 py-3">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                <td>{item.farmName}</td>
-                <td title={item.questionText}>{truncateText(item.questionText, 30)}</td>
+                <td >{ truncateText(item.farmName,20)  }</td>
+                <td title={item.questionText}>{truncateText(item.questionText, 10)}</td>
                 <td>
                   {item.selectedOptions?.map((opt, i) => (
                     <span key={i} className="bg-blue-100 text-xs px-2 py-1 rounded mr-1">
-                      {opt}
+                      {truncateText(opt, 20)}
                     </span>
                   ))}
                 </td>
-                <td>{item.otherText || "—"}</td>
+                <td>
+                  {truncateText(item.otherText, 20)}
+                  
+                  </td>
                 <td>
                   {item.uploadedFiles?.length > 0
                     ? item.uploadedFiles.map((f, i) => (
@@ -339,14 +172,6 @@ console.log(allAnswers)
                       </IconButton>
                     </MenuHandler>
                     <MenuList>
-                      <MenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditForm(item);
-                        }}
-                      >
-                        Sửa
-                      </MenuItem>
                       <MenuItem
                         onClick={(e) => {
                           e.stopPropagation();
@@ -376,16 +201,7 @@ console.log(allAnswers)
         </Button>
       </div>
 
-      {/* Form Add/Edit */}
-      <Dialog open={formType !== null} handler={() => setFormType(null)} size="xl">
-        {formType === "add" ? (
-          <AnswerAddForm open setOpen={() => setFormType(null)} form={form} setForm={setForm} uploading={uploading} handleUploadImage={handleUploadImage} handleSubmit={handleSubmit} />
-        ) : formType === "edit" ? (
-          <AnswerEditForm open setOpen={() => setFormType(null)} form={form} setForm={setForm} uploading={uploading} handleUploadImage={handleUploadImage} handleSubmit={handleSubmit} />
-        ) : null}
-      </Dialog>
 
-      {/* Chi tiết */}
       <AnswersTableDetail open={detailOpen} onClose={() => setDetailOpen(false)} data={selectedAnswer} />
     </div>
   );
@@ -393,3 +209,4 @@ console.log(allAnswers)
 
 
 export default AnswersTable;
+
