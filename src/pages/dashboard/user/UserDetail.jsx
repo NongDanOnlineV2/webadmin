@@ -57,6 +57,7 @@ export default function UserDetail() {
   const [connected, setConnected] = useState(false);
   const [chatRoomId, setChatRoomId] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState(null);
   const socketRef = useRef(null);
   const [addressForm, setAddressForm] = useState({
     addressName: "",
@@ -493,54 +494,47 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 };
 
 // socket
-useEffect(() => {
-  if (socketRef.current) return;
 
-  const socket = connectSocket();
-  socketRef.current = socket;
-
-  socket.on("connect", () => {
-    console.log("socket connected");
-    setConnected(true);
-    socket.emit("bulkJoinRooms");
-  })
-
-  socket.on("disconnect", () => {
-    console.log("socket disconnected");
-    setConnected(false);
-    socket.connect(); 
-  });
-
-  socket.on("noti", ({type, data}) =>{
-    console.log("[NOTI]", type, data);
-    if (type === "roomReady") {
-      alert(`✅ Đã tạo phòng chat riêng: ${data.roomId}`)
-      setChatRoomId(data.roomId);
-      setChatOpen(true);
-    }
-  });
-
-  return () => {
-    socket.off("connect");
-    socket.off("disconnect");
-    socket.off("noti");
-  }
-}, []);
 
 const handleStartPrivateChat = (targetUserId, targetFullName) => {
-    const socket = socketRef.current;
-    if (!socket || socket.disconnected) {
-      alert("⚠️ Socket chưa kết nối!");
-      return;
-    }
+  let socket = socketRef.current;
 
-    socket.emit("startPrivateChat", {
-      targetUserId,
-      targetFullName,
+  // Nếu socket chưa có hoặc đã disconnect → kết nối
+  if (!socket || socket.disconnected) {
+    socket = connectSocket();
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("✅ Socket connected");
+      setConnected(true);
+      socket.emit("bulkJoinRooms");
+      socket.emit("startPrivateChat", { targetUserId, targetFullName });
     });
 
+    socket.on("disconnect", () => {
+      console.log("🔌 Socket disconnected");
+      setConnected(false);
+    });
+
+    socket.on("noti", ({ type, data }) => {
+      console.log("[NOTI]", type, data);
+      if (type === "roomReady") {
+        setChatRoomId(data.roomId);
+        setChatOpen(true);
+      }
+    });
+
+    return;
+  }
+
+  
+  if (socket.connected) {
+    socket.emit("startPrivateChat", { targetUserId, targetFullName });
     console.log("📤 Gửi yêu cầu tạo phòng với:", targetUserId);
-  };
+  } else {
+    alert("⚠️ Socket chưa sẵn sàng!");
+  }
+};
   // end socket
 
   const handlePlay = (videoId) => setPlayingVideoId(videoId);
@@ -619,7 +613,7 @@ const handleStartPrivateChat = (targetUserId, targetFullName) => {
           onClick={() => handleStartPrivateChat(user._id, user.fullName)}
           className="bg-blue-500"
         >
-          💬 Nhắn tin
+          Nhắn tin
         </Button>
       </div>        
       </Card>
@@ -1508,7 +1502,6 @@ const handleStartPrivateChat = (targetUserId, targetFullName) => {
     >
       <DialogHeader>Danh sách bình luận</DialogHeader>
       <DialogBody className="space-y-4 max-h-[400px] overflow-y-auto">
-        {console.log("selectedPostComments:", selectedPostComments)}
         {selectedPostComments.length === 0 ? (
           <Typography className="text-center text-gray-500">Không có bình luận nào.</Typography>
         ) : (
