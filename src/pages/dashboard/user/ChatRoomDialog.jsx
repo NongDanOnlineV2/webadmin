@@ -10,8 +10,12 @@ import {
 } from "@material-tailwind/react";
 import { BaseUrl } from "@/ipconfig";
 import { getSocket } from "./socket";
+import { jwtDecode } from "jwt-decode";
 
 const token = localStorage.getItem("token");
+const decoded = token ? jwtDecode(token) : null;
+const currentUserId = decoded?.id;
+
 
 export default function ChatRoomDialog({ open, onClose, initialRoomId = null }) {
   const [rooms, setRooms] = useState([]);
@@ -189,38 +193,51 @@ const loadMessagesSinceLastRead = (roomId, lastReadMessageId) => {
               </Typography>
             </div>
           )}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto px-4">
             {currentRoom ? (
-              messages.map((msg, index) => (
-                <React.Fragment key={index}>
-                  {index === unreadMarkerIndex && (
-                    <div className="text-center my-2">
-                      <Typography className="text-blue-500 text-sm font-semibold">
-                        Tin nhắn chưa đọc
-                    </Typography>
+              messages.map((msg, index) => {
+                const isMe = msg.userId === currentUserId;
+                return (
+                  <React.Fragment key={index}>
+                    {index === unreadMarkerIndex && (
+                      <div className="text-center my-2">
+                        <Typography className="text-blue-500 text-sm font-semibold">
+                          Tin nhắn chưa đọc
+                        </Typography>
+                      </div>
+                    )}
+                    <div className={`mb-2 flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[70%] p-2 rounded-lg ${
+                          isMe ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
+                        }`}
+                      >
+                        <Typography variant="small" className="font-bold mb-1">
+                          {msg.fullName}
+                        </Typography>
+                        <Typography className="text-sm">{msg.message}</Typography>
+                        <Typography className="text-xs text-whit-500 mt-1 text-right">
+                        {new Date(msg.timestamp).toLocaleTimeString("vi-VN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Typography>
+                        {msg.imageUrl && (
+                          <img
+                            src={
+                              msg.imageUrl.startsWith("http")
+                                ? msg.imageUrl
+                                : `${BaseUrl}${msg.imageUrl}`
+                            }
+                            alt="sent"
+                            className="mt-1 max-w-[150px] rounded"
+                          />
+                        )}
+                      </div>
                     </div>
-                  )}
-                  <div  className="mb-2">
-                  <Typography variant="small" className="font-bold">
-                    {msg.fullName}
-                  </Typography>
-                  <Typography className="text-sm text-gray-700">
-                    {msg.message}
-                  </Typography>
-                  {msg.imageUrl && (
-                    <img
-                      src={
-                        msg.imageUrl.startsWith("http")
-                          ? msg.imageUrl
-                          : `${BaseUrl}${msg.imageUrl}`
-                      }
-                      alt="sent"
-                      className="mt-1 max-w-[150px] rounded"
-                    />
-                  )}
-                </div>
-                </React.Fragment>
-              ))
+                  </React.Fragment>
+                );
+              })
             ) : (
               <Typography className="text-center text-gray-400 mt-10">
                 Chọn phòng để bắt đầu trò chuyện
@@ -228,7 +245,6 @@ const loadMessagesSinceLastRead = (roomId, lastReadMessageId) => {
             )}
             <div ref={messagesEndRef}></div>
           </div>
-
           {currentRoom && (
             <div className="flex gap-2 mt-4">
               <Input

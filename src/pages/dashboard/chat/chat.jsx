@@ -523,29 +523,28 @@ const handleSearch = () => {
         <DialogHeader>Chọn người dùng để chat riêng</DialogHeader>
         <DialogBody className="max-h-[500px] overflow-y-auto px-1">
           <div className="flex items-center gap-2 mb-4">
-  <Input
-    label="Tìm kiếm theo tên hoặc email"
-    value={searchText}
-    onChange={(e) => {
-      const val = e.target.value;
-      setSearchText(val);
+            <Input
+              label="Tìm kiếm theo tên hoặc email"
+              value={searchText}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchText(val);
 
-      if (val.trim() === "") {
-        setIsSearching(false);
-        setUserCurrentPage(1);
-        fetchUserList(1, "");
-      }
-    }}
-    onKeyDown={(e) => {
-      if (e.key === "Enter") handleSearch();
-    }}
-    className="flex-1"
-  />
-  <Button className="bg-black text-white" onClick={handleSearch}>
-    TÌM KIẾM
-  </Button>
-</div>
-
+                if (val.trim() === "") {
+                  setIsSearching(false);
+                  setUserCurrentPage(1);
+                  fetchUserList(1, "");
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearch();
+              }}
+              className="flex-1"
+            />
+            <Button className="bg-black text-white whitespace-nowrap" onClick={handleSearch}>
+              Tìm kiếm
+            </Button>
+          </div>
           <table className="min-w-full text-left">
             <thead>
               <tr className="bg-gray-100 text-sm">
