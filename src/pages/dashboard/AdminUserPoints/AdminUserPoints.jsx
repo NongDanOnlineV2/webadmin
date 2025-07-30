@@ -81,12 +81,12 @@ const formatAction = (action) => {
         <Typography variant="h5" className="mb-4">Quản lý điểm người dùng</Typography>
 
         <div className="flex flex-wrap gap-4 mb-4 items-end">
-          {/* <Input label="Tìm theo User ID" value={search} onChange={(e) => setSearch(e.target.value)} className="w-64" /> */}
+          <Input label="Tìm theo User ID" value={search} onChange={(e) => setSearch(e.target.value)} className="w-64" />
           <Select label="Sắp xếp theo điểm" value={sort} onChange={val => setSort(val)}>
             <Option value="desc">Giảm dần</Option>
             <Option value="asc">Tăng dần</Option>
           </Select>
-          {/* <Button onClick={handleSearch}>Tìm kiếm</Button> */}
+          <Button onClick={handleSearch}>Tìm kiếm</Button>
         </div>
 
         {loading ? <Spinner className="mx-auto" /> : (
