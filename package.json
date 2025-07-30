@@ -26,6 +26,7 @@
     "react-router-dom": "6.17.0",
     "react-select": "^5.10.2",
     "react-toastify": "^11.0.5",
+    "socket.io-client": "^4.8.1",
     "video.js": "^8.23.3"
   },
   "devDependencies": {
