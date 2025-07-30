@@ -266,7 +266,7 @@ const fetchUserList = async (page = 1, keyword = "") => {
   try {
     const token = localStorage.getItem("token");
     const res = await fetch(
-      `${BaseUrl}/admin-users?page=${page}&limit=${usersPerPage}&search=${encodeURIComponent(keyword)}`,
+      `${BaseUrl}/admin-users?page=${page}&limit=${usersPerPage}&fullName=${encodeURIComponent(keyword)}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
