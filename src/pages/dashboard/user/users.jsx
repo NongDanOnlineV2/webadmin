@@ -179,8 +179,6 @@ const handleSearch = async () => {
   }
 };
 
-
-
  useEffect(() => {
   if (!token) {
     setError("Không tìm thấy token!");
@@ -429,14 +427,13 @@ const handleDelete = async (userId) => {
             {Array.isArray(users) && users.map(user => (
             <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
             <td className="p-2">
-  <Avatar
-    src={user.avatar ? `${BaseUrl}${user.avatar}` : fallbackAvatar}
-    alt={user.fullName}
-    size="sm"
-    onError={(e) => (e.target.src = fallbackAvatar)}
-  />
-</td>
-
+              <Avatar
+                src={user.avatar ? `${BaseUrl}${user.avatar}` : fallbackAvatar}
+                alt={user.fullName}
+                size="sm"
+                onError={(e) => (e.target.src = fallbackAvatar)}
+              />
+            </td>
               <td className="p-2">{user.fullName}</td>
               <td className="p-2">{user.email}</td>
               <td className="p-2">{user.phone || "N/A"}</td>

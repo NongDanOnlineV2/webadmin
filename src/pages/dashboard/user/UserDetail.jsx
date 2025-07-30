@@ -9,7 +9,7 @@ import PostLikeUserDialog from "./listpostlikeUser"
 import { BaseUrl } from "@/ipconfig";
 import HlsPlayer from "../VideoFarms/HlsPlayer";
 import ChatRoomDialog from "./ChatRoomDialog";
-import { connectSocket, getSocket } from "./socket";
+
 export default function UserDetail() {
   const { id } = useParams();
   const [user, setUser] = useState(null);
@@ -54,11 +54,6 @@ export default function UserDetail() {
   const [hasMoreFarms, setHasMoreFarms] = useState(true);
   const [postPage, setPostPage] = useState(1);
   const [hasMorePosts, setHasMorePosts] = useState(true);
-  const [connected, setConnected] = useState(false);
-  const [chatRoomId, setChatRoomId] = useState(null);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [selectedRoomId, setSelectedRoomId] = useState(null);
-  const socketRef = useRef(null);
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -493,48 +488,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
   }
 };
 
-// socket
-const handleStartPrivateChat = (targetUserId, targetFullName) => {
-  let socket = socketRef.current;
-
-  // Nếu socket chưa có hoặc đã disconnect → kết nối
-  if (!socket || socket.disconnected) {
-    socket = connectSocket();
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      console.log("✅ Socket connected");
-      setConnected(true);
-      socket.emit("bulkJoinRooms");
-      socket.emit("startPrivateChat", { targetUserId, targetFullName });
-    });
-
-    socket.on("disconnect", () => {
-      console.log("🔌 Socket disconnected");
-      setConnected(false);
-    });
-
-    socket.on("noti", ({ type, data }) => {
-      console.log("[NOTI]", type, data);
-      if (type === "roomReady") {
-        setChatRoomId(data.roomId);
-        setChatOpen(true);
-      }
-    });
-
-    return;
-  }
-
-  
-  if (socket.connected) {
-    socket.emit("startPrivateChat", { targetUserId, targetFullName });
-    console.log("📤 Gửi yêu cầu tạo phòng với:", targetUserId);
-  } else {
-    alert("⚠️ Socket chưa sẵn sàng!");
-  }
-};
-  // end socket
-
   const handlePlay = (videoId) => setPlayingVideoId(videoId);
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?._id) || String(f.createBy) === String(user?._id));
   const userPosts = posts
@@ -606,13 +559,7 @@ const handleStartPrivateChat = (targetUserId, targetFullName) => {
           </div>
         </div>
         <div className="mt-6 text-right">
-        <Button
-          color="blue"
-          onClick={() => handleStartPrivateChat(user._id, user.fullName)}
-          className="bg-blue-500"
-        >
-          Nhắn tin
-        </Button>
+        
       </div>        
       </Card>
 
