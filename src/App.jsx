@@ -13,7 +13,8 @@ import ResetPasswordWrapper from "@/pages/auth/ResetPasswordWrapper";
 import ResetPassword from "./pages/auth/ResetPassword";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import {AdminRank} from "@/pages/dashboard";
-
+import AdminUserPoints from "@/pages/dashboard/AdminUserPoints/AdminUserPoints";
+import AdminUserPointDetails from "./pages/dashboard/AdminUserPoints/AdminUserPointDetails";
 function App() {
   const navigate = useNavigate();
 
@@ -49,6 +50,8 @@ function App() {
         <Route path="CommentPostbyIdPost/:postId" element={<CommentPostbyIdPost />} />
         <Route path="VideoFarms/VideoById/:id" element={<VideoById />} />
         <Route path="users/:id" element={<UserDetail />} />
+        <Route path="user-points" element={<AdminUserPoints />} />
+        <Route path="AdminUserPointDetails" element={<AdminUserPointDetails />} />
 
       </Route>
 
