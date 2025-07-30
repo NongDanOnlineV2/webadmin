@@ -77,7 +77,7 @@ const AnswersTableDetail = ({ open, onClose, data }) => {
             data.uploadedFiles.map((file, idx) => (
               <a
                 key={idx}
-                href={`${BaseUrl}${file}`}
+                href={`${BaseUrl}/${file}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 underline block"
