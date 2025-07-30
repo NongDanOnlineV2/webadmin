@@ -1,117 +1,79 @@
 import React, { useEffect, useState } from "react";
-import {
-Card, CardHeader, CardBody, Typography, Spinner,
-} from "@material-tailwind/react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Card, CardBody, Typography, Spinner } from "@material-tailwind/react";
 import api from "@/utils/axiosInstance";
+import { useSearchParams } from "react-router-dom";
 
-const AdminUserPointDetails = () => {
-const location = useLocation();
-const navigate = useNavigate();
-const userId = new URLSearchParams(location.search).get("userId");
+export default function AdminUserPointDetails() {
+  const [searchParams] = useSearchParams();
+  const userId = searchParams.get("userId");
 
-const [pointHistory, setPointHistory] = useState([]);
-const [userInfo, setUserInfo] = useState(null);
-const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState([]);
+  const [userInfo, setUserInfo] = useState({});
+  const [loading, setLoading] = useState(false);
 
-const pageSize = 10;
-const [currentPage, setCurrentPage] = useState(1);
+  const fetchPointHistory = async () => {
+    if (!userId) return;
 
-useEffect(() => {
-const fetchData = async () => {
-try {
-const res = await api.get(`/admin-user-points?userId=${userId}`);
+    setLoading(true);
+    try {
+      const res = await api.get("/admin-user-points", {
+        params: { userId }
+      });
 
-const { user, points } = res.data;
-setUserInfo(user);
-setPointHistory(points || []);
-} catch (error) {
-console.error("Fetch error:", error);
-} finally {
-setLoading(false);
-}
-};
-if (userId) fetchData();
-}, [userId]);
+      setHistory(res.data?.history || []);
+      setUserInfo(res.data?.user || {});
+    } catch (error) {
+      console.error("Lỗi tải dữ liệu lịch sử điểm:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const paginatedData = pointHistory.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-const totalPages = Math.ceil(pointHistory.length / pageSize);
+  useEffect(() => {
+    fetchPointHistory();
+  }, [userId]);
 
-if (loading) {
-return (
-<div className="flex justify-center items-center h-96">
-<Spinner className="h-12 w-12" />
-</div>
-);
-}
+  const formatAction = (action) => {
+    switch (action) {
+      case "INCREASE":
+        return { label: "Tăng điểm", color: "text-green-600" };
+      case "DECREASE":
+        return { label: "Giảm điểm", color: "text-red-600" };
+      default:
+        return { label: action, color: "text-gray-600" };
+    }
+  };
 
-if (!userInfo) {
-return (
-<div className="p-4 text-center">
-<Typography variant="h6">Không tìm thấy người dùng.</Typography>
-</div>
-);
-}
-
-return (
-<Card className="h-full w-full">
-<CardHeader floated={false} shadow={false} className="rounded-none px-4">
-<div className="flex justify-between items-center">
-<div>
-<Typography variant="h5">Lịch sử điểm</Typography>
-<Typography variant="small" color="gray" className="mt-1">
-{userInfo.fullName} ({userInfo.email})
-</Typography>
-</div>
-<button
-onClick={() => navigate(-1)}
-className="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400"
->
-← Quay lại
-</button>
-</div>
-</CardHeader>
-<CardBody className="overflow-x-auto px-4">
-<table className="table-auto w-full text-left">
-<thead>
-<tr className="bg-gray-100">
-<th className="p-2">Hành động</th>
-<th className="p-2 text-right">Điểm</th>
-<th className="p-2 text-right">Thời gian</th>
-</tr>
-</thead>
-<tbody>
-{paginatedData.map((item, index) => (
-<tr key={index} className="hover:bg-blue-50">
-<td className="p-2">{item.reason}</td>
-<td className="p-2 text-right font-bold text-green-600">+{item.point}</td>
-<td className="p-2 text-right text-gray-600">
-{new Date(item.createdAt).toLocaleString()}
-</td>
-</tr>
-))}
-</tbody>
-</table>
-{/* Pagination */}
-<div className="flex justify-end mt-4 gap-2">
-{Array.from({ length: totalPages }).map((_, i) => {
   return (
-    <button
-      key={i}
-      className={`px-3 py-1 border rounded ${
-        currentPage === i + 1 ? "bg-blue-500 text-white" : "bg-white"
-      }`}
-      onClick={() => setCurrentPage(i + 1)}
-    >
-      {i + 1}
-    </button>
+    <div className="p-4">
+      <Typography variant="h5" className="mb-4">Lịch sử tích điểm</Typography>
+
+      <Card className="p-4">
+        {loading ? (
+          <Spinner className="mx-auto" />
+        ) : (
+          <>
+            <Typography className="font-bold mb-2">Họ tên: <span className="font-normal">{userInfo.fullName || ""}</span></Typography>
+            <Typography className="font-bold mb-2">Email: <span className="font-normal">{userInfo.email || ""}</span></Typography>
+            <Typography className="font-bold mb-4">Tổng điểm: <span className="font-normal">{userInfo.totalPoint || 0}</span></Typography>
+
+            {history.length > 0 ? (
+              <ul className="space-y-2">
+                {history.map((item, idx) => {
+                  const action = formatAction(item.action);
+                  return (
+                    <li key={idx} className={`rounded-md px-4 py-2 text-sm bg-gray-100 ${action.color}`}>
+                      {item.point} điểm - {action.label} - {new Date(item.createdAt).toLocaleString()}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <Typography className="text-gray-500">Không có dữ liệu lịch sử</Typography>
+            )}
+          </>
+        )}
+      </Card>
+    </div>
   );
-})}
-
-</div>
-</CardBody>
-</Card>
-);
-};
-
-export default AdminUserPointDetails;
+}

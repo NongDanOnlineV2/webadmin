@@ -12,5 +12,4 @@ export { default as Users } from "./user/users";
 export { default as ChinhSach } from "@/pages/dashboard/ChinhSach"
 export { default as AdminRank } from "@/pages/dashboard/Adminrank/AdminRank";
 export { default as AdminUserPoints } from "@/pages/dashboard/AdminUserPoints/AdminUserPoints"
-export {default as AdminUserPointsDetails } from "@/pages/dashboard/AdminUserPoints/AdminUserPointDetails"
 
