@@ -14,7 +14,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
-import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost,AdminRank, RoomTable  } from "@/pages/dashboard";
+import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost,AdminRank, RoomTable, AdminUserPoints  } from "@/pages/dashboard";
 import { SignIn, SignUp} from "@/pages/auth";
 import ChinhSach from "@/pages/dashboard/ChinhSach";
 import ChinhSachBaoMat from "@/pages/dashboard/ChinhSachBaoMat";
@@ -109,6 +109,12 @@ export const routes = [
   name: "AdminRank",
   path: "/AdminRank",
   element: <AdminRank />,
+},
+{
+  icon: <RectangleStackIcon {...icon} />,
+  name: "User Points",
+  path: "/AdminUserPoints",
+  element: <AdminUserPoints />,
 },
 
 
