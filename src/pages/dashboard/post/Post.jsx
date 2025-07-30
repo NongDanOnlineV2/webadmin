@@ -33,7 +33,6 @@ export function PostList() {
   const [totalPages, setTotalPages] = useState(1);
   const [sortTitle, setSortTitle] = useState("");
   const [sortDescription, setSortDescription] = useState("");
-  const [sortAuthor, setSortAuthor] = useState("");
   const [sortDate, setSortDate] = useState("");
   const [filterImage, setFilterImage] = useState("");
   const [filterSortLikes, setFilterSortLikes] = useState("");
@@ -67,7 +66,7 @@ export function PostList() {
     );
     const json = await res.json();
 
-    if (res.ok) {
+    if (res.ok) { 
       const fetchPosts = json.data || [];
       if (filterStatus !== "") {
         fetchPosts = fetchPosts.filter((post) => String(post.status) === filterStatus);

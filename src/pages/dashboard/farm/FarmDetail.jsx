@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
   Typography,
@@ -10,13 +10,12 @@ import {
 } from "@material-tailwind/react";
 import { PlayIcon } from "@heroicons/react/24/outline";
 import { BaseUrl } from "@/ipconfig";
+import Hls from "hls.js";
 
 const Info = ({ label, value }) => (
   <div className="flex flex-col gap-1">
     <Typography className="text-sm font-medium text-gray-800">{label}</Typography>
-    <Typography className="text-sm text-blue-gray-700">
-      {value !== null && value !== undefined && value !== "" ? value : "—"}
-    </Typography>
+    <Typography className="text-sm text-blue-gray-700">{value ?? "—"}</Typography>
   </div>
 );
 
@@ -62,12 +61,10 @@ export default function FarmDetail({ open, onClose, farmId }) {
   const [error, setError] = useState(null);
   const [images, setImages] = useState([]);
   const [videoCount, setVideoCount] = useState(0);
-
   const [showVideos, setShowVideos] = useState(false);
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [videos, setVideos] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
-
   const [showChanges, setShowChanges] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
@@ -88,8 +85,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
       const farmData = res.data?.data || res.data;
       const pictures = farmData.pictures || [];
 
-      const defaultImg =
-        pictures.find((pic) => pic.isDefault) || (pictures.length > 0 ? pictures[0] : null);
+      const defaultImg = pictures.find((pic) => pic.isDefault) || pictures[0] || null;
 
       setFarm({
         ...farmData,
@@ -113,8 +109,9 @@ export default function FarmDetail({ open, onClose, farmId }) {
     setLoadingVideos(true);
     try {
       const res = await axios.get(`${BaseUrl}/admin-video-farm/farm/${farmId}`, getOpts());
-      setVideos(res.data?.data || []);
-      setVideoCount((res.data?.data || []).length);
+      const data = res.data?.data || [];
+      setVideos(data);
+      setVideoCount(data.length);
     } catch (err) {
       console.error("Lỗi video:", err);
       setVideos([]);
@@ -175,7 +172,9 @@ export default function FarmDetail({ open, onClose, farmId }) {
   return (
     <div className="p-4 bg-white rounded-md shadow-md" style={{ maxHeight: "80vh", overflowY: "auto" }}>
       <div className="max-w-6xl mx-auto space-y-6">
-        {error && <Typography color="red">{error}</Typography>}
+        {error && (
+          <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded">{error}</div>
+        )}
 
         {!farm ? (
           <Typography color="red">Không tìm thấy dữ liệu</Typography>
@@ -207,26 +206,26 @@ export default function FarmDetail({ open, onClose, farmId }) {
               <Info label="Tính năng" value={mapToLabel(farm.features, featureOptions)} />
               <Info label="Số điện thoại" value={farm.phone} />
               <Info label="Zalo" value={farm.zalo} />
-              
             </div>
-              <div className="flex flex-col gap-1">
-                <Typography className="text-sm font-medium text-gray-800">Video nông trại</Typography>
-                <Button
-                  onClick={handleOpenVideoDialog}
-                  variant="outlined"
-                  size="sm"
-                  color="blue"
-                  className="w-fit px-4 py-2 text-sm"
-                >
-                  Xem danh sách video
-                </Button>
-
-              </div>
+            <div className="flex flex-col gap-1">
+              <Typography className="text-sm font-medium text-gray-800">Video nông trại</Typography>
+              <Button
+                onClick={handleOpenVideoDialog}
+                variant="outlined"
+                size="sm"
+                color="blue"
+                className="h-[40px] w-[250px]"
+              >
+                Xem danh sách video
+              </Button>
+            </div>
 
             {farm.description && (
               <div>
                 <Typography variant="h6" className="mb-2 text-blue-gray-900">Mô tả</Typography>
-                <Typography className="text-sm text-blue-gray-700 whitespace-pre-wrap">{farm.description}</Typography>
+                <Typography className="text-sm text-blue-gray-700 whitespace-pre-wrap">
+                  {farm.description}
+                </Typography>
               </div>
             )}
 
@@ -242,7 +241,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
                         className="w-full h-40 object-cover rounded-lg border shadow-sm"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = "/fallback.jpg";
+                          e.target.src = "https://via.placeholder.com/150";
                         }}
                       />
                       {img.isAvatar && (
@@ -255,181 +254,145 @@ export default function FarmDetail({ open, onClose, farmId }) {
                 <Typography className="text-sm italic text-gray-500">Chưa có hình ảnh</Typography>
               )}
             </div>
+                <div className="flex flex-col gap-1">
+                  <Typography className="text-sm font-medium text-gray-800">Câu hỏi & Câu trả lời</Typography>
+                  <Button
+                    onClick={handleToggleChanges}
+                    variant="outlined"
+                    size="sm"
+                    color="green"
+                    className="h-[40px] w-[250px]"
+                  >
+                    {showChanges ? "Ẩn câu hỏi & trả lời" : "Xem câu hỏi & trả lời"}
+                  </Button>
+                </div>
+                {showChanges && (
+                    <div className="mt-4">
+                      <Typography variant="h6" className="mb-2 text-blue-gray-900">
+                        Câu hỏi đã trả lời ({answers.length}/{questions.length})
+                      </Typography>
 
-{/* Dialog xem video chi tiết (đã có sẵn) */}
-<Dialog open={!!selectedVideo} handler={() => setSelectedVideo(null)} size="lg">
-  <DialogHeader>{selectedVideo?.title || "Xem video"}</DialogHeader>
-  <DialogBody divider className="flex justify-center">
-    {selectedVideo ? (() => {
-      if (selectedVideo.status === "deleted") {
-        return (
-          <Typography className="text-red-500 text-center font-semibold">
-            Video này đã bị xoá.
-          </Typography>
-        );
-      }
-
-      const { youtubeLink, localFilePath } = selectedVideo;
-
-      const videoSrc = (() => {
-        if (youtubeLink?.includes("youtube") || youtubeLink?.includes("youtu.be")) {
-          const youtubeId = youtubeLink.match(/(?:v=|\/embed\/|\.be\/)([^\s&?]+)/)?.[1];
-          if (youtubeId) return `https://www.youtube.com/embed/${youtubeId}`;
-        }
-
-        if (youtubeLink && youtubeLink.endsWith(".mp4")) return youtubeLink;
-
-        if (localFilePath) {
-          const path = localFilePath.startsWith("/") ? localFilePath : `/${localFilePath}`;
-          return `${BaseUrl}${path}`;
-        }
-
-        return null;
-      })();
-
-      if (!videoSrc) {
-        return (
-          <Typography className="text-red-500 text-center">
-            Không tìm thấy đường dẫn video hợp lệ.
-          </Typography>
-        );
-      }
-
-      if (videoSrc.includes("youtube.com/embed")) {
-        return (
-          <iframe
-            src={videoSrc}
-            title="YouTube video"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="h-[360px] rounded shadow w-full"
-          ></iframe>
-        );
-      }
-
-      if (videoSrc.endsWith(".mp4")) {
-        return (
-          <video controls className="max-h-[70vh] w-full rounded shadow">
-            <source src={videoSrc} type="video/mp4" />
-            Trình duyệt của bạn không hỗ trợ phát video.
-          </video>
-        );
-      }
-
-      return (
-        <Typography className="text-red-500 text-center">
-          Không phát được video.
-        </Typography>
-      );
-    })() : (
-      <Typography className="text-red-500 text-center">
-        Không tìm thấy video.
-      </Typography>
-    )}
-  </DialogBody>
-  <DialogFooter>
-    <Button color="blue" onClick={() => setSelectedVideo(null)}>
-      Đóng
-    </Button>
-  </DialogFooter>
-</Dialog>
-
-{/* ✅ Dialog danh sách video mới được tích hợp */}
-<Dialog open={showVideos} handler={() => setShowVideos(false)} size="lg">
-  <DialogHeader>Danh sách video nông trại</DialogHeader>
-  <DialogBody className="space-y-4 max-h-[70vh] overflow-y-auto">
-    {loadingVideos ? (
-      <Typography className="text-sm text-blue-500">Đang tải video...</Typography>
-    ) : videos.length === 0 ? (
-      <Typography className="text-sm text-gray-500 italic">Chưa có video nào.</Typography>
-    ) : (
-      videos.map((video, idx) => (
-        <div
-          key={video._id || idx}
-          className="border p-3 rounded-md bg-gray-50 hover:bg-gray-100 cursor-pointer"
-          onClick={() => {
-            if (video.status === "deleted") {
-              alert("Video này đã bị xoá.");
-              return;
-            }
-            setSelectedVideo(video);
-            setShowVideos(false);
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <PlayIcon className="w-5 h-5 text-blue-500" />
-            <div>
-              <Typography className="text-sm font-medium text-gray-800">{video.title || "Video không tiêu đề"}</Typography>
-              <Typography className="text-xs text-gray-500">
-                Trạng thái:{" "}
-                {video.status === "uploaded"
-                  ? "Đã tải lên"
-                  : video.status === "pending"
-                  ? "Đang xử lý"
-                  : video.status === "deleted"
-                  ? "Đã xoá"
-                  : video.status}
-              </Typography>
-            </div>
-          </div>
-        </div>
-      ))
-    )}
-  </DialogBody>
-  <DialogFooter>
-    <Button color="blue" onClick={() => setShowVideos(false)}>Đóng</Button>
-  </DialogFooter>
-</Dialog>
-
-            <div className="mt-6">
-              <Button onClick={handleToggleChanges} color="blue" variant="outlined" size="sm">
-                Xem câu hỏi và trả lời
-              </Button>
-            </div>
-            <Dialog open={showChanges} handler={handleToggleChanges} size="lg">
-              <DialogHeader>Danh sách câu hỏi và câu trả lời</DialogHeader>
-              <DialogBody className="space-y-4 max-h-[70vh] overflow-y-auto">
-                {loadingQuestions || loadingAnswers ? (
-                  <Typography className="text-sm text-blue-500">Đang tải dữ liệu...</Typography>
-                ) : questions.length === 0 ? (
-                  <Typography className="text-sm text-gray-500 italic">Không có câu hỏi nào.</Typography>
-                ) : (
-                  questions.map((q, idx) => {
-                    const match = answers.find((a) => a.question?._id === q._id);
-                    const ans = match?.answer;
-                    return (
-                      <div key={q._id} className="border p-3 rounded-lg bg-gray-50">
-                        <Typography className="text-sm font-semibold text-gray-800">
-                          {idx + 1}. {q.text}
-                        </Typography>
-                        {ans ? (
-                          <div className="mt-1 space-y-1 text-sm text-blue-gray-700">
-                            {ans.selectedOptions?.length > 0 && (
-                              <div>Chọn: {ans.selectedOptions.join(", ")}</div>
-                            )}
-                            {ans.otherText && <div>Khác: {ans.otherText}</div>}
-                            {ans.uploadedFiles?.length > 0 && (
-                              <div className="space-y-1">
-                                {ans.uploadedFiles.map((f, i) => (
-                                  <a key={i} href={f} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline block">
-                                    File {i + 1}
-                                  </a>
-                                ))}
+                      {loadingQuestions || loadingAnswers ? (
+                        <Typography className="text-sm text-blue-500">Đang tải dữ liệu...</Typography>
+                      ) : answers.length === 0 ? (
+                        <Typography className="text-sm italic text-gray-500">Chưa có câu trả lời nào</Typography>
+                      ) : (
+                        <div className="space-y-3">
+                          {answers.map((ans, idx) => {
+                            const question = questions.find((q) => q._id === ans.questionId);
+                            return (
+                              <div key={idx} className="p-3 bg-gray-50 border rounded">
+                                <Typography className="font-medium text-gray-800">
+                                  {idx + 1}. {question?.content || "Câu hỏi đã bị xóa"}
+                                </Typography>
+                                <Typography className="text-sm text-blue-gray-700 mt-1 whitespace-pre-wrap">
+                                  {ans.answer || "—"}
+                                </Typography>
                               </div>
-                            )}
-                          </div>
-                        ) : (
-                          <Typography className="text-sm text-red-500 italic mt-1">
-                            Chưa có câu trả lời
-                          </Typography>
-                        )}
-                      </div>
-                    );
-                  })
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+            {/* Video dialog */}
+            <Dialog open={showVideos} handler={() => setShowVideos(false)} size="lg">
+              <DialogHeader>Danh sách video ({videoCount})</DialogHeader>
+              <DialogBody className="max-h-[70vh] overflow-y-auto">
+                {loadingVideos ? (
+                  <Typography className="text-sm text-blue-500">Đang tải danh sách video...</Typography>
+                ) : videos.length === 0 ? (
+                  <Typography className="text-sm italic text-gray-500">Chưa có video nào</Typography>
+                ) : (
+                  <table className="min-w-full table-auto text-sm text-left border rounded">
+                    <thead className="bg-gray-100 sticky top-0 z-10">
+                      <tr>
+                        <th className="border px-3 py-2">#</th>
+                        <th className="border px-3 py-2">Tiêu đề</th>
+                        <th className="border px-3 py-2">Người đăng</th>
+                        <th className="border px-3 py-2">Ngày đăng</th>
+                        <th className="border px-3 py-2">Trạng thái</th>
+                        <th className="border px-3 py-2">Xem</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {videos.map((video, idx) => (
+                        <tr key={video._id || idx} className="hover:bg-gray-50">
+                          <td className="border px-3 py-2">{idx + 1}</td>
+                          <td className="border px-3 py-2">{video.title}</td>
+                          <td className="border px-3 py-2">{video.uploadedBy?.fullName || "—"}</td>
+                          <td className="border px-3 py-2">{new Date(video.createdAt).toLocaleDateString()}</td>
+                          <td className="border px-3 py-2">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold
+                              ${video.status === "active"
+                                ? "text-green-700 bg-green-100"
+                                : video.status === "pending"
+                                ? "text-yellow-700 bg-yellow-100"
+                                : video.status === "deleted"
+                                ? "text-red-700 bg-red-100"
+                                : "text-gray-700 bg-gray-100"}`}>
+                              {video.status || "Không rõ"}
+                            </span>
+                          </td>
+                          <td className="border px-3 py-2">
+                            <Button
+                              variant="text"
+                              size="sm"
+                              color="blue"
+                              onClick={() => setSelectedVideo(video)}
+                              className="flex items-center gap-1"
+                            >
+                              <PlayIcon className="h-4 w-4" />
+                              Xem
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </DialogBody>
               <DialogFooter>
-                <Button color="blue" onClick={handleToggleChanges}>Đóng</Button>
+                <Button onClick={() => setShowVideos(false)} color="blue">Đóng</Button>
+              </DialogFooter>
+            </Dialog>
+
+            {/* Video viewer */}
+            <Dialog open={!!selectedVideo} handler={() => setSelectedVideo(null)} size="lg">
+              <DialogHeader>{selectedVideo?.title || "Xem video"}</DialogHeader>
+              <DialogBody divider className="flex justify-center">
+                {(() => {
+                  const videoSrc = selectedVideo?.youtubeLink || (selectedVideo?.localFilePath ? `${BaseUrl}${selectedVideo.localFilePath}` : null);
+                  if (!videoSrc) return <Typography className="text-red-500">Không tìm thấy video.</Typography>;
+
+                  if (videoSrc.includes("youtube.com/embed")) {
+                    return (
+                      <iframe
+                        src={videoSrc}
+                        title="YouTube video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="h-[360px] w-full rounded shadow"
+                      ></iframe>
+                    );
+                  }
+
+                  if (videoSrc.endsWith(".m3u8")) {
+                      return (
+                        <HLSPlayer
+                          src={videoSrc}
+                          poster={selectedVideo?.thumbnailPath ? `${BaseUrl}${selectedVideo.thumbnailPath}` : undefined}
+                        />
+                      );
+                    }
+
+
+                  return <Typography className="text-red-500">Không hỗ trợ định dạng video.</Typography>;
+                })()}
+              </DialogBody>
+              <DialogFooter>
+                <Button color="blue" onClick={() => setSelectedVideo(null)}>Đóng</Button>
               </DialogFooter>
             </Dialog>
           </>
@@ -438,3 +401,28 @@ export default function FarmDetail({ open, onClose, farmId }) {
     </div>
   );
 }
+
+function HLSPlayer({ src, poster }) {
+  const videoRef = useRef();
+
+  useEffect(() => {
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(src);
+      hls.attachMedia(videoRef.current);
+      return () => hls.destroy();
+    } else if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
+      videoRef.current.src = src;
+    }
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      controls
+      className="w-full max-h-[70vh] rounded shadow"
+      poster={poster}
+    />
+  );
+}
+

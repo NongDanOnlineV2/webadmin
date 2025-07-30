@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Dialog, DialogHeader, DialogBody, DialogFooter, Button, Input } from '@material-tailwind/react'
 
 export const EditQuestion = ({
@@ -10,6 +10,52 @@ export const EditQuestion = ({
   handleCloseDialog,
   setEditValue,
 }) => {
+  // Đảm bảo chỉ thêm đáp án "{text}" đúng 1 lần khi mở dialog
+  useEffect(() => {
+    if (
+      open &&
+      ['single-choice', 'multiple-choice', 'multi-choice'].includes(editData?.type) &&
+      Array.isArray(editValue.options)
+    ) {
+      // Giữ lại các đáp án thường, chỉ thêm "{text}" nếu chưa có hoặc nếu có nhiều thì chỉ giữ 1 ở cuối
+      const filtered = editValue.options.filter(opt => opt !== '{text}');
+      setEditValue({ ...editValue, options: [...filtered, '{text}'] });
+    }
+    // eslint-disable-next-line
+  }, [open, editData?.type]);
+
+  // Khi lưu, giữ nguyên các đáp án thường, chỉ giữ lại 1 đáp án "{text}" ở cuối nếu đã có
+  const handleSafeSave = () => {
+    let options = editValue.options;
+    if (['single-choice', 'multiple-choice', 'multi-choice'].includes(editData?.type) && Array.isArray(options)) {
+      // Lấy tất cả đáp án thường (không phải '{text}')
+      const filtered = options.filter(opt => opt !== '{text}');
+      // Nếu ban đầu đã có '{text}', thì thêm lại 1 ở cuối, nếu không thì chỉ lưu đáp án thường
+      if (options.includes('{text}')) {
+        options = [...filtered, '{text}'];
+      } else {
+        options = [...filtered];
+      }
+    }
+    handleSave({ ...editValue, options });
+  };
+
+  const handleOptionChange = (e, idx) => {
+    if (editValue.options[idx] === '{text}') return;
+    handleEditChange(e, idx);
+  };
+
+  const handleAddOption = () => {
+    const filtered = editValue.options.filter(opt => opt !== '{text}');
+    setEditValue({ ...editValue, options: [...filtered, '', '{text}'] });
+  };
+
+  const handleRemoveOption = (idx) => {
+    if (editValue.options[idx] === '{text}') return;
+    const filtered = editValue.options.filter((_, i) => i !== idx && editValue.options[i] !== '{text}');
+    setEditValue({ ...editValue, options: [...filtered, '{text}'] });
+  };
+
   return (
     <Dialog open={open} handler={handleCloseDialog} size="md">
       <DialogHeader>Sửa câu hỏi</DialogHeader>
@@ -40,21 +86,24 @@ export const EditQuestion = ({
                 <span className="w-6 text-gray-500 font-semibold">
                   {String.fromCharCode(65 + idx)}.
                 </span>
-                <Input
-                  value={opt}
-                  onChange={(e) => handleEditChange(e, idx)}
-                  className="border px-3 py-2 rounded w-full"
-                  placeholder={`Đáp án ${String.fromCharCode(65 + idx)}`}
-                />
+                {opt === '{text}' ? (
+                  <span className="italic text-blue-700 bg-blue-50 px-3 py-2 rounded w-full cursor-not-allowed select-none">
+                    Khác (người dùng sẽ nhập đáp án)
+                  </span>
+                ) : (
+                  <Input
+                    value={opt}
+                    onChange={e => handleOptionChange(e, idx)}
+                    className="border px-3 py-2 rounded w-full"
+                    placeholder={`Đáp án ${String.fromCharCode(65 + idx)}`}
+                  />
+                )}
                 <Button
                   type="button"
                   color="red"
-                  onClick={() => {
-                    const newOptions = editValue.options.filter((_, i) => i !== idx);
-                    setEditValue({ ...editValue, options: newOptions });
-                  }}
-                  disabled={editValue.options.length <= 2}
-                  title={editValue.options.length <= 2 ? 'Phải có ít nhất 2 đáp án' : 'Xóa đáp án'}
+                  onClick={() => handleRemoveOption(idx)}
+                  disabled={editValue.options.length <= 2 || opt === '{text}'}
+                  title={opt === '{text}' ? 'Không thể xóa đáp án Khác' : (editValue.options.length <= 2 ? 'Phải có ít nhất 1 đáp án thường và 1 đáp án Khác' : 'Xóa đáp án')}
                 >
                   Xóa
                 </Button>
@@ -63,12 +112,7 @@ export const EditQuestion = ({
             <Button
               type="button"
               color="green"
-              onClick={() =>
-                setEditValue({
-                  ...editValue,
-                  options: [...editValue.options, ''],
-                })
-              }
+              onClick={handleAddOption}
               className="mt-2"
             >
               Thêm đáp án
@@ -109,7 +153,7 @@ export const EditQuestion = ({
         </Button>
         <Button
           color="blue"
-          onClick={handleSave}
+          onClick={handleSafeSave}
         >
           Lưu
         </Button>

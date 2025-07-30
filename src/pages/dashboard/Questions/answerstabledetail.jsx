@@ -9,16 +9,22 @@ import {
 } from "@material-tailwind/react";
 import { BaseUrl } from "@/ipconfig";
 
-const InfoRow = ({ label, value }) => (
-  <div className="mb-2">
-    <Typography variant="small" color="blue-gray" className="font-medium">
-      {label}:
-    </Typography>
-    <Typography variant="small" color="gray">
-      {value || <i className="text-gray-400">—</i>}
-    </Typography>
-  </div>
-);
+const InfoRow = ({ label, value, maxLength = 50 }) => {
+  let displayValue = value;
+  if (typeof value === "string" && value.length > maxLength) {
+    displayValue = value.substring(0, maxLength) + "...";
+  }
+  return (
+    <div className="mb-2">
+      <Typography variant="small" color="blue-gray" className="font-medium ">
+        {label}:
+      </Typography>
+      <Typography variant="small" color="gray">
+        {displayValue || <i className="text-gray-400">—</i>}
+      </Typography>
+    </div>
+  );
+};
 
 const AnswersTableDetail = ({ open, onClose, data }) => {
   if (!data) return null;
@@ -34,21 +40,22 @@ const AnswersTableDetail = ({ open, onClose, data }) => {
   return (
     <Dialog open={open} handler={onClose} size="lg">
       <DialogHeader>Chi tiết câu trả lời</DialogHeader>
-      <DialogBody divider className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <InfoRow label="ID trang trại" value={data.farmId} />
-        <InfoRow label="Tên Farm" value={data.farm?.name} />
-        <InfoRow label="Chủ sở hữu" value={data.farm?.ownerName} />
-        <InfoRow label="Mã câu hỏi" value={data.questionId} />
-        <InfoRow label="Tên Câu hỏi" value={data.question?.text} />
-
+      <DialogBody divider className="  gap-4">
+        <InfoRow label="Tên Farm" value={data.farmName} maxLength={50} />
+        {/* <InfoRow label="Chủ sở hữu" value={data.farm?.ownerName} /> */}
+        <InfoRow label="Tên Câu hỏi" value={data.questionText} maxLength={80} />
         <div className="col-span-2">
           <Typography variant="small" color="blue-gray" className="font-medium">
             Đáp án đã chọn:
           </Typography>
-          {data.selectedOptions?.length > 0 ? (
+          {Array.isArray(data.selectedOptions) && data.selectedOptions.length > 0 ? (
             <ul className="list-disc list-inside text-gray-700 text-sm mt-1">
               {data.selectedOptions.map((option, idx) => (
-                <li key={idx}>{option}</li>
+                <li key={idx}>
+                  {typeof option === "string" && option.length > 80
+                    ? option.substring(0, 80) + "..."
+                    : option}
+                </li>
               ))}
             </ul>
           ) : (
@@ -58,9 +65,9 @@ const AnswersTableDetail = ({ open, onClose, data }) => {
           )}
         </div>
 
-        <InfoRow label="Khác (Văn bản khác)" value={data.otherText} />
-        <InfoRow label="Date create" value={formatDate(data.createdAt)} />
-        <InfoRow label="Date updated" value={formatDate(data.updatedAt)} />
+        <InfoRow label="Khác (Văn bản khác)" value={data.otherText||"Không có"} />
+        {/* <InfoRow label="Date create" value={formatDate(data.createdAt)} />
+        <InfoRow label="Date updated" value={formatDate(data.updatedAt)} /> */}
 
         <div className="col-span-2">
           <Typography variant="small" color="blue-gray" className="font-medium">

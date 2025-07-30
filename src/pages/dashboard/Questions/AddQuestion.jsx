@@ -9,11 +9,15 @@ export const AddQuestion = ({
   setAddValue,
   open
 }) => {
-  // Khi mở dialog, nếu chưa chọn loại câu hỏi thì không render phần đáp án
   useEffect(() => {
     if (open && ["single-choice", "multi-choice", "multiple-choice"].includes(addValue.type)) {
       if (!Array.isArray(addValue.options) || addValue.options.length < 2) {
-        setAddValue({ ...addValue, options: ['', ''] });
+        setAddValue({ ...addValue, options: ['', '{text}'] });
+      } else if (
+        Array.isArray(addValue.options) &&
+        !addValue.options.includes('{text}')
+      ) {
+        setAddValue({ ...addValue, options: [...addValue.options, '{text}'] });
       }
     }
     if (open && !["single-choice", "multi-choice", "multiple-choice"].includes(addValue.type)) {
@@ -26,7 +30,7 @@ export const AddQuestion = ({
     const type = e.target.value;
     let options;
     if (["single-choice", "multi-choice", "multiple-choice"].includes(type)) {
-      options = ['', ''];
+      options = ['', '{text}'];
     } else {
       options = [];
     }
@@ -35,6 +39,23 @@ export const AddQuestion = ({
 
   const handleRequiredChange = (e) => {
     setAddValue({ ...addValue, isRequired: e.target.checked });
+  };
+
+  const handleAddOption = () => {
+    const opts = addValue.options;
+    const idxText = opts.indexOf('{text}');
+    let newOpts;
+    if (idxText !== -1) {
+      newOpts = [...opts.slice(0, idxText), '', ...opts.slice(idxText)];
+    } else {
+      newOpts = [...opts, ''];
+    }
+    setAddValue({ ...addValue, options: newOpts });
+  };
+  const handleRemoveOption = (idx) => {
+    if (addValue.options[idx] === '{text}') return;
+    const newOptions = addValue.options.filter((_, i) => i !== idx);
+    setAddValue({ ...addValue, options: newOptions });
   };
 
   return (
@@ -77,41 +98,42 @@ export const AddQuestion = ({
             Yêu cầu bắt buộc phải điền
           </label>
         </div>
-        {/* Chỉ render phần đáp án khi đã chọn loại đáp án */}
         {["single-choice", "multiple-choice", "multi-choice"].includes(addValue.type) && Array.isArray(addValue.options) && (
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Tùy chọn đáp án</label>
             {addValue.options.map((opt, idx) => (
               <div key={idx} className="flex gap-2 mb-2 items-center">
                 <span className="w-6 text-gray-500 font-semibold">{String.fromCharCode(65 + idx)}.</span>
-                <Input
-                  value={opt}
-                  onChange={e => handleAddChange(e, idx)}
-                  className="border px-3 py-2 rounded w-full"
-                  placeholder={`Đáp án ${String.fromCharCode(65 + idx)}`}
-                />
+                {opt === '{text}' ? (
+                  <span className="italic text-blue-700 bg-blue-50 px-3 py-2 rounded w-full">Khác (user sẽ nhập đáp án)</span>
+                ) : (
+                  <Input
+                    value={opt}
+                    onChange={e => handleAddChange(e, idx)}
+                    className="border px-3 py-2 rounded w-full"
+                    placeholder={`Đáp án ${String.fromCharCode(65 + idx)}`}
+                  />
+                )}
                 <Button
                   type="button"
                   color="red"
-                  onClick={() => {
-                    const newOptions = addValue.options.filter((_, i) => i !== idx);
-                    setAddValue({ ...addValue, options: newOptions });
-                  }}
-                  disabled={addValue.options.length <= 2}
-                  title={addValue.options.length <= 2 ? 'Phải có ít nhất 2 đáp án' : 'Xóa đáp án'}
+                  onClick={() => handleRemoveOption(idx)}
+                  disabled={addValue.options.length <= 2 || opt === '{text}'}
+                  title={opt === '{text}' ? 'Không thể xóa đáp án Khác' : (addValue.options.length <= 2 ? 'Phải có ít nhất 1 đáp án thường và 1 đáp án Khác' : 'Xóa đáp án')}
                 >
                   Xóa
                 </Button>
               </div>
             ))}
-            <Button
-              type="button"
-              color="green"
-              onClick={() => setAddValue({ ...addValue, options: [...addValue.options, ''] })}
-              className="mt-2"
-            >
-              Thêm đáp án
-            </Button>
+            <div className="flex gap-2 mt-2">
+              <Button
+                type="button"
+                color="green"
+                onClick={handleAddOption}
+              >
+                Thêm đáp án lựa chọn
+              </Button>
+            </div>
           </div>
         )}
       </DialogBody>

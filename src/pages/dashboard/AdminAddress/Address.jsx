@@ -14,7 +14,10 @@ export const Address = () => {
   const [itemsPerPage] = useState(9)
   const [addressCount, setAddressCount] = useState({})
   const [searchTerm, setSearchTerm] = useState('')
+  const [filterProvince, setFilterProvince] = useState('')
   const [filteredAddresses, setFilteredAddresses] = useState([])
+  const [searchInput, setSearchInput] = useState('')
+  const [provinceInput, setProvinceInput] = useState('')
   const [formData, setFormData] = useState({
     addressName: '',
     address: '',
@@ -62,21 +65,44 @@ useEffect(()=>{
   callAddress()
 },[])
 
-useEffect(() => {
-  if (!searchTerm.trim()) {
-    setFilteredAddresses(address)
-  } else {
-    const filtered = address.filter(item => {
-      const userName = item.userId?.fullName?.toLowerCase() || ''
-      const userEmail = item.userId?.email?.toLowerCase() || ''
-      const search = searchTerm.toLowerCase()
-      
-      return userName.includes(search) || userEmail.includes(search)
-    })
-    setFilteredAddresses(filtered)
+  // Chỉ lọc khi nhấn nút tìm kiếm hoặc chọn tỉnh/thành phố
+  const handleSearch = () => {
+    setSearchTerm(searchInput)
+    setFilterProvince(provinceInput)
   }
-  setCurrentPage(1)
-}, [searchTerm, address])
+
+  const handleClearSearch = () => {
+    setSearchInput('')
+    setSearchTerm('')
+  }
+
+
+
+  useEffect(() => {
+    let filtered = address;
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(item => {
+        const userName = item.userId?.fullName?.toLowerCase() || '';
+        const userEmail = item.userId?.email?.toLowerCase() || '';
+        const addr = item.address?.toLowerCase() || '';
+        const ward = item.ward?.toLowerCase() || '';
+        const province = item.province?.toLowerCase() || '';
+        return (
+          userName.includes(search) ||
+          userEmail.includes(search) ||
+          addr.includes(search) ||
+          ward.includes(search) ||
+          province.includes(search)
+        );
+      });
+    }
+    if (filterProvince) {
+      filtered = filtered.filter(item => item.province === filterProvince);
+    }
+    setFilteredAddresses(filtered);
+    setCurrentPage(1);
+  }, [searchTerm, filterProvince, address])
 
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
@@ -103,9 +129,13 @@ useEffect(() => {
     setCurrentPage(1)
   }, [address.length])
 
-  const handleClearSearch = () => {
-    setSearchTerm('')
-  }
+  const provinces = [
+    "Tuyên Quang", "Lào Cai", "Thái Nguyên", "Phú Thọ", "Bắc Ninh",
+    "Hưng Yên", "Hải Phòng", "Ninh Bình", "Quảng Trị", "Đà Nẵng",
+    "Quảng Ngãi", "Gia Lai", "Khánh Hòa", "Lâm Đồng", "Đắk Lắk",
+    "Thành phố Hồ Chí Minh", "Đồng Nai", "Vĩnh Long", "Đồng Tháp", "Cà Mau", "An Giang",
+    "Cần Thơ"
+  ];
 
   const handleViewAddresses = (user) => {
     setSelectedUser(user)
@@ -123,27 +153,47 @@ useEffect(() => {
         <div className="flex flex-col md:flex-row gap-4 items-end">
           <div className="flex-1 min-w-0">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tìm kiếm người dùng
+              Tìm kiếm (tên, email, địa chỉ, phường/xã, tỉnh/thành phố)
             </label>
             <div className="relative flex gap-2">
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm theo tên hoặc email người dùng..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Nhập từ khóa tìm kiếm..."
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              {searchTerm && (
-                <button
-                  onClick={handleClearSearch}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Xóa
-                </button>
-              )}
+              <button
+                onClick={handleSearch}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                Tìm kiếm
+              </button>
+            
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Lọc theo tỉnh/thành phố
+            </label>
+            <div className="relative flex gap-2">
+              <select
+                value={provinceInput}
+                onChange={e => setProvinceInput(e.target.value)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              >
+                <option value="">Tất cả</option>
+                {provinces.map(province => (
+                  <option key={province} value={province}>{province}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleSearch}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+              >
+                Lọc
+              </button>
+             
             </div>
           </div>
         </div>
@@ -182,7 +232,7 @@ useEffect(() => {
                   Email
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Địa chỉ gần nhất
+                  Địa chỉ 
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Phường/Xã
@@ -308,7 +358,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* User Address Dialog */}
       <UserAddressDialog
         open={showAddressDialog}
         onClose={() => setShowAddressDialog(false)}
