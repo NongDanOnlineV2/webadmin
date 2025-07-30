@@ -27,14 +27,12 @@ export function AnswersTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
-
-
-  const [uploading, setUploading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
 
   const [searchFarmName, setSearchFarmName] = useState("");
   const [isSearching, setIsSearching] = useState(false); 
+  const [filterQuestionText, setFilterQuestionText] = useState(""); // Lọc theo câu hỏi
 console.log(allAnswers)
  
   const truncateText = (text, maxLength = 50) => {
@@ -50,11 +48,14 @@ console.log(allAnswers)
       });
 
       let data = res.data.data || [];
-      if (searchMode && searchFarmName.trim()) {
-        const search = searchFarmName.toLowerCase();
-        data = data.filter(ans =>
-          ans.farmName?.toLowerCase().includes(search)
-        );
+      if (searchMode) {
+        if (searchFarmName.trim()) {
+          const search = searchFarmName.toLowerCase();
+          data = data.filter(ans =>
+            ans.farmName?.toLowerCase().includes(search)
+          );
+        }
+       
       }
       setAllAnswers(data);
       setTotalPages(res.data.totalPages || 1);
@@ -70,6 +71,18 @@ console.log(allAnswers)
   useEffect(() => {
     loadAnswersByPage(1, false);
   }, []);
+
+  const filteredAnswers = allAnswers.filter(ans => {
+    if (!filterQuestionText || filterQuestionText === "all") return true;
+    return ans.questionText === filterQuestionText;
+  });
+
+  const questionOptions = [
+    { value: "all", label: "Tất cả câu hỏi" },
+    ...Array.from(new Set(allAnswers.map(a => a.questionText)))
+      .filter(q => !!q)
+      .map(q => ({ value: q, label: q }))
+  ];
 
   const handleDelete = async (id, item) => {
     if (!window.confirm(`Xóa đáp án của Farm: ${farmMap[item.farmId]}?`)) return;
@@ -93,9 +106,7 @@ console.log(allAnswers)
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="flex justify-between items-start flex-wrap gap-4 mb-6">
-        {/* BÊN TRÁI: Ô tìm kiếm */}
         <div className="flex items-end gap-3 flex-wrap">
           <div className="min-w-[200px]">
             <Input
@@ -103,6 +114,19 @@ console.log(allAnswers)
               value={searchFarmName}
               onChange={(e) => setSearchFarmName(e.target.value)}
             />
+          </div>
+
+          <div className="min-w-[200px]">
+            <label className="block text-sm mb-1 font-medium">Lọc theo câu hỏi</label>
+            <select
+              className="border px-3 py-2 rounded w-full"
+              value={filterQuestionText}
+              onChange={e => setFilterQuestionText(e.target.value)}
+            >
+              {questionOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           </div>
           <Button
             className="bg-black text-white"
@@ -135,11 +159,14 @@ console.log(allAnswers)
             </tr>
           </thead>
           <tbody>
-            {allAnswers.map((item, index) => (
+            {filteredAnswers.map((item, index) => (
               <tr
                 key={item._id}
                 className="hover:bg-gray-50 cursor-pointer"
-                onClick={() => handleRowClick(item)}
+                onClick={(e) =>{e.stopPropagation()
+
+                  handleRowClick(item)}
+                   }
               >
                 <td className="px-4 py-3">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                 <td >{ truncateText(item.farmName,20)  }</td>
@@ -155,10 +182,12 @@ console.log(allAnswers)
                   {truncateText(item.otherText, 20)}
                   
                   </td>
-                <td>
+                <td >
                   {item.uploadedFiles?.length > 0
                     ? item.uploadedFiles.map((f, i) => (
-                        <a key={i} href={`${BaseUrl}${f}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-xs block">
+                        <a onClick={(e)=>{
+                          console.log(f)
+                          e.stopPropagation()}} key={i} href={`${BaseUrl}/${f}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-xs block">
                           📎 File {i + 1}
                         </a>
                       ))

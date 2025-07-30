@@ -76,10 +76,20 @@ export const AddQuestion = ({
           <select
             name="type"
             value={addValue.type}
-            onChange={handleTypeChange}
+            onChange={e => {
+              // Nếu chọn "Khác", đổi sang loại "text" để backend chấp nhận
+              if (e.target.value === "other") {
+                setAddValue({ ...addValue, type: "text", options: [], isOther: true });
+              } else if (["single-choice", "multi-choice", "multiple-choice"].includes(e.target.value)) {
+                setAddValue({ ...addValue, type: e.target.value, options: ['', '{text}'], isOther: false });
+              } else {
+                setAddValue({ ...addValue, type: e.target.value, options: [], isOther: false });
+              }
+            }}
             className="border px-3 py-2 rounded w-full mb-2"
           >
             <option value="">-- Chọn loại câu hỏi --</option>
+            <option value="other">Khác (user tự nhập đáp án)</option>
             <option value="single-choice">Chọn 1 đáp án</option>
             <option value="multi-choice">Chọn nhiều đáp án</option>
             <option value="text">Nhập thông tin</option>
@@ -98,6 +108,7 @@ export const AddQuestion = ({
             Yêu cầu bắt buộc phải điền
           </label>
         </div>
+        {/* Nếu là loại chọn đáp án thì render phần nhập đáp án, nếu là "Khác" thì không cần */}
         {["single-choice", "multiple-choice", "multi-choice"].includes(addValue.type) && Array.isArray(addValue.options) && (
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Tùy chọn đáp án</label>
@@ -134,6 +145,14 @@ export const AddQuestion = ({
                 Thêm đáp án lựa chọn
               </Button>
             </div>
+          </div>
+        )}
+        {/* Nếu là loại "Khác", chỉ hiển thị thông báo */}
+        {addValue.isOther && (
+          <div className="mb-4">
+            <span className="italic text-blue-700 bg-blue-50 px-3 py-2 rounded block">
+              Người dùng sẽ tự nhập đáp án cho câu hỏi này.
+            </span>
           </div>
         )}
       </DialogBody>
