@@ -119,7 +119,14 @@ export const Questions = () => {
   };
 
   const handleOpenAddDialog = () => {
-    setAddValue({ text: '', options: [''], type: 'option', link: '' });
+    setAddValue({
+      text: '',
+      options: [''], // mặc định 1 đáp án thường
+      type: 'option',
+      link: '',
+      isRequired: false,
+      isOther: false // thêm trạng thái cho option "Khác"
+    });
     setAddDialog(true);
   };
 
@@ -129,7 +136,20 @@ export const Questions = () => {
   };
 
   const handleAddChange = (e, idx) => {
-    if (["option", "single-choice", "multiple-choice", "multi-choice"].includes(addValue.type) && typeof idx === "number") {
+    // Nếu chọn option "Khác", chuyển sang trạng thái isOther
+    if (e.target.name === "type" && e.target.value === "other") {
+      setAddValue({
+        ...addValue,
+        type: "other",
+        isOther: true,
+        options: [] 
+      });
+      return;
+    }
+    if (
+      ["option", "single-choice", "multiple-choice", "multi-choice"].includes(addValue.type) &&
+      typeof idx === "number"
+    ) {
       const newOptions = [...addValue.options];
       newOptions[idx] = e.target.value;
       setAddValue({ ...addValue, options: newOptions });
@@ -139,16 +159,49 @@ export const Questions = () => {
   };
 
   const handleAddSave = async () => {
+    if (addValue.type === "other") {
+      if (!addValue.text || addValue.text.trim() === '') {
+        alert('Vui lòng nhập nội dung câu hỏi!');
+        return;
+      }
+      try {
+        await axios.post(`${BaseUrl}/admin-questions`, {
+          ...addValue,
+          options: [],
+          allowOtherText: true
+        }, {
+          headers: { Authorization: `Bearer ${tokenUser}` },
+        });
+        alert('Thêm thành công!');
+        handleCloseAddDialog();
+        getData(currentPage);
+      } catch (error) {
+        alert('Lỗi khi thêm!');
+        console.log('Lỗi khi thêm:', error);
+      }
+      return;
+    }
+    let options = addValue.options;
+    if (
+      ["option", "single-choice", "multiple-choice", "multi-choice"].includes(addValue.type)
+    ) {
+      if (!options.includes('{text}')) {
+        options = [...options, '{text}'];
+      }
+    }
     if (!addValue.text || addValue.text.trim() === '') {
       alert('Vui lòng nhập nội dung câu hỏi!');
       return;
     }
-    if (["option", "single-choice", "multiple-choice", "multi-choice"].includes(addValue.type) && addValue.options.some(opt => !opt || opt.trim() === '')) {
+    if (
+      ["option", "single-choice", "multiple-choice", "multi-choice","other"].includes(addValue.type) &&
+      options.filter(opt => opt !== '{text}').some(opt => !opt || opt.trim() === '')
+    ) {
       alert('Vui lòng điền đủ tất cả các đáp án!');
       return;
     }
     try {
-      await axios.post(`${BaseUrl}/admin-questions`, addValue, {
+      await axios.post(`${BaseUrl}/admin-questions`, { ...addValue, options }, {
         headers: { Authorization: `Bearer ${tokenUser}` },
       });
       alert('Thêm thành công!');
@@ -179,12 +232,14 @@ export const Questions = () => {
           onChange={(e) => setSearchInput(e.target.value)}
           className="h-10 w-64 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none text-sm"
         />
+        {/* Loại câu hỏi cho filter */}
         <select
           className="h-10 w-48 px-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none"
           value={filterInput}
           onChange={(e) => setFilterInput(e.target.value)}
         >
           <option value="">Tất cả loại</option>
+         {/* <option value="other">Khác (user tự nhập đáp án)</option> */}
           <option value="single-choice">Chọn 1 đáp án</option>
           <option value="multi-choice">Chọn nhiều đáp án</option>
           <option value="text">Nhập thông tin</option>
@@ -225,9 +280,8 @@ export const Questions = () => {
                 </MenuList>
               </Menu>
             </div>
-            {/* Hiển thị các loại câu hỏi */}
             <div className="flex gap-4 mt-8 flex-wrap">
-              {["single-choice", "multiple-choice", "multi-choice", "option"].includes(item.type) ? (
+              {["single-choice", "multiple-choice", "multi-choice", "option","other"].includes(item.type) ? (
                 item.options?.map((opt, idx) => (
                   <React.Fragment key={idx}>
                     {opt === '{text}' || item.allowOtherText ? (
