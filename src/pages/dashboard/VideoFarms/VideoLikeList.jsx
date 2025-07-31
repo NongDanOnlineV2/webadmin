@@ -13,7 +13,7 @@ export default function VideoLikeList({ openLike, handleCloseLike, videoId }) {
     try {
       setLoading(true);
       
-      const res = await axios.get(`${BaseUrl}/video-like/${videoId}/users`, {
+      const res = await axios.get(`${BaseUrl()}/video-like/${videoId}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -98,7 +98,7 @@ export default function VideoLikeList({ openLike, handleCloseLike, videoId }) {
                         user.avatar && user.avatar.startsWith('http')
                           ? user.avatar
                           : user.avatar
-                          ? `${BaseUrl}${user.avatar}`
+                          ? `${BaseUrl()}${user.avatar}`
                           : "https://ui-avatars.com/api/?name=" + encodeURIComponent(user.fullName || 'User') + "&background=6366f1&color=ffffff&size=40&rounded=true"
                       }
                       alt={user.fullName || 'User'}

@@ -29,7 +29,7 @@ export default function AdminRank() {
   const fetchRanks = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${BaseUrl}/admin-ranks`,{ headers: { Authorization: `Bearer ${tokenUser}`}});
+      const res = await axios.get(`${BaseUrl()}/admin-ranks`,{ headers: { Authorization: `Bearer ${tokenUser}`}});
       setRanks(res.data);
     } catch (err) {
       console.error("Fetch ranks error:", err);
@@ -97,9 +97,9 @@ export default function AdminRank() {
 
     try {
       if (editData) {
-        await api.put(`${BaseUrl}/admin-ranks/${editData._id}`, form);
+        await api.put(`${BaseUrl()}/admin-ranks/${editData._id}`, form);
       } else {
-        await api.post(`${BaseUrl}/admin-ranks`, form);
+        await api.post(`${BaseUrl()}/admin-ranks`, form);
       }
       handleCloseModal();
       fetchRanks();
@@ -111,7 +111,7 @@ export default function AdminRank() {
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xoá rank này không?")) return;
     try {
-      await api.delete(`${BaseUrl}/admin-ranks/${id}`);
+      await api.delete(`${BaseUrl()}/admin-ranks/${id}`);
       fetchRanks();
     } catch (err) {
       console.error("Delete error:", err);

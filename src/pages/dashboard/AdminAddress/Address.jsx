@@ -32,7 +32,7 @@ export const Address = () => {
 
   const callAddress= async()=>{
     try {
-      const res = await axios.get(`${BaseUrl}/admin/user-address`, {
+      const res = await axios.get(`${BaseUrl()}/admin/user-address`, {
           headers: { Authorization: `Bearer ${tokenUser}` }
         });
   if(res.status===200){

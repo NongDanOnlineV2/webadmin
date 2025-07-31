@@ -17,7 +17,7 @@ import AnswersTableDetail from "./answerstabledetail";
 import { BaseUrl } from "@/ipconfig";
 import axios from "axios";
 
-const API_URL = `${BaseUrl}/answers`;
+// const API_URL = `${BaseUrl()}/answers`;
 
 let token = localStorage.getItem("token");
 
@@ -32,7 +32,7 @@ export function AnswersTable() {
 
   const [searchFarmName, setSearchFarmName] = useState("");
   const [isSearching, setIsSearching] = useState(false); 
-  const [filterQuestionText, setFilterQuestionText] = useState(""); // Lọc theo câu hỏi
+  const [filterQuestionText, setFilterQuestionText] = useState(""); 
 console.log(allAnswers)
  
   const truncateText = (text, maxLength = 50) => {
@@ -43,7 +43,7 @@ console.log(allAnswers)
   const loadAnswersByPage = async (page = 1, searchMode = false) => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}?limit=${itemsPerPage}&page=${page}`, {
+      const res = await axios.get(`${BaseUrl()}/answers?limit=${itemsPerPage}&page=${page}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -87,7 +87,7 @@ console.log(allAnswers)
   const handleDelete = async (id, item) => {
     if (!window.confirm(`Xóa đáp án của Farm: ${farmMap[item.farmId]}?`)) return;
     try {
-      const res = await fetchWithAuth(`${API_URL}/${id}`, { method: "DELETE" });
+      const res = await fetchWithAuth(`${BaseUrl()}/${id}`, { method: "DELETE" });
       if (!res.ok) alert((await res.json()).message);
       alert("✅ Xóa thành công!");
       loadAnswersByPage(currentPage, isSearching);
@@ -187,7 +187,7 @@ console.log(allAnswers)
                     ? item.uploadedFiles.map((f, i) => (
                         <a onClick={(e)=>{
                           console.log(f)
-                          e.stopPropagation()}} key={i} href={`${BaseUrl}/${f}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-xs block">
+                          e.stopPropagation()}} key={i} href={`${BaseUrl()}${f}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-xs block">
                           📎 File {i + 1}
                         </a>
                       ))

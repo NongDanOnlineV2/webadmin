@@ -39,7 +39,7 @@ export default function ModalApproveReport({
     try {
       setLoading(true);
       await axios.post(
-        `${BaseUrl}/admin-reports/${reportId}/approve`,
+        `${BaseUrl()}/admin-reports/${reportId}/approve`,
         {
           action,
           actionNote: note,

@@ -56,7 +56,7 @@ export function PostList() {
 
   try {
     const res = await fetch(
-      `${BaseUrl}/admin-post-feed?${queryParams.toString()}`,
+      `${BaseUrl()}/admin-post-feed?${queryParams.toString()}`,
       {
         headers: {
           "Content-Type": "application/json",
@@ -147,7 +147,7 @@ export function PostList() {
 
 
       const res = await fetch(
-        `${BaseUrl}/admin-post-feed/${selectedPost._id}`,
+        `${BaseUrl()}/admin-post-feed/${selectedPost._id}`,
         {
           method: "PUT",
           headers: {
@@ -200,7 +200,7 @@ export function PostList() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${BaseUrl}/admin-post-feed/${id}`, {
+      const res = await fetch(`${BaseUrl()}/admin-post-feed/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -438,7 +438,7 @@ const paginatedPosts = sortedFilteredPosts.slice(
                 <td className="p-3 border">
                   {post.images?.length > 0 ? (
                     <img
-                      src={`${BaseUrl}${post.images[0]}`}
+                      src={`${BaseUrl()}${post.images[0]}`}
                       alt="Hình ảnh"
                       className="w-10 h-10 object-cover rounded"
                     />
