@@ -28,7 +28,7 @@ export default function ChatRoomDialog({ open, onClose, initialRoomId = null }) 
   useEffect(() => {
     if (!open) return;
 
-    fetch(`${BaseUrl}/chat/rooms/user`, {
+    fetch(`${BaseUrl()}/chat/rooms/user`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -227,7 +227,7 @@ const loadMessagesSinceLastRead = (roomId, lastReadMessageId) => {
                             src={
                               msg.imageUrl.startsWith("http")
                                 ? msg.imageUrl
-                                : `${BaseUrl}${msg.imageUrl}`
+                                : `${BaseUrl()}${msg.imageUrl}`
                             }
                             alt="sent"
                             className="mt-1 max-w-[150px] rounded"

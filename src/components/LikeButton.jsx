@@ -19,14 +19,14 @@ export default function LikeButton({ videoId }) {
       if (liked) {
         // ✅ GỌI API UNLIKE CHUẨN BE
         await axios.post(
-          `${BaseUrl}/video-like/${videoId}/unlike`,
+          `${BaseUrl()}/video-like/${videoId}/unlike`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
         // ✅ GỌI API LIKE CHUẨN BE
         await axios.post(
-          `${BaseUrl}/video-like/${videoId}/like`,
+          `${BaseUrl()}/video-like/${videoId}/like`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );

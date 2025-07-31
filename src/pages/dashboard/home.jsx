@@ -9,9 +9,9 @@ export default function Home() {
   useEffect(() => {
     const fetchLoginStats = async () => {
       try {
-        const token = localStorage.getItem("token");  // nhớ lưu token trước đó
+        const token = localStorage.getItem("token");  
         const response = await axios.get(
-          `${BaseUrl}/user-dashboard/login-stats`,
+          `${BaseUrl()}/user-dashboard/login-stats`,
           {
             headers: { Authorization: `Bearer ${token}` }
           }

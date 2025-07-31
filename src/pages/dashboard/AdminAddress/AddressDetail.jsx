@@ -25,7 +25,7 @@ export const AddressDetail = () => {
 
   const callAddress = async () => {
     try {
-      const res = await axios.get(`${BaseUrl}/admin/user-address/user/${id}`, {
+      const res = await axios.get(`${BaseUrl()}/admin/user-address/user/${id}`, {
         headers: { Authorization: `Bearer ${tokenUser}` }
       });
       if (res.status === 200) {
@@ -58,7 +58,7 @@ console.log(userInfo)
   const handleDelete = async (addressId) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) {
       try {
-        const res = await axios.delete(`${BaseUrl}/admin/user-address/${addressId}`, {
+        const res = await axios.delete(`${BaseUrl()}/admin/user-address/${addressId}`, {
           headers: { Authorization: `Bearer ${tokenUser}` }
         });
         if (res.status === 200) {
@@ -76,7 +76,7 @@ console.log(userInfo)
   const handleSubmitEdit = async (e) => {
     e.preventDefault()
     try {
-      const res = await axios.put(`${BaseUrl}/admin/user-address/${editingItem._id}`, formData, {
+      const res = await axios.put(`${BaseUrl()}/admin/user-address/${editingItem._id}`, formData, {
         headers: { Authorization: `Bearer ${tokenUser}` }
       });
       if (res.status === 200) {

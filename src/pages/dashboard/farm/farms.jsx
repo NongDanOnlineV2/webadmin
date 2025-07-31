@@ -58,7 +58,7 @@ export function Farms() {
 
   const addFarm = async (data) => {
     try {
-      await axios.post(`${BaseUrl}/adminfarms`, data, getOpts());
+      await axios.post(`${BaseUrl()}/adminfarms`, data, getOpts());
       await fetchFarms();
       alert("Tạo farm thành công!");
     } catch (err) {
@@ -68,7 +68,7 @@ export function Farms() {
 
   const editFarm = async (id, data) => {
     try {
-      await axios.put(`${BaseUrl}/adminfarms/${id}`, data, getOpts());
+      await axios.put(`${BaseUrl()}/adminfarms/${id}`, data, getOpts());
       await fetchFarms();
     } catch (err) {
       alert("Lỗi sửa: " + (err.response?.data?.message || err.message));
@@ -78,7 +78,7 @@ export function Farms() {
   const deleteFarm = async (id) => {
   setIsDeleting(true);
   try {
-    await axios.delete(`${BaseUrl}/adminfarms/${id}`, getOpts());
+    await axios.delete(`${BaseUrl()}/adminfarms/${id}`, getOpts());
     await fetchFarms();
   } catch (err) {
     alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
@@ -97,7 +97,7 @@ export function Farms() {
   if (!window.confirm(`Bạn có chắc chắn muốn ${actionMap[action] || action} farm này không?`)) return;
 
   try {
-    await axios.patch(`${BaseUrl}/adminfarms/${id}/${action}`, null, getOpts());
+    await axios.patch(`${BaseUrl()}/adminfarms/${id}/${action}`, null, getOpts());
 
     alert(`Farm đã được ${actionMap[action]} thành công!`);
     await fetchFarms(); 
@@ -131,7 +131,7 @@ const fetchFarms = async (signal = null) => {
 
   try {
     setLoading(true);
-    const res = await axios.get(`${BaseUrl}/adminfarms`, {
+    const res = await axios.get(`${BaseUrl()}/adminfarms`, {
       ...getOpts(),
       params: {
         limit: itemsPerPage,
