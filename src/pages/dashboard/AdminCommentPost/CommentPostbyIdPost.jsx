@@ -25,7 +25,7 @@ export const CommentPostbyIdPost = ({CommentsDialog}) => {
       try {
         setLoadingComments(true)
         
-        const res= await axios.get(`${BaseUrl}/admin-comment-post/post/${postId}`,
+        const res= await axios.get(`${BaseUrl()}/admin-comment-post/post/${postId}`,
             {headers:{Authorization:`Bearer ${tokenUser}` }})
         
         
@@ -42,7 +42,7 @@ export const CommentPostbyIdPost = ({CommentsDialog}) => {
 
    const callPost=async(postId)=>{
 try {
-  const res = await axios.get(`${BaseUrl}/admin-post-feed/${postId}`, {
+  const res = await axios.get(`${BaseUrl()}/admin-post-feed/${postId}`, {
     headers: { Authorization: `Bearer ${tokenUser}` }
   });
 
@@ -75,7 +75,7 @@ try {
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '';
-    return imagePath.startsWith('http') ? imagePath : `${BaseUrl}${imagePath}`;
+    return imagePath.startsWith('http') ? imagePath : `${BaseUrl()}${imagePath}`;
   };
   const renderCommentActions = (item, index) => {
     const uniqueKey = `comment-${item.createdAt}-${index}`;
@@ -375,7 +375,7 @@ const handleUpdateComment = async (postId) => {
   try {
     
     const res = await axios.put(
-      `${BaseUrl}/admin-comment-post/${postId}/comment/${editCommentIndex}`,
+      `${BaseUrl()}/admin-comment-post/${postId}/comment/${editCommentIndex}`,
       { comment: editContent.trim() },
       { headers: { Authorization: `Bearer ${tokenUser}` } }
     );
@@ -396,7 +396,7 @@ const handleUpdateComment = async (postId) => {
 const handleDeleteComment = async (comment, index, postId) => {
   try {
     const res = await axios.put(
-      `${BaseUrl}/admin-comment-post/${postId}/comment/${index}`,
+      `${BaseUrl()}/admin-comment-post/${postId}/comment/${index}`,
       { status: false },
       {
         headers: { Authorization: `Bearer ${tokenUser}` },

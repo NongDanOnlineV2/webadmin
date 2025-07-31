@@ -15,7 +15,7 @@ export const DialogCommentsByid = ({ postInfo, onClose }) => {
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return "https://via.placeholder.com/40x40.png?text=👤";
-    return imagePath.startsWith('http') ? imagePath : `${BaseUrl}${imagePath}`;
+    return imagePath.startsWith('http') ? imagePath : `${BaseUrl()}${imagePath}`;
   };
 
   // Lấy tất cả comments của bài viết
@@ -24,7 +24,7 @@ export const DialogCommentsByid = ({ postInfo, onClose }) => {
     
     setLoading(true);
     try {
-      const res = await axios.get(`${BaseUrl}/admin-comment-post/post/${postInfo.postId}`, {
+      const res = await axios.get(`${BaseUrl()}/admin-comment-post/post/${postInfo.postId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

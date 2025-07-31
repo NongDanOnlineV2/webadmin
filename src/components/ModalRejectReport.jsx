@@ -29,7 +29,7 @@ export default function ModalRejectReport({
     try {
       setLoading(true);
       await axios.post(
-        `${BaseUrl}/admin-reports/${reportId}/approve`, // vẫn gọi approve
+        `${BaseUrl()}/admin-reports/${reportId}/approve`, // vẫn gọi approve
         {
           action: "REJECT",
           actionNote: note,

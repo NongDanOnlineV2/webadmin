@@ -51,12 +51,12 @@ const RoomTable = () => {
     const token = localStorage.getItem("token");
 
     const [roomsRes, usersRes] = await Promise.all([
-      fetch(`${BaseUrl}/chat/rooms/public`, {
+      fetch(`${BaseUrl()}/chat/rooms/public`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       }),
-      fetch(`${BaseUrl}/admin-users?page=1&limit=100`, {
+      fetch(`${BaseUrl()}/admin-users?page=1&limit=100`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -91,7 +91,7 @@ const paginatedRooms = rooms.slice(
 const fetchRoomDetail = async (roomId) => {
   try {
     const token = localStorage.getItem("token");
-    const res = await fetch(`${BaseUrl}/chat/room/${roomId}`, {
+    const res = await fetch(`${BaseUrl()}/chat/room/${roomId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -125,7 +125,7 @@ const handleRowClick = async (roomId) => {
   try {
     const token = localStorage.getItem("token");
 
-    const res = await fetch(`${BaseUrl}/chat/room/${selectedRoom.roomId}`, {
+    const res = await fetch(`${BaseUrl()}/chat/room/${selectedRoom.roomId}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -147,7 +147,7 @@ const handleAddUserToRoom = async (roomId, userId) => {
   try {
     const token = localStorage.getItem("token");
 
-    const res = await fetch(`${BaseUrl}/chat/room/${roomId}/add-user`, {
+    const res = await fetch(`${BaseUrl()}/chat/room/${roomId}/add-user`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -175,7 +175,7 @@ const handleRemoveUserFromRoom = async (roomId, userId) => {
   try {
     const token = localStorage.getItem("token");
 
-    const res = await fetch(`${BaseUrl}/chat/room/${roomId}/remove-user`, {
+    const res = await fetch(`${BaseUrl()}/chat/room/${roomId}/remove-user`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -199,7 +199,7 @@ const handleCreateRoom = async (roomName, mode) => {
     const decoded = jwtDecode(token);
     const ownerId = decoded?.user?._id || decoded?._id;
 
-    const res = await fetch(`${BaseUrl}/chat/room`, {
+    const res = await fetch(`${BaseUrl()}/chat/room`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -266,7 +266,7 @@ const fetchUserList = async (page = 1, keyword = "") => {
   try {
     const token = localStorage.getItem("token");
     const res = await fetch(
-      `${BaseUrl}/admin-users?page=${page}&limit=${usersPerPage}&fullName=${encodeURIComponent(keyword)}`,
+      `${BaseUrl()}/admin-users?page=${page}&limit=${usersPerPage}&fullName=${encodeURIComponent(keyword)}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -338,7 +338,7 @@ const handleSearch = () => {
                 <td className="p-3">
                   {room.roomAvatar ? (
                     <img
-                      src={`${BaseUrl}${room.roomAvatar}`}
+                      src={`${BaseUrl()}${room.roomAvatar}`}
                       alt="Avatar"
                       className="w-12 h-12 rounded-full object-cover"
                     />
@@ -401,7 +401,7 @@ const handleSearch = () => {
                     <li key={user.userId} className="flex items-center gap-2 justify-between">
                       <div className="flex items-center gap-2">
                         <Avatar
-                          src={user.avatar ? `${BaseUrl}${user.avatar}` : ""}
+                          src={user.avatar ? `${BaseUrl()}${user.avatar}` : ""}
                           size="sm"
                         />
                         <Typography variant="small" className="text-sm flex items-center gap-1">
@@ -560,7 +560,7 @@ const handleSearch = () => {
                 <tr key={user._id} className="border-b text-sm hover:bg-gray-50">
                   <td className="p-2">
                     <Avatar
-                      src={user.avatar ? `${BaseUrl}${user.avatar}` : ""}
+                      src={user.avatar ? `${BaseUrl()}${user.avatar}` : ""}
                       size="sm"
                     />
                   </td>
