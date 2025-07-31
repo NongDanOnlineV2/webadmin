@@ -50,7 +50,7 @@ const RoomTable = () => {
   try {
     const token = localStorage.getItem("token");
 
-    const roomsRes = await fetch(`${BaseUrl}/chat/rooms/public`, {
+    const roomsRes = await fetch(`${BaseUrl()}/chat/rooms/public`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -119,7 +119,7 @@ const handleRowClick = async (roomId) => {
     const token = localStorage.getItem("token");
 
 
-    const res = await fetch(`${BaseUrl}/chat/room/${room.roomId}`, {
+    const res = await fetch(`${BaseUrl()}/chat/room/${room.roomId}`, {
 
     
       method: "DELETE",
@@ -211,7 +211,7 @@ const handleCreateRoom = async (roomName, mode) => {
     if (!res.ok) throw new Error("Tạo phòng thất bại");
     const resData = await res.json();
     const newRoomId = resData.room?.roomId;
-    await fetch(`${BaseUrl}/chat/room/${newRoomId}/add-user`, {
+    await fetch(`${BaseUrl()}/chat/room/${newRoomId}/add-user`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
