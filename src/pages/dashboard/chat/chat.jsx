@@ -50,33 +50,23 @@ const RoomTable = () => {
   try {
     const token = localStorage.getItem("token");
 
-    const [roomsRes, usersRes] = await Promise.all([
-      fetch(`${BaseUrl}/chat/rooms/public`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }),
-      fetch(`${BaseUrl}/admin-users?page=1&limit=100`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }),
-    ]);
-
-    const [roomsData, usersRaw] = await Promise.all([
-      roomsRes.json(),
-      usersRes.json(),
-    ]);
-    const usersData = usersRaw.data || [];
-    const enrichedRooms = roomsData.map((room) => {
-      const owner = usersData.find((user) => user._id === room.ownerId);
-      return {
-        ...room,
-        ownerName: owner ? owner.fullName : "Không rõ",
-      };
+    const roomsRes = await fetch(`${BaseUrl}/chat/rooms/public`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
 
-    setRooms(enrichedRooms);
+    const roomsData = await roomsRes.json();
+    const roomsWithOwnerName = await Promise.all(
+      roomsData.map(async (room) => {
+        const detail = await fetchRoomDetail(room.roomId);
+        return {
+          ...room,
+          ownerName: detail?.ownerName || "Không xác định",
+        };
+      })
+    );
+    setRooms(roomsWithOwnerName);
   } catch (err) {
     console.error("Lỗi khi tải dữ liệu:", err);
   }
@@ -100,7 +90,12 @@ const fetchRoomDetail = async (roomId) => {
     if (!res.ok) throw new Error("Không lấy được thông tin phòng");
 
     const roomData = await res.json();
-    return roomData; // trả về dữ liệu phòng
+
+    // ✅ Tìm tên chủ phòng
+    const owner = roomData.users?.find((u) => u.userId === roomData.ownerId);
+    roomData.ownerName = owner?.fullName || "Không xác định";
+
+    return roomData;
   } catch (err) {
     console.error("Lỗi khi lấy chi tiết phòng:", err);
     alert("Không thể tải thông tin phòng.");
@@ -116,26 +111,24 @@ const handleRowClick = async (roomId) => {
   }
 };
 
-  const handleDeleteRoom = async () => {
-  if (!selectedRoom) return;
-
+  const handleDeleteRoom = async (room) => {
   const confirmDelete = window.confirm("Bạn có chắc muốn xoá phòng này?");
   if (!confirmDelete) return;
 
   try {
     const token = localStorage.getItem("token");
 
-    const res = await fetch(`${BaseUrl}/chat/room/${selectedRoom.roomId}`, {
+    const res = await fetch(`${BaseUrl}/chat/room/${room.roomId}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-
+    console.log("res: ",res);
     if (!res.ok) throw new Error("Xoá thất bại");
 
     setRooms((prevRooms) =>
-      prevRooms.filter((room) => room.roomId !== selectedRoom.roomId)
+      prevRooms.filter((r) => r.roomId !== room.roomId)
     );
     setOpenDialog(false);
   } catch (err) {
@@ -197,7 +190,7 @@ const handleCreateRoom = async (roomName, mode) => {
     const token = localStorage.getItem("token");
 
     const decoded = jwtDecode(token);
-    const ownerId = decoded?.user?._id || decoded?._id;
+    const ownerId = decoded?.user?.id || decoded?.id;
 
     const res = await fetch(`${BaseUrl}/chat/room`, {
       method: "POST",
@@ -213,8 +206,19 @@ const handleCreateRoom = async (roomName, mode) => {
     });
 
     if (!res.ok) throw new Error("Tạo phòng thất bại");
+    const resData = await res.json();
+    const newRoomId = resData.room?.roomId;
+    await fetch(`${BaseUrl}/chat/room/${newRoomId}/add-user`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ userId: ownerId }),
+    });
 
     alert("Đã tạo phòng mới");
+
     fetchData(); // cập nhật lại danh sách phòng
   } catch (err) {
     console.error("Lỗi khi tạo phòng:", err);
@@ -355,8 +359,7 @@ const handleSearch = () => {
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedRoom(room);
-                          handleDeleteRoom();
+                          handleDeleteRoom(room);
                         }}
                       >
                         Xoá phòng
