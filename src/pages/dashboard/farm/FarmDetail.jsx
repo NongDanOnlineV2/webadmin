@@ -254,6 +254,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
                 <Typography className="text-sm italic text-gray-500">Chưa có hình ảnh</Typography>
               )}
             </div>
+            
                 <div className="flex flex-col gap-1">
                   <Typography className="text-sm font-medium text-gray-800">Câu hỏi & Câu trả lời</Typography>
                   <Button
@@ -271,7 +272,6 @@ export default function FarmDetail({ open, onClose, farmId }) {
                       <Typography variant="h6" className="mb-2 text-blue-gray-900">
                         Câu hỏi đã trả lời ({answers.length}/{questions.length})
                       </Typography>
-
                       {loadingQuestions || loadingAnswers ? (
                         <Typography className="text-sm text-blue-500">Đang tải dữ liệu...</Typography>
                       ) : answers.length === 0 ? (
@@ -295,7 +295,6 @@ export default function FarmDetail({ open, onClose, farmId }) {
                       )}
                     </div>
                   )}
-
             {/* Video dialog */}
             <Dialog open={showVideos} handler={() => setShowVideos(false)} size="lg">
               <DialogHeader>Danh sách video ({videoCount})</DialogHeader>
@@ -357,7 +356,6 @@ export default function FarmDetail({ open, onClose, farmId }) {
                 <Button onClick={() => setShowVideos(false)} color="blue">Đóng</Button>
               </DialogFooter>
             </Dialog>
-
             {/* Video viewer */}
             <Dialog open={!!selectedVideo} handler={() => setSelectedVideo(null)} size="lg">
               <DialogHeader>{selectedVideo?.title || "Xem video"}</DialogHeader>
@@ -365,7 +363,6 @@ export default function FarmDetail({ open, onClose, farmId }) {
                 {(() => {
                   const videoSrc = selectedVideo?.youtubeLink || (selectedVideo?.localFilePath ? `${BaseUrl}${selectedVideo.localFilePath}` : null);
                   if (!videoSrc) return <Typography className="text-red-500">Không tìm thấy video.</Typography>;
-
                   if (videoSrc.includes("youtube.com/embed")) {
                     return (
                       <iframe
@@ -377,7 +374,6 @@ export default function FarmDetail({ open, onClose, farmId }) {
                       ></iframe>
                     );
                   }
-
                   if (videoSrc.endsWith(".m3u8")) {
                       return (
                         <HLSPlayer
@@ -401,7 +397,6 @@ export default function FarmDetail({ open, onClose, farmId }) {
     </div>
   );
 }
-
 function HLSPlayer({ src, poster }) {
   const videoRef = useRef();
 
