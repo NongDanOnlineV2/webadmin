@@ -223,11 +223,28 @@ const handleSearch = async () => {
 
   
 // CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
- const handleUpdate = async () => {
-    if (!token || !selectedUser) return;
-    const hasStatusChanged = formData.isActive !== selectedUser.isActive;
-    try {
-      await axios.put(`${BaseUrl()}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
+const handleUpdate = async () => {
+  if (!token || !selectedUser) return;
+
+  const phoneValid = /^\d{10}$/.test(formData.phone);
+  if (!phoneValid) {
+    alert("Số điện thoại phải đủ 10 chữ số!");
+    return; // không cho tiếp tục
+  }
+
+  const hasStatusChanged = formData.isActive !== selectedUser.isActive;
+
+  try {
+    await axios.put(
+      `${BaseUrl()}/admin-users/${selectedUser._id}`,
+      {
+        fullName: formData.fullName,
+        phone: formData.phone,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
 
     if (hasStatusChanged) {
       await axios.patch(
@@ -246,13 +263,12 @@ const handleSearch = async () => {
     setEditOpen(false);
   } catch (error) {
     console.error("❌ Lỗi khi cập nhật:", error);
-
     const message =
       error.response?.data?.message || "Cập nhật thất bại! Vui lòng thử lại.";
-
     alert(message);
   }
-  };
+};
+
 
  const handleToggleActive = async (val) => {
   if (!token || !selectedUser) return;
@@ -516,25 +532,22 @@ const handleDelete = async (userId) => {
     <Dialog open={editOpen} handler={setEditOpen} size="sm">
   <DialogHeader>Chỉnh sửa người dùng</DialogHeader>
   <DialogBody className="space-y-4">
-    <Input
-      label="Full Name"
-      value={formData.fullName}
-      onChange={e => setFormData({ ...formData, fullName: e.target.value })}
-    />
+  <Input
+  label="Full Name"
+  value={formData.fullName}
+  onChange={e => setFormData({ ...formData, fullName: e.target.value })}
+  disabled={!/^\d{10}$/.test(formData.phone)} // chỉ cho sửa nếu phone đúng định dạng
+/>
+
     <Input label="Email" value={formData.email} disabled />
     <Input
-      label="Phone"
-      value={formData.phone}
-      onChange={e => setFormData({ ...formData, phone: e.target.value })}
-    />
-  {/* <Select
-  label="Trạng thái"
-  value={formData.isActive ? "Đã cấp quyền" : "Chưa cấp quyền"}
-  onChange={val => setFormData({ ...formData, isActive: val === "Đã cấp quyền" })}
->
-  <Option value="Đã cấp quyền">Active</Option>
-  <Option value="Chưa cấp quyền">Inactive</Option>
-</Select> */}
+  label="Phone"
+  value={formData.phone}
+  error={formData.phone && !/^\d{10}$/.test(formData.phone)}
+  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+/>
+
+
     <div className="flex flex-col sm:flex-row sm:items-end gap-2">
       <div className="w-full sm:w-60">
         <Select
