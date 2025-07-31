@@ -1523,14 +1523,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           likeUsers={selectedPostLikes}
         />
 
-        {chatOpen && chatRoomId && (
-          <ChatRoomDialog
-            open={chatOpen}
-            onClose={() => setChatOpen(false)}
-            roomId={chatRoomId}
-          />
-        )}
-
     </div>
   );
 }
