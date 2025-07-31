@@ -10,7 +10,6 @@ export function SignIn() {
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [env, setEnv] = useState("dev");
   const navigate = useNavigate();
   const [, dispatch] = useMaterialTailwindController();
   const emailRef = useRef();
