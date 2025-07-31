@@ -17,10 +17,6 @@ import AnswersTableDetail from "./answerstabledetail";
 import { BaseUrl } from "@/ipconfig";
 import axios from "axios";
 
-// const API_URL = `${BaseUrl()}/answers`;
-
-let token = localStorage.getItem("token");
-
 export function AnswersTable() {
   const [allAnswers, setAllAnswers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +29,6 @@ export function AnswersTable() {
   const [searchFarmName, setSearchFarmName] = useState("");
   const [isSearching, setIsSearching] = useState(false); 
   const [filterQuestionText, setFilterQuestionText] = useState(""); 
-console.log(allAnswers)
  
   const truncateText = (text, maxLength = 50) => {
     if (!text) return "";
@@ -43,8 +38,10 @@ console.log(allAnswers)
   const loadAnswersByPage = async (page = 1, searchMode = false) => {
     try {
       setLoading(true);
+      // Luôn lấy token mới nhất từ localStorage
+      const currentToken = localStorage.getItem("token");
       const res = await axios.get(`${BaseUrl()}/answers?limit=${itemsPerPage}&page=${page}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${currentToken}` }
       });
 
       let data = res.data.data || [];
@@ -85,18 +82,24 @@ console.log(allAnswers)
   ];
 
   const handleDelete = async (id, item) => {
-    if (!window.confirm(`Xóa đáp án của Farm: ${farmMap[item.farmId]}?`)) return;
+    const currentToken = localStorage.getItem("token");
+    // Đúng cú pháp: kiểm tra xác nhận xóa, nếu không xác nhận thì return
+    if (!window.confirm(`Bạn có muốn xóa đáp án của farm không ?`)) return;
     try {
-      const res = await fetchWithAuth(`${BaseUrl()}/${id}`, { method: "DELETE" });
-      if (!res.ok) alert((await res.json()).message);
-      alert("✅ Xóa thành công!");
-      loadAnswersByPage(currentPage, isSearching);
+      const res = await axios.delete(`${BaseUrl()}/answers/${id}`, {
+        headers: { Authorization: `Bearer ${currentToken}` }
+      });
+      if (res.status !== 200 && res.status !== 204) {
+        alert("Có lỗi khi xóa !");
+      } else {
+        alert("✅ Xóa thành công!");
+        loadAnswersByPage(currentPage, isSearching);
+      }
     } catch (err) {
-      alert(`❌ ${err.message}`);
+      alert(`❌ ${err.response?.data?.message || err.message}`);
     }
   };
 
- 
 
 
   const handleRowClick = (item) => {
@@ -186,7 +189,6 @@ console.log(allAnswers)
                   {item.uploadedFiles?.length > 0
                     ? item.uploadedFiles.map((f, i) => (
                         <a onClick={(e)=>{
-                          console.log(f)
                           e.stopPropagation()}} key={i} href={`${BaseUrl()}${f}`} target="_blank" rel="noreferrer" className="text-blue-600 underline text-xs block">
                           📎 File {i + 1}
                         </a>
