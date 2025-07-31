@@ -9,8 +9,7 @@ import {
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import { BaseUrl } from '@/ipconfig';
-import CreatableSelect from 'react-select/creatable';
-import noAvatar from "@/assets/no-avatar.png";
+
 const allFarms = { current: [] };
 const allVideos = { current: [] };
 const allPosts = { current: [] };
