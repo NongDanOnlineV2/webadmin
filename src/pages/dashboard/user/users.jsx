@@ -48,7 +48,7 @@ const fetchAllData = async () => {
         let page = 1;
         let items = [];
         while (true) {
-          const res = await axios.get(`${BaseUrl}/${endpoint}?page=${page}&limit=100`, {
+          const res = await axios.get(`${BaseUrl()}/${endpoint}?page=${page}&limit=100`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = res.data?.data || [];
@@ -72,7 +72,7 @@ const fetchAllData = async () => {
       if (filterRole) params.role = filterRole;
       if (filterStatus) params.isActive = filterStatus === "Active";
 
-    const res = await api.get(`${BaseUrl}/admin-users`, { params }); 
+    const res = await api.get(`${BaseUrl()}/admin-users`, { params }); 
     const usersData = res.data?.data || [];
 
       const postMap = {};
@@ -145,7 +145,7 @@ const handleSearch = async () => {
     if (filterStatus) params.isActive = filterStatus === "Active";
     if (searchText.trim()) params.fullName = searchText.trim();
 
-    const res = await api.get(`${BaseUrl}/admin-users`, { params });
+    const res = await api.get(`${BaseUrl()}/admin-users`, { params });
     const usersData = res.data?.data || [];
 
     // đếm số lượng như cũ
@@ -227,11 +227,11 @@ const handleSearch = async () => {
     if (!token || !selectedUser) return;
     const hasStatusChanged = formData.isActive !== selectedUser.isActive;
     try {
-      await axios.put(`${BaseUrl}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`${BaseUrl()}/admin-users/${selectedUser._id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
 
     if (hasStatusChanged) {
       await axios.patch(
-        `${BaseUrl}/admin-users/${selectedUser._id}/active`,
+        `${BaseUrl()}/admin-users/${selectedUser._id}/active`,
         {
           isActive: formData.isActive,
         },
@@ -267,7 +267,7 @@ const handleSearch = async () => {
   }
 
   try {
-    await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/active`, {}, {
+    await axios.patch(`${BaseUrl()}/admin-users/${selectedUser._id}/active`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
@@ -286,7 +286,7 @@ const handleSetActive = async (userId) => {
 
   try {
     await axios.put(
-      `${BaseUrl}/admin-users/${userId}`,
+      `${BaseUrl()}/admin-users/${userId}`,
       { isActive: true },
       {
         headers: {
@@ -308,7 +308,7 @@ const handleDelete = async (userId) => {
 
   try {
     await axios.put(
-      `${BaseUrl}/admin-users/${userId}`,
+      `${BaseUrl()}/admin-users/${userId}`,
       { isActive: false },
       {
         headers: {
@@ -334,9 +334,9 @@ const handleDelete = async (userId) => {
     if (!token || !selectedUser) return;
     try {
       if (selectedRole === "Farmer") {
-        await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${BaseUrl()}/admin-users/${selectedUser._id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
       } else {
-        await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${BaseUrl()}/admin-users/${selectedUser._id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
       }
       alert("Thêm role thành công!");
       fetchUsers();
@@ -348,7 +348,7 @@ const handleDelete = async (userId) => {
   const handleRemoveRole = async (role) => {
     if (!token || !selectedUser) return;
     try {
-      await axios.patch(`${BaseUrl}/admin-users/${selectedUser._id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`${BaseUrl()}/admin-users/${selectedUser._id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
       alert("Xoá role thành công!");
       fetchUsers();
     } catch {
@@ -428,7 +428,7 @@ const handleDelete = async (userId) => {
             <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
             <td className="p-2">
               <Avatar
-                src={user.avatar ? `${BaseUrl}${user.avatar}` : fallbackAvatar}
+                src={user.avatar ? `${BaseUrl()}${user.avatar}` : fallbackAvatar}
                 alt={user.fullName}
                 size="sm"
                 onError={(e) => (e.target.src = fallbackAvatar)}

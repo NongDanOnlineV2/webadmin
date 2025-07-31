@@ -32,7 +32,7 @@ const [selectedReportType, setSelectedReportType] = useState(null);
       if (status) query += `&status=${status}`;
       if (type) query += `&type=${type}`;
 
-      const res = await axios.get(`${BaseUrl}/admin-reports${query}`, {
+      const res = await axios.get(`${BaseUrl()}/admin-reports${query}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -54,7 +54,7 @@ useEffect(() => {
         if (!existingMap[id]) {
           try {
             const res = await axios.get(
-              `https://api-ndolv2.nongdanonline.cc/admin-users/${id}`,
+              `${BaseUrl()}/admin-users/${id}`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -91,11 +91,11 @@ useEffect(() => {
     switch (selectedReport.type) {
       case "USER":
         id = selectedReport.targetUser?.id;
-        url = `${BaseUrl}/admin-users/${id}`;
+        url = `${BaseUrl()}/admin-users/${id}`;
         break;
       case "POST":
         id = selectedReport.targetPost?.id;
-        url = `${BaseUrl}/admin-post-feed/${id}`;
+        url = `${BaseUrl()}/admin-post-feed/${id}`;
         break;
       default:
         return;

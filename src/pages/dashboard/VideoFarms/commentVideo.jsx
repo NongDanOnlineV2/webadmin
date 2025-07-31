@@ -9,28 +9,28 @@ const token = () => localStorage.getItem("token");
 
 const fetchComments = (videoId) =>
   axios
-    .get(`${BaseUrl}/video-comment/${videoId}/comments`, {
+    .get(`${BaseUrl()}/video-comment/${videoId}/comments`, {
       headers: { Authorization: `Bearer ${token()}` },
     })
     .then((r) => r.data);
 
 const addComment = (videoId, body) =>
-  axios.post(`${BaseUrl}/video-comment/${videoId}/comment`, body, {
+  axios.post(`${BaseUrl()}/video-comment/${videoId}/comment`, body, {
     headers: { Authorization: `Bearer ${token()}` },
   });
 
 const replyComment = (videoId, commentIndex, body) =>
-  axios.post(`${BaseUrl}/video-comment/${videoId}/comment/${commentIndex}/reply`, body, {
+  axios.post(`${BaseUrl()}/video-comment/${videoId}/comment/${commentIndex}/reply`, body, {
     headers: { Authorization: `Bearer ${token()}` },
   });
 
 const hideComment = (videoId, commentIndex) =>
-  axios.delete(`${BaseUrl}/video-comment/${videoId}/comment/${commentIndex}`, {
+  axios.delete(`${BaseUrl()}/video-comment/${videoId}/comment/${commentIndex}`, {
     headers: { Authorization: `Bearer ${token()}` },
   });
 
 const hideReply = (videoId, commentIndex, replyIndex) =>
-  axios.delete(`${BaseUrl}/video-comment/${videoId}/comment/${commentIndex}/reply/${replyIndex}`, {
+  axios.delete(`${BaseUrl()}/video-comment/${videoId}/comment/${commentIndex}/reply/${replyIndex}`, {
     headers: { Authorization: `Bearer ${token()}` },
   });
 

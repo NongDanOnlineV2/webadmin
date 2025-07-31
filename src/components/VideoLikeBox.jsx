@@ -13,7 +13,7 @@ export default function VideoLikeBox({ videoId, refreshKey }) {
     if (!videoId || videoId === ':videoId') return;
     setLoading(true);
     try {
-      const res = await axios.get(`${BaseUrl}/video-like/${videoId}/users`, {
+      const res = await axios.get(`${BaseUrl()}/video-like/${videoId}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
