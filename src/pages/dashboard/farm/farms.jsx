@@ -284,16 +284,6 @@ const fetchFarms = async (signal = null) => {
                           >
                             Sửa
                           </MenuItem>
-                          <MenuItem
-                            className="text-red-500 font-semibold"
-                            onClick={() => {
-                              setDeletingFarmId(farm._id);
-                              setDeleteConfirmOpen(true);
-                              setOpenMenuId(null);
-                            }}
-                          >
-                            Xoá
-                          </MenuItem>
                           {farm.status === "pending" && (
                             <>
                               <MenuItem onClick={() => { changeStatus(farm._id, "activate"); setOpenMenuId(null); }}>Duyệt</MenuItem>
