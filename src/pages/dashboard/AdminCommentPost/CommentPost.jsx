@@ -49,7 +49,7 @@ export const CommentPost = () => {
         return;
       }
 
-      const res = await axios.get(`${BaseUrl}/admin-comment-post/?page=${page}&limit=${limit}`, {
+      const res = await axios.get(`${BaseUrl()}/admin-comment-post/?page=${page}&limit=${limit}`, {
         headers: { Authorization: `Bearer ${tokenUser}` }
       });
 
@@ -159,7 +159,7 @@ export const CommentPost = () => {
                                     src={
                                       latestComment.userId.avatar?.startsWith('http')
                                         ? latestComment.userId.avatar
-                                        : `${BaseUrl}${latestComment.userId.avatar}`
+                                        : `${BaseUrl()}${latestComment.userId.avatar}`
                                     }
                                     alt=""
                                     className="w-10 h-10 rounded-full border-2 border-gray-200"

@@ -2,26 +2,21 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { BaseUrl } from '@/ipconfig';
 import Pagination from '@/components/Pagination';
-import ModalApproveReport from "@/components/ModalApproveReport"; // hoặc đường dẫn tương ứng
-import { Typography, Dialog, DialogHeader, DialogBody, DialogFooter,Textarea,Button } from "@material-tailwind/react";
+import ModalApproveReport from '@/components/ModalApproveReport';
 import ModalRejectReport from '@/components/ModalRejectReport';
+
 export default function AdminReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedReport, setSelectedReport] = useState(null);
   const [status, setStatus] = useState('');
   const [type, setType] = useState('');
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [selectedReportId, setSelectedReportId] = useState(null);
+  const [selectedReportType, setSelectedReportType] = useState(null);
   const [openApprove, setOpenApprove] = useState(false);
-const [selectedReportId, setSelectedReportId] = useState(null);
-const [users, setUsers] = useState([]);
-const [reporterMap, setReporterMap] = useState({});
-const [reportedUser, setReportedUser] = useState(null);
-const [reportedObject, setReportedObject] = useState(null);
-const [openReject, setOpenReject] = useState(false);
-const [rejectReason, setRejectReason] = useState("");
-const [selectedReportType, setSelectedReportType] = useState(null);
+  const [openReject, setOpenReject] = useState(false);
 
   const token = localStorage.getItem('token');
 
@@ -32,7 +27,7 @@ const [selectedReportType, setSelectedReportType] = useState(null);
       if (status) query += `&status=${status}`;
       if (type) query += `&type=${type}`;
 
-      const res = await axios.get(`${BaseUrl}/admin-reports${query}`, {
+      const res = await axios.get(`${BaseUrl()}/admin-reports${query}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -44,79 +39,6 @@ const [selectedReportType, setSelectedReportType] = useState(null);
       setLoading(false);
     }
   };
-
-useEffect(() => {
-  const fetchUserInfos = async () => {
-    const reporterIds = [...new Set(reports.map((r) => r.reporter).filter(Boolean))];
-
-    const fetchAndSet = async (ids, setMap, existingMap) => {
-      for (const id of ids) {
-        if (!existingMap[id]) {
-          try {
-            const res = await axios.get(
-              `https://api-ndolv2.nongdanonline.cc/admin-users/${id}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-            setMap((prev) => ({ ...prev, [id]: res.data }));
-          } catch (err) {
-            console.error(`Lỗi fetch user id ${id}:`, err);
-          }
-        }
-      }
-    };
-
-    if (token) {
-      await fetchAndSet(reporterIds, setReporterMap, reporterMap);
-    }
-  };
-
-  if (reports.length > 0 && token) {
-    fetchUserInfos();
-  }
-}, [reports, token]);
-
-useEffect(() => {
-  setReportedObject(null);
-
-  const fetchReportedObject = async () => {
-    if (!selectedReport || !selectedReport.type) return;
-
-    let url = "";
-    let id = "";
-
-    switch (selectedReport.type) {
-      case "USER":
-        id = selectedReport.targetUser?.id;
-        url = `${BaseUrl}/admin-users/${id}`;
-        break;
-      case "POST":
-        id = selectedReport.targetPost?.id;
-        url = `${BaseUrl}/admin-post-feed/${id}`;
-        break;
-      default:
-        return;
-    }
-
-    if (!id) return;
-
-    try {
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setReportedObject(res.data);
-    } catch (err) {
-      console.error("Lỗi khi fetch object bị report:", err);
-      setReportedObject(null);
-    }
-  };
-
-  fetchReportedObject();
-}, [selectedReport, token]);
-
 
   useEffect(() => {
     fetchReports();
@@ -152,7 +74,7 @@ useEffect(() => {
           <option value="">-- Tất cả loại --</option>
           <option value="USER">Người dùng</option>
           <option value="POST">Bài viết</option>
-          <option value="VIDEO_FARM">Video </option>
+          <option value="VIDEO_FARM">Video</option>
         </select>
       </div>
 
@@ -163,96 +85,81 @@ useEffect(() => {
             <tr>
               <th className="px-4 py-2 text-left">Người báo cáo</th>
               <th className="px-4 py-2 text-left">Loại</th>
-              <th className="px-4 py-2 text-left">Nội dung</th>
+              <th className="px-4 py-2 text-left">Lý do</th>
               <th className="px-4 py-2 text-left">Trạng thái</th>
               <th className="px-4 py-2 text-left">Ngày tạo</th>
               <th className="px-4 py-2 text-left">Hành động</th>
             </tr>
           </thead>
-        <tbody>
-  {loading ? (
-    <tr>
-      <td colSpan="6" className="text-center p-4">
-        Đang tải dữ liệu...
-      </td>
-    </tr>
-  ) : reports.length === 0 ? (
-    <tr>
-      <td colSpan="6" className="text-center p-4 text-gray-500">
-        Không có báo cáo nào
-      </td>
-    </tr>
-  ) : (
-    reports.map((r) => (
-      <tr
-        key={r._id}
-        className="border-t hover:bg-gray-100 cursor-pointer"
-        onClick={() => setSelectedReport(r)}
-      >
-        <td className="px-4 py-2">
-          {reporterMap[r.reporter]?.fullName || "Ẩn danh"}
-        </td>
-        <td className="px-4 py-2">
-          <span
-            className={`px-2 py-1 rounded text-xs font-semibold 
-              ${
-                r.type === "USER"
-                  ? "bg-blue-100 text-blue-800"
-                  : r.type === "POST"
-                  ? "bg-green-100 text-green-800"
-                  : r.type === "VIDEO_FARM"
-                  ? "bg-purple-100 text-purple-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-          >
-            {r.type}
-          </span>
-        </td>
-        <td className="px-4 py-2">{r.reason}</td>
-        <td>
-  {r.status === "NEW" ? "Chưa xử lý" : r.status === "RESOLVED" ? "Đã xử lý" : r.status}
-</td>
-
-        <td className="px-4 py-2">
-          {new Date(r.createdAt).toLocaleString()}
-        </td>
-      <td className="px-4 py-2 space-x-2" onClick={(e) => e.stopPropagation()}>
-  {r.status === 'NEW' && (
-    <>
-      <button
- onClick={() => {
-  setSelectedReport(null);
-  setSelectedReportId(r._id);
-  setSelectedReportType(r.type); // THÊM DÒNG NÀY
-  setOpenReject(true);
-}}
-
-  className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded"
->
-  Từ chối
-</button>
-
-      <button
-      onClick={() => {
-  setSelectedReport(null);
-  setSelectedReportId(r._id);
-  setSelectedReportType(r.type); // THÊM DÒNG NÀY
-  setOpenApprove(true);
-}}
-
-        className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded"
-      >
-        Duyệt
-      </button>
-    </>
-  )}
-</td>
-
-      </tr>
-    ))
-  )}
-</tbody>
-
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="6" className="text-center p-4">Đang tải dữ liệu...</td>
+              </tr>
+            ) : reports.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="text-center p-4 text-gray-500">
+                  Không có báo cáo nào
+                </td>
+              </tr>
+            ) : (
+              reports.map((r) => (
+                <tr
+                  key={r._id}
+                  className="border-t hover:bg-gray-100 cursor-pointer"
+                  onClick={() => setSelectedReport(r)}
+                >
+                  <td className="px-4 py-2">{r.reporter?.fullName || "Ẩn danh"}</td>
+                  <td className="px-4 py-2">
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                      r.type === "USER"
+                        ? "bg-blue-100 text-blue-800"
+                        : r.type === "POST"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-purple-100 text-purple-800"
+                    }`}>
+                      {r.type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">{r.reason}</td>
+                  <td className="px-4 py-2">
+                    {r.status === "NEW" ? "Chưa xử lý" : "Đã xử lý"}
+                  </td>
+                  <td className="px-4 py-2">
+                    {new Date(r.createdAt).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2 space-x-2" onClick={(e) => e.stopPropagation()}>
+                    {r.status === "NEW" && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedReport(null);
+                            setSelectedReportId(r._id);
+                            setSelectedReportType(r.type);
+                            setOpenReject(true);
+                          }}
+                          className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded"
+                        >
+                          Từ chối
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedReport(null);
+                            setSelectedReportId(r._id);
+                            setSelectedReportType(r.type);
+                            setOpenApprove(true);
+                          }}
+                          className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded"
+                        >
+                          Duyệt
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
         </table>
       </div>
 
@@ -262,144 +169,76 @@ useEffect(() => {
       </div>
 
       {/* Modal chi tiết */}
-    {selectedReport && (
-  <div
-    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-    onClick={() => setSelectedReport(null)}
-  >
-    <div
-      className="bg-white rounded p-6 w-[90%] max-w-xl shadow-xl overflow-auto max-h-[90vh]"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <h2 className="text-lg font-semibold mb-4">Chi tiết báo cáo</h2>
-      <div className="text-sm space-y-3">
-        <div>
-          <strong>Người báo cáo:</strong>{' '}
-          {selectedReport.reporter ? (
-            <div className="flex items-center gap-2 mt-1">
-              {/* <img
-                src={reporterMap[selectedReport.reporter]?.avatar || '/no-avatar.png'}
-                alt="avatar"
-                className="w-8 h-8 rounded-full object-cover"
-              /> */}
-              <span>{reporterMap[selectedReport.reporter]?.fullName || selectedReport.reporter}</span>
-            </div>
-          ) : (
-            'Ẩn danh'
-          )}
-        </div>
-
-        <div>
-          <strong>Đối tượng bị báo cáo:</strong>{' '}
-<Typography variant="small" className="font-normal text-blue-gray-500">
-  {selectedReport?.type === "USER" && (reportedObject?.fullName || "Đang tải...")}
-  {selectedReport?.type === "POST" && (reportedObject?.title || "Đang tải...")}
-</Typography>
-
-
-
-        </div>
-
-        <div>
-          <strong>Lý do:</strong> {selectedReport.reason}
-        </div>
-        <div>
-          <strong>Loại:</strong> {selectedReport.type}
-        </div>
-        <div>
-          <strong>Trạng thái:</strong> {selectedReport.status}
-        </div>
-        <div>
-          <strong>Thời gian tạo:</strong>{' '}
-          {new Date(selectedReport.createdAt).toLocaleString()}
-        </div>
-        <div>
-          <strong>Cập nhật lần cuối:</strong>{' '}
-          {new Date(selectedReport.updatedAt).toLocaleString()}
-        </div>
-      </div>
-      <div className="text-right mt-6">
-        <button
+      {selectedReport && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
           onClick={() => setSelectedReport(null)}
-          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
         >
-          Đóng
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-{/* Dialog từ chối
-<Dialog open={openReject} handler={setOpenReject}>
-  <DialogHeader>Từ chối báo cáo</DialogHeader>
-  <DialogBody>
-    <Textarea
-      label="Lý do từ chối"
-      value={rejectReason}
-      onChange={(e) => setRejectReason(e.target.value)}
-      required
-    />
-  </DialogBody>
-  <DialogFooter>
-    <Button
-      variant="text"
-      color="gray"
-      onClick={() => {
-        setOpenReject(false);
-        setRejectReason("");
-      }}
-      className="mr-2"
-    >
-      Hủy
-    </Button>
-    <Button
-      variant="filled"
-      color="red"
-      onClick={async () => {
-        try {
-          await api.put(`/admin-reports/${selectedReportId}/approve`, {
-            reason: rejectReason,
-          });
-          toast.success("Từ chối báo cáo thành công");
+          <div
+            className="bg-white rounded p-6 w-[90%] max-w-xl shadow-xl overflow-auto max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold mb-4">Chi tiết báo cáo</h2>
+            <div className="text-sm space-y-3">
+              <div>
+                <strong>Người báo cáo:</strong> {selectedReport.reporter?.fullName || "Ẩn danh"}
+              </div>
+              <div>
+                <strong>Đối tượng bị báo cáo:</strong>{' '}
+                {selectedReport.type === "USER" && selectedReport.targetUser?.fullName}
+                {selectedReport.type === "POST" && selectedReport.targetPost?.title}
+                {selectedReport.type === "VIDEO_FARM" && selectedReport.targetVideoFarm?.title}
+               {(selectedReport.type === "null" || selectedReport.type === "undefined") && "Không có"}
+              </div>
+              <div>
+                <strong>Lý do:</strong> {selectedReport.reason}
+              </div>
+              <div>
+                <strong>Trạng thái:</strong> {selectedReport.status}
+              </div>
+              <div>
+                <strong>Loại:</strong> {selectedReport.type}
+              </div>
+              <div>
+                <strong>Tạo lúc:</strong> {new Date(selectedReport.createdAt).toLocaleString()}
+              </div>
+              <div>
+                <strong>Cập nhật lúc:</strong> {new Date(selectedReport.updatedAt).toLocaleString()}
+              </div>
+            </div>
+            <div className="text-right mt-6">
+              <button
+                onClick={() => setSelectedReport(null)}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xử lý */}
+      <ModalRejectReport
+        open={openReject}
+        onClose={() => setOpenReject(false)}
+        reportId={selectedReportId}
+        reportType={selectedReportType}
+        token={token}
+        onSuccess={() => {
+          fetchReports();
           setOpenReject(false);
-          setRejectReason("");
-          fetchReports(); // Gọi lại danh sách báo cáo
-        } catch (error) {
-          console.error("Lỗi từ chối:", error);
-          toast.error("Từ chối thất bại");
-        }
-      }}
-    >
-      Xác nhận
-    </Button>
-  </DialogFooter>
-</Dialog> */}
-<ModalRejectReport
-  open={openReject}
-  onClose={() => setOpenReject(false)}
-  reportId={selectedReportId}
-  reportType={selectedReportType}
-  token={token}
-  onSuccess={() => {
-    fetchReports();          // Làm mới danh sách báo cáo
-    setOpenReject(false);    // Đóng modal
-  }}
-/>
+        }}
+      />
 
-
-
-{/* modal duyệt */}
-<ModalApproveReport
-  open={openApprove}
-  onClose={() => setOpenApprove(false)}
-  reportId={selectedReportId}
-  reportType={selectedReportType}
-  token={token}
-  onSuccess={fetchReports}
-/>
-
-
-
+      <ModalApproveReport
+        open={openApprove}
+        onClose={() => setOpenApprove(false)}
+        reportId={selectedReportId}
+        reportType={selectedReportType}
+        token={token}
+        onSuccess={fetchReports}
+      />
     </div>
   );
 }

@@ -10,7 +10,6 @@ import VideoLikeList from './VideoLikeList';
 import CommentVideo from './commentVideo';
 import {deletevideo, approvevideo} from './VideoById';
 import Pagination from './Pagination';
-
 const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
   const token = localStorage.getItem('token');
   
@@ -21,8 +20,8 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
     limit: actualLimit.toString()
   });  
   try {
-    const res = await axios.get(`${BaseUrl}/admin-video-farm?${params}`, {
-      headers: { Authorization: `Bearer ${token}` }
+    const res = await axios.get(`${BaseUrl()}/admin-video-farm?${params}`, {
+      headers: { Authorization: `Bearer ${token}`}
     });
         
     let videos = [];
@@ -523,10 +522,10 @@ export const ListVideo = () => {
                       <>
                     {item.youtubeLink ? (
                       item.youtubeLink.endsWith('.m3u8') ? (
-                        <HlsPlayer src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}/${item.youtubeLink}`} className="w-full h-full object-cover rounded-t-lg" />
+                        <HlsPlayer src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl()}/${item.youtubeLink}`} className="w-full h-full object-cover rounded-t-lg" />
                       ) : item.youtubeLink.endsWith('.mp4') ? (
                         <video
-                          src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}/${item.youtubeLink}`}
+                          src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl()}/${item.youtubeLink}`}
                           controls
                           className="w-full h-full object-cover rounded-t-lg"
                         >
@@ -545,7 +544,7 @@ export const ListVideo = () => {
                         ></iframe>
                       ) : (
                         <audio
-                          src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl}/${item.youtubeLink}`}
+                          src={item.youtubeLink.startsWith('http') ? item.youtubeLink : `${BaseUrl()}/${item.youtubeLink}`}
                           controls
                           className="w-full h-full object-cover rounded-t-lg"
                         >
@@ -554,10 +553,10 @@ export const ListVideo = () => {
                       ))
                     ) : item.localFilePath ? (
                       item.localFilePath.endsWith('.m3u8') ? (
-                        <HlsPlayer src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}/${item.localFilePath}`} className="w-full h-full object-cover rounded-t-lg" />
+                        <HlsPlayer src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl()}/${item.localFilePath}`} className="w-full h-full object-cover rounded-t-lg" />
                       ) : item.localFilePath.endsWith('.mp4') ? (
                         <video
-                          src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}/${item.localFilePath}`}
+                          src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl()}/${item.localFilePath}`}
                           controls
                           className="w-full h-full object-cover rounded-t-lg"
                         >
@@ -565,7 +564,7 @@ export const ListVideo = () => {
                         </video>
                       ) : (
                         <audio
-                          src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl}/${item.localFilePath}`}
+                          src={item.localFilePath.startsWith('http') ? item.localFilePath : `${BaseUrl()}/${item.localFilePath}`}
                           controls
                           className="w-full h-full object-cover rounded-t-lg"
                         >
@@ -583,7 +582,7 @@ export const ListVideo = () => {
                       {item.thumbnailPath ? (
                         <div className="relative w-full h-full">
                           <img
-                            src={item.thumbnailPath.startsWith('http') ? item.thumbnailPath : `${BaseUrl}${item.thumbnailPath}`}
+                            src={item.thumbnailPath.startsWith('http') ? item.thumbnailPath : `${BaseUrl()}${item.thumbnailPath}`}
                             alt={item.title || 'Video thumbnail'}
                             className="w-full h-full object-cover rounded-t-lg"
                            

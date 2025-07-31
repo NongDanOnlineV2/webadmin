@@ -25,8 +25,8 @@ export default function ModalApproveReport({
   // Tự động xác định action từ reportType
   useEffect(() => {
     if (reportType === "USER") setAction("DEACTIVATE_USER");
-    else if (reportType === "POST") setAction("DELETE_POST");
-    else if (reportType === "VIDEO_FARM") setAction("DELETE_VIDEO");
+    else if (reportType === "POST") setAction("DEACTIVATE_POST");
+    else if (reportType === "VIDEO_FARM") setAction("DEACTIVATE_POST");
     else setAction("");
   }, [reportType]);
 
@@ -39,7 +39,7 @@ export default function ModalApproveReport({
     try {
       setLoading(true);
       await axios.post(
-        `${BaseUrl}/admin-reports/${reportId}/approve`,
+        `${BaseUrl()}/admin-reports/${reportId}/approve`,
         {
           action,
           actionNote: note,

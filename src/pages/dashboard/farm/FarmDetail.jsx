@@ -81,7 +81,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
   const fetchDetail = async () => {
     if (!farmId) return;
     try {
-      const res = await axios.get(`${BaseUrl}/adminfarms/${farmId}`, getOpts());
+      const res = await axios.get(`${BaseUrl()}/adminfarms/${farmId}`, getOpts());
       const farmData = res.data?.data || res.data;
       const pictures = farmData.pictures || [];
 
@@ -89,13 +89,13 @@ export default function FarmDetail({ open, onClose, farmId }) {
 
       setFarm({
         ...farmData,
-        imageUrl: defaultImg ? `${BaseUrl}${defaultImg.imageUrl}` : null,
+        imageUrl: defaultImg ? `${BaseUrl()}${defaultImg.imageUrl}` : null,
       });
 
       setImages(
         pictures.map((p) => ({
           ...p,
-          url: `${BaseUrl}${p.imageUrl}`,
+          url: `${BaseUrl()}${p.imageUrl}`,
           isAvatar: p.isDefault,
         }))
       );
@@ -108,7 +108,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
   const fetchFarmVideos = async () => {
     setLoadingVideos(true);
     try {
-      const res = await axios.get(`${BaseUrl}/admin-video-farm/farm/${farmId}`, getOpts());
+      const res = await axios.get(`${BaseUrl()}/admin-video-farm/farm/${farmId}`, getOpts());
       const data = res.data?.data || [];
       setVideos(data);
       setVideoCount(data.length);
@@ -131,7 +131,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
   const fetchQuestions = async () => {
     setLoadingQuestions(true);
     try {
-      const res = await axios.get(`${BaseUrl}/admin-questions?limit=15`, getOpts());
+      const res = await axios.get(`${BaseUrl()}/admin-questions?limit=15`, getOpts());
       setQuestions(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
       console.error("Lỗi câu hỏi:", err);
@@ -144,7 +144,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
   const fetchAnswers = async () => {
     setLoadingAnswers(true);
     try {
-      const res = await axios.get(`${BaseUrl}/answers/by-farm/${farmId}`, getOpts());
+      const res = await axios.get(`${BaseUrl()}/answers/by-farm/${farmId}`, getOpts());
       setAnswers(res.data || []);
     } catch (err) {
       console.error("Lỗi câu trả lời:", err);
@@ -361,7 +361,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
               <DialogHeader>{selectedVideo?.title || "Xem video"}</DialogHeader>
               <DialogBody divider className="flex justify-center">
                 {(() => {
-                  const videoSrc = selectedVideo?.youtubeLink || (selectedVideo?.localFilePath ? `${BaseUrl}${selectedVideo.localFilePath}` : null);
+                  const videoSrc = selectedVideo?.youtubeLink || (selectedVideo?.localFilePath ? `${BaseUrl()}${selectedVideo.localFilePath}` : null);
                   if (!videoSrc) return <Typography className="text-red-500">Không tìm thấy video.</Typography>;
                   if (videoSrc.includes("youtube.com/embed")) {
                     return (
@@ -378,7 +378,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
                       return (
                         <HLSPlayer
                           src={videoSrc}
-                          poster={selectedVideo?.thumbnailPath ? `${BaseUrl}${selectedVideo.thumbnailPath}` : undefined}
+                          poster={selectedVideo?.thumbnailPath ? `${BaseUrl()}${selectedVideo.thumbnailPath}` : undefined}
                         />
                       );
                     }

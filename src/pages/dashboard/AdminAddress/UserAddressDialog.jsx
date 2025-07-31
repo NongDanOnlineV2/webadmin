@@ -31,7 +31,7 @@ export const UserAddressDialog = ({ open, onClose, userId, userName }) => {
     
     try {
       setLoading(true)
-      const res = await axios.get(`${BaseUrl}/admin/user-address/user/${userId}`, {
+      const res = await axios.get(`${BaseUrl()}/admin/user-address/user/${userId}`, {
         headers: { Authorization: `Bearer ${tokenUser}` }
       });
       if (res.status === 200) {
@@ -60,7 +60,7 @@ export const UserAddressDialog = ({ open, onClose, userId, userName }) => {
   const handleDelete = async (addressId) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) {
       try {
-        const res = await axios.delete(`${BaseUrl}/admin/user-address/${addressId}`, {
+        const res = await axios.delete(`${BaseUrl()}/admin/user-address/${addressId}`, {
           headers: { Authorization: `Bearer ${tokenUser}` }
         });
         if (res.status === 200) {
@@ -80,7 +80,7 @@ export const UserAddressDialog = ({ open, onClose, userId, userName }) => {
    
     
     try {
-      const res = await axios.put(`${BaseUrl}/admin/user-address/${editingItem._id}`, formData, {
+      const res = await axios.put(`${BaseUrl()}/admin/user-address/${editingItem._id}`, formData, {
         headers: { 
           Authorization: `Bearer ${tokenUser}`,
           'Content-Type': 'application/json'

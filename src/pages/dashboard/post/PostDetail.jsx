@@ -29,7 +29,7 @@ import { BaseUrl } from "@/ipconfig";
 
     const fetchPost = async () => {
       try {
-        const res = await fetch(`${BaseUrl}/admin-post-feed/${postId}`, {
+        const res = await fetch(`${BaseUrl()}/admin-post-feed/${postId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -51,7 +51,7 @@ import { BaseUrl } from "@/ipconfig";
 
     const fetchComments = async () => {
   try {
-    const res = await fetch(`${BaseUrl}/admin-comment-post/post/${postId}`, {
+    const res = await fetch(`${BaseUrl()}/admin-comment-post/post/${postId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const json = await res.json();
@@ -77,7 +77,7 @@ import { BaseUrl } from "@/ipconfig";
 
     const fetchLikeUsers = async () => {
     try {
-      const res = await fetch(`${BaseUrl}/post-feed/${postId}/likes`, {
+      const res = await fetch(`${BaseUrl()}/post-feed/${postId}/likes`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
@@ -145,7 +145,7 @@ import { BaseUrl } from "@/ipconfig";
             {post.authorId ? (
               <>
                 <Avatar
-                  src={post.authorId.avatar ? `${BaseUrl}${post.authorId.avatar}` : "/default-avatar.png"}
+                  src={post.authorId.avatar ? `${BaseUrl()}${post.authorId.avatar}` : "/default-avatar.png"}
                   size="sm"
                 />
                 <div className="flex flex-col">
@@ -205,7 +205,7 @@ import { BaseUrl } from "@/ipconfig";
               {post.images.map((img, idx) => (
                 <img
                   key={idx}
-                  src={`${BaseUrl}${img}`}
+                  src={`${BaseUrl()}${img}`}
                   alt={`img-${idx}`}
                   className="w-full h-52 object-cover rounded shadow"
                 />
@@ -269,7 +269,7 @@ import { BaseUrl } from "@/ipconfig";
             src={
               user.avatar?.startsWith("http")
                 ? user.avatar
-                : `${BaseUrl}${user.avatar || ""}`
+                : `${BaseUrl()}${user.avatar || ""}`
             }
             size="sm"
           />
@@ -311,7 +311,7 @@ import { BaseUrl } from "@/ipconfig";
               src={
                 cmt.userId?.avatar?.startsWith("http")
                   ? cmt.userId.avatar
-                  : `${BaseUrl}${cmt.userId?.avatar || ""}`
+                  : `${BaseUrl()}${cmt.userId?.avatar || ""}`
               }
               alt={cmt.userId?.fullName}
               size="sm"

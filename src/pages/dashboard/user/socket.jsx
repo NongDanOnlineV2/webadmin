@@ -8,7 +8,7 @@ export function connectSocket() {
   const token = localStorage.getItem("token");
 
   if (!socket) {
-    socket = io(`${BaseUrl}/chat`, {
+    socket = io(`${BaseUrl()}/chat`, {
       auth: { token },
       autoConnect: true,
       transports: ["websocket"],

@@ -26,7 +26,7 @@ export const Questions = () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `${BaseUrl}/admin-questions?page=${page}&limit=${limit}`,
+        `${BaseUrl()}/admin-questions?page=${page}&limit=${limit}`,
         { headers: { Authorization: `Bearer ${tokenUser}` } }
       );
       if (res.status === 200) {
@@ -93,7 +93,7 @@ export const Questions = () => {
       allowOtherText: false 
     };
     try {
-      await axios.put(`${BaseUrl}/admin-questions/${editData._id}`, payload, {
+      await axios.put(`${BaseUrl()}/admin-questions/${editData._id}`, payload, {
         headers: { Authorization: `Bearer ${tokenUser}` },
       });
       alert("Lưu thành công");
@@ -107,7 +107,7 @@ export const Questions = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc muốn xóa câu hỏi này?')) return;
     try {
-      await axios.delete(`${BaseUrl}/admin-questions/${id}`, {
+      await axios.delete(`${BaseUrl()}/admin-questions/${id}`, {
         headers: { Authorization: `Bearer ${tokenUser}` },
       });
       alert('Xoá thành công!');
@@ -165,7 +165,7 @@ export const Questions = () => {
         return;
       }
       try {
-        await axios.post(`${BaseUrl}/admin-questions`, {
+        await axios.post(`${BaseUrl()}/admin-questions`, {
           ...addValue,
           options: [],
           allowOtherText: true
@@ -201,7 +201,7 @@ export const Questions = () => {
       return;
     }
     try {
-      await axios.post(`${BaseUrl}/admin-questions`, { ...addValue, options }, {
+      await axios.post(`${BaseUrl()}/admin-questions`, { ...addValue, options }, {
         headers: { Authorization: `Bearer ${tokenUser}` },
       });
       alert('Thêm thành công!');

@@ -6,7 +6,7 @@ import {
 } from "@material-tailwind/react";
 import { useParams } from "react-router-dom";
 import PostLikeUserDialog from "./listpostlikeUser"
-import { BaseUrl } from "@/ipconfig";
+import { BaseUrl} from "@/ipconfig";
 import HlsPlayer from "../VideoFarms/HlsPlayer";
 import ChatRoomDialog from "./ChatRoomDialog";
 
@@ -66,7 +66,7 @@ export default function UserDetail() {
 
   try {
     const res = await axios.get(
-      `${BaseUrl}/admin-comment-post/post/${postId}`,
+      `${BaseUrl()}/admin-comment-post/post/${postId}`,
       config
     );
     console.log("API response:", res.data);
@@ -110,7 +110,7 @@ const handleUpdateAddress = async () => {
 
   try {
     await axios.put(
-      `${BaseUrl}/admin/user-address/${editingAddress._id}`,
+      `${BaseUrl()}/admin/user-address/${editingAddress._id}`,
       payload,
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -118,7 +118,7 @@ const handleUpdateAddress = async () => {
     alert("Cập nhật địa chỉ thành công!");
 
     const res = await axios.get(
-      `${BaseUrl}/admin/user-address/user/${id}`,
+      `${BaseUrl()}/admin/user-address/user/${id}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -136,7 +136,7 @@ const handleDeleteAddress = async (addressId) => {
   const token = localStorage.getItem("token");
   try {
     await axios.delete(
-      `${BaseUrl}/admin/user-address/${addressId}`,
+      `${BaseUrl()}/admin/user-address/${addressId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -144,7 +144,7 @@ const handleDeleteAddress = async (addressId) => {
 
     // Cập nhật lại danh sách địa chỉ
     const res = await axios.get(
-      `${BaseUrl}/admin/user-address/user/${id}`,
+      `${BaseUrl()}/admin/user-address/user/${id}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     setAddresses(res.data || []);
@@ -166,7 +166,7 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
 
   try {
     const res = await axios.get(
-      `${BaseUrl}/post-feed/${postId}/likes`,
+      `${BaseUrl()}/post-feed/${postId}/likes`,
       config
     );
     const users = res.data?.users || [];
@@ -189,7 +189,7 @@ const fetchPostLikesUsers = async (postId, postTitle) => {
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
         const [userRes ] = await Promise.all([
-          axios.get(`${BaseUrl}/admin-users/${id}`, config), 
+          axios.get(`${BaseUrl()}/admin-users/${id}`, config), 
         ]);
 
         setUser(userRes.data);
@@ -206,7 +206,7 @@ const fetchAddresses = async () => {
   const token = localStorage.getItem("token");
   try {
     const res = await axios.get(
-      `${BaseUrl}/admin/user-address/user/${id}`,
+      `${BaseUrl()}/admin/user-address/user/${id}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     setAddresses(res.data || []);
@@ -230,7 +230,7 @@ const handleOpenFarms = async () => {
     const config = { headers: { Authorization: `Bearer ${token}` } };
     const limit = 6;
     
-    const res = await axios.get(`${BaseUrl}/adminfarms/by-user/${id}?page=${farmPage}&limit=${limit}`, config);
+    const res = await axios.get(`${BaseUrl()}/adminfarms/by-user/${id}?page=${farmPage}&limit=${limit}`, config);
     const { data, totalPages } = res.data;
 
     setFarms((prev) => [...prev, ...data]);
@@ -257,7 +257,7 @@ const handleLoadMoreFarms = async () => {
     const config = { headers: { Authorization: `Bearer ${token}` } };
     const limit = 6;
 
-    const res = await axios.get(`${BaseUrl}/adminfarms/by-user/${id}?page=${farmPage}&limit=${limit}`, config);
+    const res = await axios.get(`${BaseUrl()}/adminfarms/by-user/${id}?page=${farmPage}&limit=${limit}`, config);
     const { data, totalPages } = res.data;
 
     setFarms((prev) => [...prev, ...data]);
@@ -289,7 +289,7 @@ const handleOpenPosts = async () => {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const limit = 6;
-      const res = await axios.get(`${BaseUrl}/admin-post-feed/user/${id}?page=${videoPage}&limit=${limit}`, config);
+      const res = await axios.get(`${BaseUrl()}/admin-post-feed/user/${id}?page=${videoPage}&limit=${limit}`, config);
       const { data, totalPages } = res.data;
       
       setPosts((prev) => [...prev, ...data]);
@@ -316,7 +316,7 @@ const handleLoadMorePosts = async () => {
     const config = { headers: { Authorization: `Bearer ${token}` } };
     const limit = 6;
 
-    const res = await axios.get(`${BaseUrl}/admin-post-feed/user/${id}?page=${postPage}&limit=${limit}`, config);
+    const res = await axios.get(`${BaseUrl()}/admin-post-feed/user/${id}?page=${postPage}&limit=${limit}`, config);
     const { data, totalPages } = res.data;
 
     setPosts((prev) => [...prev, ...data]);
@@ -348,7 +348,7 @@ const handleOpenVideos = async () => {
     const config = { headers: { Authorization: `Bearer ${token}` } };
     const limit = 6;
 
-    const res = await axios.get(`${BaseUrl}/admin-video-farm/user/${id}?page=${videoPage}&limit=${limit}`, config);
+    const res = await axios.get(`${BaseUrl()}/admin-video-farm/user/${id}?page=${videoPage}&limit=${limit}`, config);
     const { data, totalPages } = res.data;
 
     setVideos((prev) => [...prev, ...data]);
@@ -374,7 +374,7 @@ const handleLoadMoreVideos = async () => {
     const config = { headers: { Authorization: `Bearer ${token}` } };
     const limit = 6;
 
-    const res = await axios.get(`${BaseUrl}/admin-video-farm/user/${id}?page=${videoPage}&limit=${limit}`, config);
+    const res = await axios.get(`${BaseUrl()}/admin-video-farm/user/${id}?page=${videoPage}&limit=${limit}`, config);
     const { data, totalPages } = res.data;
 
     setVideos((prev) => [...prev, ...data]);
@@ -409,7 +409,7 @@ const fetchVideoLikesUsers = async (videoId, videoTitle) => {
 
   try {
     const res = await axios.get(
-      `${BaseUrl}/video-like/${videoId}/users`,
+      `${BaseUrl()}/video-like/${videoId}/users`,
       config
     );
     const users = res.data?.users || [];
@@ -447,7 +447,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
 
   try {
     const res = await axios.get(
-      `${BaseUrl}/video-comment/${videoId}/comments`,
+      `${BaseUrl()}/video-comment/${videoId}/comments`,
       config
     );
     const comments = res.data || [];
@@ -474,7 +474,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     const config = { headers: { Authorization: `Bearer ${token}` } };
 
     const res  = await axios.get(
-      `${BaseUrl}/admin-video-farm/farm/${farmId}`,
+      `${BaseUrl()}/admin-video-farm/farm/${farmId}`,
       config
     );
     const farmVideos = res.data?.data || [];
@@ -508,7 +508,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           {/* Avatar */}
           <div className="flex-shrink-0">
             <img
-              src={`${BaseUrl}${user.avatar}`}
+              src={`${BaseUrl()}${user.avatar}`}
               alt="avatar"
               className="w-32 h-32 rounded-full border-4 border-blue-400 shadow"
             />
@@ -751,7 +751,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                           src={
                             video.localFilePath.startsWith("http")
                               ? video.localFilePath
-                              : `${BaseUrl}${video.localFilePath}`
+                              : `${BaseUrl()}${video.localFilePath}`
                           }
                           className="h-[180px] w-full rounded shadow mb-3 object-cover"
                         />
@@ -760,7 +760,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                           src={
                             video.localFilePath.startsWith("http")
                               ? video.localFilePath
-                              : `${BaseUrl}${video.localFilePath}`
+                              : `${BaseUrl()}${video.localFilePath}`
                           }
                           controls
                           className="h-[180px] w-full rounded shadow mb-3 object-cover"
@@ -1008,7 +1008,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       {farm.pictures.map((img, idx) => (
                         <img
                           key={idx}
-                          src={`${BaseUrl}${
+                          src={`${BaseUrl()}${
                             img.url || img.path || img.image
                           }`}
                           alt={`Hình ${idx + 1}`}
@@ -1078,7 +1078,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
         src={
           item.localFilePath.startsWith("http")
             ? item.localFilePath
-            : `${BaseUrl}${item.localFilePath}`
+            : `${BaseUrl()}${item.localFilePath}`
         }
         className="h-[200px] w-full rounded shadow mb-3"
       />
@@ -1087,7 +1087,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
         src={
           item.localFilePath.startsWith("http")
             ? item.localFilePath
-            : `${BaseUrl}${item.localFilePath}`
+            : `${BaseUrl()}${item.localFilePath}`
         }
         controls
         autoPlay
@@ -1241,7 +1241,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   src={
                     user.avatar?.startsWith("http")
                       ? user.avatar
-                      : `${BaseUrl}${user.avatar}`
+                      : `${BaseUrl()}${user.avatar}`
                   }
                   alt={user.fullName}
                   className="w-10 h-10 rounded-full"
@@ -1275,7 +1275,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                     src={
                       comment.userId?.avatar?.startsWith("http")
                         ? comment.user.avatar
-                        : `${BaseUrl}${comment.userId?.avatar}`
+                        : `${BaseUrl()}${comment.userId?.avatar}`
                     }
                     alt={comment.userId?.fullName}
                     className="w-10 h-10 rounded-full"
@@ -1338,7 +1338,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       {post.authorId ? (
                         <>
                           <Avatar
-                            src={post.authorId.avatar ? `${BaseUrl}${post.authorId.avatar}` : "/default-avatar.png"}
+                            src={post.authorId.avatar ? `${BaseUrl()}${post.authorId.avatar}` : "/default-avatar.png"}
                             size="sm"
                           />
                           <div className="flex flex-col">
@@ -1392,7 +1392,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                       post.images.slice(0, 2).map((img) => (
                         <img
                           key={img}
-                          src={`${BaseUrl}${img}`}
+                          src={`${BaseUrl()}${img}`}
                           alt={`img-${img}`}
                           className="w-full h-24 object-cover rounded-lg border border-gray-200 shadow-sm"
                         />
@@ -1457,7 +1457,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   src={
                     comment.userId?.avatar?.startsWith("http")
                       ? comment.userId.avatar
-                      : `${BaseUrl}${comment.userId?.avatar}`
+                      : `${BaseUrl()}${comment.userId?.avatar}`
                   }
                   alt={comment.userId?.fullName}
                   className="w-10 h-10 rounded-full"
@@ -1485,7 +1485,7 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                               src={
                                 reply.userId.avatar?.startsWith("http")
                                   ? reply.userId.avatar
-                                  : `${BaseUrl}${reply.userId.avatar}`
+                                  : `${BaseUrl()}${reply.userId.avatar}`
                               }
                               alt={reply.userId.fullName}
                               className="w-8 h-8 rounded-full"
@@ -1522,14 +1522,6 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
           postTitle={selectedPostTitle}
           likeUsers={selectedPostLikes}
         />
-
-        {chatOpen && chatRoomId && (
-          <ChatRoomDialog
-            open={chatOpen}
-            onClose={() => setChatOpen(false)}
-            roomId={chatRoomId}
-          />
-        )}
 
     </div>
   );

@@ -6,7 +6,7 @@ import { Audio } from 'react-loader-spinner'
 import LikeButton from './LikeButton'
 import VideoLikeList from './VideoLikeList'
 import CommentVideo from './commentVideo';
- export const VideoById = ({openDialog,handleCloseDialog,video}) => {
+ export const VideoById = ({video}) => {
    const [selectedVideoId, setSelectedVideoId] = useState(null)
     const [openComment, setOpenComment] = useState(false);
    const [openLike, setOpenlike] = useState(false);
@@ -17,7 +17,7 @@ import CommentVideo from './commentVideo';
      const tokenUser = localStorage.getItem('token');
 const getVideoDetail = async(videoId)=>{
   try {
-    const res= await axios.get(`${BaseUrl}/admin-video-farm/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
+    const res= await axios.get(`${BaseUrl()}/admin-video-farm/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
 if(res.status===200){
 setVideoDetail(res.data)
 setLoading(false)
@@ -30,7 +30,7 @@ setLoading(false)
 }
 const getCommentVideo = async(videoId)=>{
   try {
-    const res= await axios.get(`${BaseUrl}/video-comment/${videoId}/comments`,{headers:{Authorization: `Bearer ${tokenUser}`}})
+    const res= await axios.get(`${BaseUrl()}/video-comment/${videoId}/comments`,{headers:{Authorization: `Bearer ${tokenUser}`}})
 if(res.status===200){
 setVideoComment(res.data)
 setLoading(false)
@@ -77,7 +77,7 @@ const totalCommentCount = Array.isArray(videoComment)
 try {
       const updatedValue = { status: "uploaded" }; 
      
-    const res= await axios.post(`${BaseUrl}/admin-video-farm/upload-s3/${videoId}`, updatedValue,{
+    const res= await axios.post(`${BaseUrl()}/admin-video-farm/upload-s3/${videoId}`, updatedValue,{
     
         headers: { Authorization: `Bearer ${tokenUser}` }})
 if(res.status===200){
@@ -93,7 +93,7 @@ if(res.status===200){
 const deletevideo = async(videoId)=>{
       if (!window.confirm('Bạn có chắc muốn xóa video này?')) return;
   try {
-    const res= await axios.delete(`${BaseUrl}/admin-video-farm/delete-s3/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
+    const res= await axios.delete(`${BaseUrl()}/admin-video-farm/delete-s3/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
 if(res.status===200){
 await getVideoDetail()
 alert("Xóa thành công")
@@ -166,7 +166,7 @@ useEffect(() => {
  src={
     item.localFilePath.startsWith('http')
       ? item.localFilePath
-      : `${BaseUrl}${item.localFilePath}`
+      : `${BaseUrl()}${item.localFilePath}`
   }
     controls
     className=" h-[360px]  w-full rounded shadow"
@@ -267,7 +267,7 @@ export const deletevideo = async (videoId, callback) => {
   const tokenUser = localStorage.getItem('token');
   
   try {
-    const res = await axios.delete(`${BaseUrl}/admin-video-farm/delete-s3/${videoId}`, {
+    const res = await axios.delete(`${BaseUrl()}/admin-video-farm/delete-s3/${videoId}`, {
       headers: { Authorization: `Bearer ${tokenUser}` }
     });
     
@@ -287,7 +287,7 @@ export const approvevideo = async (videoId, callback) => {
   const tokenUser = localStorage.getItem('token');
   
   try {
-    const url = `${BaseUrl}/admin-video-farm/upload-s3/${videoId}`;
+    const url = `${BaseUrl()}/admin-video-farm/upload-s3/${videoId}`;
     const payload = { status: 'uploaded' };
     const headers = { Authorization: `Bearer ${tokenUser}` };    
     const res = await axios.post(url, payload, { headers });
