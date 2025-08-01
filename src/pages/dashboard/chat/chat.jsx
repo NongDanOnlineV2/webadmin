@@ -163,10 +163,6 @@ const handleAddUserToRoom = async (roomId, userId) => {
 const handleRemoveUserFromRoom = async (roomId, userId) => {
   // Kiểm tra nếu phòng không phải public thì không cho xoá
   const room = rooms.find((r) => r.roomId === roomId);
-  if (room?.mode !== "public") {
-    alert("Chỉ có thể xoá thành viên khỏi phòng công khai (public).");
-    return;
-  }
 
   try {
     const token = localStorage.getItem("token");
@@ -329,7 +325,6 @@ const handleSearch = () => {
               <th className="p-3">STT</th>
               <th className="p-3">Ảnh đại diện</th>
               <th className="p-3">Tên phòng</th>
-              {/* <th className="p-3">Số thành viên</th> */}
               <th className="p-3">Chủ phòng</th>
               <th className="p-3 text-center">Hành động</th>
             </tr>
@@ -356,7 +351,6 @@ const handleSearch = () => {
                   )}
                 </td>
                 <td className="p-3">{room.roomName}</td>
-                {/* <td className="p-3">{room.users?.length || 0}</td> */}
                 <td className="p-3 text-sm text-gray-600">{room.ownerName}</td>
                 <td className="p-3 text-center">
                       <Button
