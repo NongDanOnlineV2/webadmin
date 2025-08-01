@@ -98,14 +98,25 @@ const formatAction = (action) => {
       <CardBody>
         <Typography variant="h5" className="mb-4">Quản lý điểm người dùng</Typography>
 
-        <div className="flex flex-wrap gap-4 mb-4 items-end">
-          <Input label="Tìm theo Tên" value={search} onChange={(e) => setSearch(e.target.value)} className="w-64" />
-          <Select label="Sắp xếp theo điểm" value={sort} onChange={val => setSort(val)}>
-            <Option value="desc">Giảm dần</Option>
-            <Option value="asc">Tăng dần</Option>
-          </Select>
-          <Button onClick={handleSearch}>Tìm kiếm</Button>
-        </div>
+      <div className="flex flex-wrap items-end gap-4 mb-4">
+  <div className="w-full md:w-1/3">
+    <Input label="Tìm theo Tên" value={search} onChange={(e) => setSearch(e.target.value)} />
+  </div>
+
+  <div className="w-full md:w-1/3">
+    <Select label="Sắp xếp theo điểm" value={sort} onChange={val => setSort(val)}>
+      <Option value="desc">Giảm dần</Option>
+      <Option value="asc">Tăng dần</Option>
+    </Select>
+  </div>
+
+  <div className="w-full md:w-1/6">
+    <Button fullWidth onClick={handleSearch} className="bg-black text-white">
+      TÌM KIẾM
+    </Button>
+  </div>
+</div>
+
 
         {loading ? <Spinner className="mx-auto" /> : (
           <div className="overflow-auto">
