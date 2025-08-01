@@ -93,7 +93,6 @@ export const ListVideo = () => {
   const [videoCache, setVideoCache] = useState({}); 
   const [searchCache, setSearchCache] = useState({});
   
-  // State lưu kết quả search
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchMode, setIsSearchMode] = useState(false);
   console.log(videos)
@@ -120,7 +119,6 @@ export const ListVideo = () => {
     setSearchText(value);
   };
 
-  // Tạo function riêng để search với term cụ thể
   const performSearchWithTerm = async (searchTerm, customPage = 1) => {
     setPage(customPage);
     setSearchCache({});
@@ -129,13 +127,9 @@ export const ListVideo = () => {
     
     try {
       const result = await fetchVideos(1, 100, searchTerm, filterStatus);
-      
-      // Lưu kết quả search vào state
-      const allSearchResults = result.videos || [];
+            const allSearchResults = result.videos || [];
       setSearchResults(allSearchResults);
       setIsSearchMode(true);
-      
-      // Phân trang từ kết quả search
       const totalPages = Math.ceil(allSearchResults.length / limit);
       const startIndex = (customPage - 1) * limit;
       const endIndex = startIndex + limit;
@@ -159,13 +153,10 @@ export const ListVideo = () => {
     
     try {
       const result = await fetchVideos(1, 100, actualSearchTerm, filterStatus);
-      
-      // Lưu kết quả search vào state
-      const allSearchResults = result.videos || [];
+            const allSearchResults = result.videos || [];
       setSearchResults(allSearchResults);
       setIsSearchMode(true);
-      
-      // Phân trang từ kết quả search
+    
       const totalPages = Math.ceil(allSearchResults.length / limit);
       const startIndex = (customPage - 1) * limit;
       const endIndex = startIndex + limit;
@@ -190,9 +181,7 @@ export const ListVideo = () => {
     setSearchResults([]);
     setIsSearchMode(false);
     
-    // Tự động search ngay khi thay đổi filter - không cần setTimeout
     if (status) {
-      // Gọi với status mới ngay lập tức
       performFilterSearch(actualSearchTerm, status, 1);
     } else if (actualSearchTerm) {
       performSearchWithTerm(actualSearchTerm, 1);
@@ -202,7 +191,6 @@ export const ListVideo = () => {
     }
   };
 
-  // Tạo function riêng cho filter search
   const performFilterSearch = async (searchTerm, status, customPage = 1) => {
     setPage(customPage);
     setSearchCache({});
@@ -242,7 +230,6 @@ export const ListVideo = () => {
     setIsSearchMode(false);
   };
 
-  // Khi nhấn nút tìm kiếm
   const handleSearchClick = () => {
     const searchTerm = searchText.trim();
     setActualSearchTerm(searchTerm);
@@ -251,7 +238,6 @@ export const ListVideo = () => {
     setSearchCache({});
     setVideoCache({});
     
-    // Nếu có filter status thì search với cả status
     if (filterStatus) {
       performFilterSearch(searchTerm, filterStatus, 1);
     } else {
@@ -276,9 +262,7 @@ export const ListVideo = () => {
   };
 
   useEffect(() => {
-    // Nếu đang trong search mode hoặc có filter thì không load videos bình thường
     if (actualSearchTerm || filterStatus) {
-      // Nếu có search/filter mà chưa có kết quả thì search
       if (!isSearchMode) {
         performSearch(page);
       }
@@ -286,7 +270,6 @@ export const ListVideo = () => {
     }
     
     const loadVideos = async () => {
-      // Load video bình thường khi không có search/filter
       const cacheKey = `${page}-normal`;
       if (videoCache[cacheKey]) {
         setVideos(videoCache[cacheKey].videos);
@@ -296,7 +279,7 @@ export const ListVideo = () => {
       }
 
       setLoading(true);
-      fetchVideos(page, limit, '', '') // Không truyền filter để load tất cả
+      fetchVideos(page, limit, '', '') 
         .then(result => {
           setVideos(result.videos || []);
           setTotalPages(result.totalPages || 1);
@@ -319,7 +302,6 @@ export const ListVideo = () => {
     loadVideos();
   }, [page, actualSearchTerm, filterStatus]);
 
-  // HÀM DỌN DẸP CACHE CŨ (option - chạy mỗi 5 phút)
   useEffect(() => {
     const cleanupCache = () => {
       const now = Date.now();

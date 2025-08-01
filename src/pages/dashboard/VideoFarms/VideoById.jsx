@@ -103,9 +103,6 @@ alert("Xóa thành công")
   }
 }
 
-
-
-
 useEffect(() => {
     if (video && video._id) {
       getVideoDetail(video._id);

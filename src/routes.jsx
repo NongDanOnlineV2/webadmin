@@ -26,7 +26,7 @@ import Address from "./pages/dashboard/AdminAddress/Address";
 import { ViewfinderCircleIcon,VideoCameraIcon,ChatBubbleOvalLeftEllipsisIcon  } from "@heroicons/react/24/outline";
 import { Comment } from "react-loader-spinner";
 import FarmDetail from "@/pages/dashboard/farm/FarmDetail";
-
+import CommentVideo from "@/pages/dashboard/AdminVideoComments/CommentVideo";
 const icon = {
   className: "w-5 h-5 text-inherit",
 };
@@ -117,7 +117,13 @@ export const routes = [
   element: <AdminUserPoints />,
 },
 
+ {
+        icon: <ChatBubbleOvalLeftEllipsisIcon {...icon} />,
+        name: "CommentVideo",
+        path: "/CommentVideo",
+        element: <CommentVideo />,
 
+      },
       
 {
   icon: <ShieldCheckIcon {...icon} />,
