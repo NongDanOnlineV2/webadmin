@@ -144,14 +144,17 @@ export default function FarmDetail({ open, onClose, farmId }) {
   const fetchAnswers = async () => {
     setLoadingAnswers(true);
     try {
-      const res = await axios.get(`${BaseUrl()}/answers/by-farm/${farmId}`, getOpts());
-      setAnswers(res.data || []);
+      const res = await axios.get(`${BaseUrl()}/answers?farmId=${farmId}`, getOpts());
+      const data = res.data?.data || [];
+      setAnswers(data);
     } catch (err) {
       console.error("Lỗi câu trả lời:", err);
+      setAnswers([]);
     } finally {
       setLoadingAnswers(false);
     }
   };
+
 
   const handleToggleChanges = async () => {
     if (!showChanges) {
@@ -272,52 +275,40 @@ export default function FarmDetail({ open, onClose, farmId }) {
 {showChanges && (
   <div className="mt-4">
     <Typography variant="h6" className="mb-2 text-blue-gray-900">
-      Câu hỏi đã trả lời ({answers.length})
+      Câu hỏi & Câu trả lời ({answers.length})
     </Typography>
 
     {loadingAnswers ? (
-      <Typography className="text-sm text-blue-500">
-        Đang tải dữ liệu...
-      </Typography>
+      <Typography className="text-sm text-blue-500">Đang tải dữ liệu...</Typography>
     ) : answers.length === 0 ? (
-      <Typography className="text-sm italic text-gray-500">
-        Không có câu trả lời nào
-      </Typography>
+      <Typography className="text-sm italic text-gray-500">Không có dữ liệu</Typography>
     ) : (
       <div className="space-y-4">
         {answers.map((ans, idx) => (
-          <div
-            key={ans._id}
-            className="p-4 bg-gray-50 border border-gray-200 rounded"
-          >
+          <div key={ans._id} className="p-4 bg-gray-50 border rounded shadow-sm">
             {/* Câu hỏi */}
             <Typography className="font-semibold text-gray-900">
               {idx + 1}. {ans.questionText}
             </Typography>
+
             {/* Câu trả lời */}
             <div className="ml-4 mt-2 space-y-2">
-              {/* Selected Options */}
               {ans.selectedOptions?.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {ans.selectedOptions.map((opt, i) => (
-                    <span
-                      key={i}
-                      className="bg-blue-100 text-xs px-2 py-1 rounded"
-                    >
+                    <span key={i} className="bg-blue-100 text-xs px-2 py-1 rounded">
                       {opt}
                     </span>
                   ))}
                 </div>
               )}
 
-              {/* Other Text */}
               {ans.otherText && (
-                <Typography className="text-sm text-blue-gray-700 whitespace-pre-wrap">
+                <Typography className="text-sm text-gray-700 whitespace-pre-wrap">
                   {ans.otherText}
                 </Typography>
               )}
 
-              {/* Uploaded Files */}
               {ans.uploadedFiles?.length > 0 && (
                 <div className="flex flex-col gap-1">
                   {ans.uploadedFiles.map((f, i) => (
@@ -340,6 +331,7 @@ export default function FarmDetail({ open, onClose, farmId }) {
     )}
   </div>
 )}
+
 
             {/* Video dialog */}
             <Dialog open={showVideos} handler={() => setShowVideos(false)} size="lg">
