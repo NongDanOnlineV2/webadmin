@@ -19,26 +19,42 @@ export default function AdminUserPoints() {
   const [selectedHistory, setSelectedHistory] = useState(null);
   const [open, setOpen] = useState(false);
 
-  const fetchData = async () => {
+const fetchData = async () => {
   setLoading(true);
   try {
     const res = await api.get("/admin-user-points", {
       params: {
-        page,
-        limit,
+        limit: 1000, // hoặc bỏ phân trang nếu được
         sort,
-        userId: search || undefined,
       },
     });
 
-    setData(res.data?.data || []);
-    setTotal(res.data?.pagination?.totalPages || 1); // <-- Lấy từ pagination
+    let rawData = res.data?.data || [];
+
+    // Tìm kiếm trên client nếu có input
+    if (search) {
+      rawData = rawData.filter(user =>
+        user.fullName?.toLowerCase().includes(search.toLowerCase()) ||
+        user.email?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    // Sort lại nếu cần (client-side)
+    rawData.sort((a, b) =>
+      sort === "asc" ? a.totalPoint - b.totalPoint : b.totalPoint - a.totalPoint
+    );
+
+    setTotal(Math.ceil(rawData.length / limit));
+    const paginatedData = rawData.slice((page - 1) * limit, page * limit);
+
+    setData(paginatedData);
   } catch (err) {
     console.error("Fetch failed:", err);
   } finally {
     setLoading(false);
   }
 };
+
 
   
 const formatAction = (action) => {
@@ -62,14 +78,15 @@ const formatAction = (action) => {
 
 
 
-  useEffect(() => {
-    fetchData();
-  }, [page, sort]);
+ useEffect(() => {
+  fetchData();
+}, [page, sort, search]);
 
-  const handleSearch = () => {
-    setPage(1);
-    fetchData();
-  };
+
+ const handleSearch = () => {
+  setPage(1); // Reset về trang đầu
+};
+
 
   const toggleDialog = (history) => {
     setSelectedHistory(history);
@@ -82,7 +99,7 @@ const formatAction = (action) => {
         <Typography variant="h5" className="mb-4">Quản lý điểm người dùng</Typography>
 
         <div className="flex flex-wrap gap-4 mb-4 items-end">
-          <Input label="Tìm theo User ID" value={search} onChange={(e) => setSearch(e.target.value)} className="w-64" />
+          <Input label="Tìm theo Tên" value={search} onChange={(e) => setSearch(e.target.value)} className="w-64" />
           <Select label="Sắp xếp theo điểm" value={sort} onChange={val => setSort(val)}>
             <Option value="desc">Giảm dần</Option>
             <Option value="asc">Tăng dần</Option>
