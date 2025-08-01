@@ -294,7 +294,6 @@ export default function FarmDetail({ open, onClose, farmId }) {
             <Typography className="font-semibold text-gray-900">
               {idx + 1}. {ans.questionText}
             </Typography>
-
             {/* Câu trả lời */}
             <div className="ml-4 mt-2 space-y-2">
               {/* Selected Options */}
