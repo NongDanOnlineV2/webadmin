@@ -20,7 +20,6 @@ export const CommentPostbyIdPost = ({CommentsDialog}) => {
     const [openMenuIndex, setOpenMenuIndex] = useState(null);
     const [showAllImages, setShowAllImages] = useState(false);
     const limit = 10;
-    const [page, setPage] = useState(1)
     const getCommentById=async(postId)=>{
       try {
         setLoadingComments(true)
