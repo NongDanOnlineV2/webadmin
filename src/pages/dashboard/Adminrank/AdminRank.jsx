@@ -97,9 +97,9 @@ export default function AdminRank() {
 
     try {
       if (editData) {
-        await api.put(`${BaseUrl()}/admin-ranks/${editData._id}`, form);
+        await axios.put(`${BaseUrl()}/admin-ranks/${editData._id}`, form, { headers: { Authorization: `Bearer ${tokenUser}`}});
       } else {
-        await api.post(`${BaseUrl()}/admin-ranks`, form);
+        await axios.post(`${BaseUrl()}/admin-ranks`, form, { headers: { Authorization: `Bearer ${tokenUser}`}});
       }
       handleCloseModal();
       fetchRanks();
@@ -111,7 +111,7 @@ export default function AdminRank() {
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xoá rank này không?")) return;
     try {
-      await api.delete(`${BaseUrl()}/admin-ranks/${id}`);
+      await axios.delete(`${BaseUrl()}/admin-ranks/${id}`, { headers: { Authorization: `Bearer ${tokenUser}`}});
       fetchRanks();
     } catch (err) {
       console.error("Delete error:", err);
@@ -165,7 +165,7 @@ export default function AdminRank() {
                     <td className="p-2">{rank.minPoint}</td>
                     <td className="p-2">{rank.maxPoint}</td>
                     <td className="p-2">
-                      <img src={rank.badge} alt="badge" className="h-8 w-8 object-contain" />
+                      <img src={`${BaseUrl()}${rank.badge}`} alt="badge" className="h-8 w-8 object-contain" />
                     </td>
                     <td className="p-2">
                       <ul className="list-none list-inside text-sm text-gray-700">

@@ -54,6 +54,9 @@ export default function UserDetail() {
   const [hasMoreFarms, setHasMoreFarms] = useState(true);
   const [postPage, setPostPage] = useState(1);
   const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [farmVideoPage, setFarmVideoPage] = useState(1);
+  const [hasMoreFarmVideos, setHasMoreFarmVideos] = useState(true);
+  const [currentFarmId, setCurrentFarmId] = useState(null);
   const [addressForm, setAddressForm] = useState({
     addressName: "",
     address: "",
@@ -467,26 +470,44 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
     console.error(`Error fetching comments for video ${videoId}:`, err);
   }
 };
-  const showFarmVideos = async (farmId, farmName) => {
-  setLoadingVideos(true); 
+  const showFarmVideos = async (farmId, farmName, reset = true) => {
+  setLoadingVideos(true);
   try {
     const token = localStorage.getItem("token");
     const config = { headers: { Authorization: `Bearer ${token}` } };
+    const limit = 6;
 
-    const res  = await axios.get(
-      `${BaseUrl()}/admin-video-farm/farm/${farmId}`,
+    const page = reset ? 1 : farmVideoPage;
+    const res = await axios.get(
+      `${BaseUrl()}/admin-video-farm/farm/${farmId}?page=${page}&limit=${limit}`,
       config
     );
-    const farmVideos = res.data?.data || [];
-    setSelectedFarmVideos(farmVideos);
+    const data = res.data?.data || [];
+
+    if (reset) {
+      setSelectedFarmVideos(data);
+      setFarmVideoPage(2); // lần sau sẽ là page 2
+    } else {
+      setSelectedFarmVideos((prev) => [...prev, ...data]);
+      setFarmVideoPage((prev) => prev + 1);
+    }
+
+    // kiểm tra còn video không
+    if (!data.length || data.length < limit) {
+      setHasMoreFarmVideos(false);
+    } else {
+      setHasMoreFarmVideos(true);
+    }
+    setCurrentFarmId(farmId);
     setSelectedFarmName(farmName);
-    setOpenVideoDialog(true); 
+    if (reset) setOpenVideoDialog(true);
   } catch (err) {
     console.error("❌ Lỗi khi fetch video của farm:", err);
   } finally {
     setLoadingVideos(false);
   }
 };
+
 
   const handlePlay = (videoId) => setPlayingVideoId(videoId);
   const userFarms = farms.filter((f) => String(f.ownerId) === String(user?._id) || String(f.createBy) === String(user?._id));
@@ -800,9 +821,20 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   ) : (
                     <div
                       onClick={() => setPlayingVideoId(video._id)}
-                      className="flex items-center justify-center h-[180px] w-full bg-gray-200 rounded shadow mb-3 cursor-pointer hover:bg-gray-300 transition"
+                      className="relative h-[180px] w-full rounded shadow mb-3 cursor-pointer overflow-hidden group"
                     >
-                      ▶️ <span className="ml-2 font-medium">Bấm để xem video</span>
+                      <img
+                        src={
+                          video.thumbnailPath?.startsWith("http")
+                            ? video.thumbnailPath
+                            : `${BaseUrl()}${video.thumbnailPath}`
+                        }
+                        alt="Thumbnail"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white font-semibold text-lg transition-opacity group-hover:bg-opacity-50">
+                        ▶️ Bấm để xem video
+                      </div>
                     </div>
                   )}
 
@@ -1072,38 +1104,56 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             </Typography>
 
             {item.status === "pending" && item.localFilePath ? (
-  playingVideoId === item._id ? (
-    item.localFilePath.endsWith(".m3u8") ? (
-      <HlsPlayer
-        src={
-          item.localFilePath.startsWith("http")
-            ? item.localFilePath
-            : `${BaseUrl()}${item.localFilePath}`
-        }
-        className="h-[200px] w-full rounded shadow mb-3"
-      />
-    ) : (
-      <video
-        src={
-          item.localFilePath.startsWith("http")
-            ? item.localFilePath
-            : `${BaseUrl()}${item.localFilePath}`
-        }
-        controls
-        autoPlay
-        className="h-[200px] w-full rounded shadow mb-3"
-      >
-        Trình duyệt không hỗ trợ video
-      </video>
-    )
+            playingVideoId === item._id ? (
+              item.localFilePath.endsWith(".m3u8") ? (
+                <HlsPlayer
+                  src={
+                    item.localFilePath.startsWith("http")
+                      ? item.localFilePath
+                      : `${BaseUrl()}${item.localFilePath}`
+                  }
+                  className="h-[200px] w-full rounded shadow mb-3"
+                />
+              ) : (
+                <video
+                  src={
+                    item.localFilePath.startsWith("http")
+                      ? item.localFilePath
+                      : `${BaseUrl()}${item.localFilePath}`
+                  }
+                  controls
+                  autoPlay
+                  className="h-[200px] w-full rounded shadow mb-3"
+                >
+                  Trình duyệt không hỗ trợ video
+                </video>
+              )
+            ) : (
+              <div
+  onClick={() => handlePlay(item._id)}
+  className="relative h-[200px] w-full rounded shadow mb-3 cursor-pointer overflow-hidden group"
+>
+  {item.thumbnailPath ? (
+    <img
+      src={
+        item.thumbnailPath.startsWith("http")
+          ? item.thumbnailPath
+          : `${BaseUrl()}${item.thumbnailPath}`
+      }
+      alt="Thumbnail"
+      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+    />
   ) : (
-    <div
-      onClick={() => handlePlay(item._id)}
-      className="h-[200px] w-full rounded shadow mb-3 flex items-center justify-center bg-gray-200 cursor-pointer"
-    >
-      ▶️ Bấm để xem video
+    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm">
+      Không có ảnh thumbnail
     </div>
-  )
+  )}
+  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white font-semibold text-lg transition-opacity group-hover:bg-opacity-50">
+    ▶️ Bấm để xem video
+  </div>
+</div>
+
+            )
             ) : item.youtubeLink && item.status === "uploaded" ? (
               item.youtubeLink.endsWith(".mp4") ? (
                 playingVideoId === item._id ? (
@@ -1115,11 +1165,29 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   />
                 ) : (
                   <div
-                    onClick={() => handlePlay(item._id)}
-                    className="h-[200px] w-full rounded shadow mb-3 flex items-center justify-center bg-gray-200 cursor-pointer"
-                  >
-                    ▶️ Bấm để xem video
-                  </div>
+  onClick={() => handlePlay(item._id)}
+  className="relative h-[200px] w-full rounded shadow mb-3 cursor-pointer overflow-hidden group"
+>
+  {item.thumbnailPath ? (
+    <img
+      src={
+        item.thumbnailPath.startsWith("http")
+          ? item.thumbnailPath
+          : `${BaseUrl()}${item.thumbnailPath}`
+      }
+      alt="Thumbnail"
+      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+    />
+  ) : (
+    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm">
+      Không có ảnh thumbnail
+    </div>
+  )}
+  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white font-semibold text-lg transition-opacity group-hover:bg-opacity-50">
+    ▶️ Bấm để xem video
+  </div>
+</div>
+
                 )
               ) : item.youtubeLink.endsWith(".m3u8") ? (
                 playingVideoId === item._id ? (
@@ -1129,11 +1197,29 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   />
                 ) : (
                   <div
-                    onClick={() => handlePlay(item._id)}
-                    className="h-[200px] w-full rounded shadow mb-3 flex items-center justify-center bg-gray-200 cursor-pointer"
-                  >
-                    ▶️ Bấm để xem video
-                  </div>
+  onClick={() => handlePlay(item._id)}
+  className="relative h-[200px] w-full rounded shadow mb-3 cursor-pointer overflow-hidden group"
+>
+  {item.thumbnailPath ? (
+    <img
+      src={
+        item.thumbnailPath.startsWith("http")
+          ? item.thumbnailPath
+          : `${BaseUrl()}${item.thumbnailPath}`
+      }
+      alt="Thumbnail"
+      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+    />
+  ) : (
+    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm">
+      Không có ảnh thumbnail
+    </div>
+  )}
+  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white font-semibold text-lg transition-opacity group-hover:bg-opacity-50">
+    ▶️ Bấm để xem video
+  </div>
+</div>
+
                 )
               ) : (
                 playingVideoId === item._id ? (
@@ -1151,11 +1237,29 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
                   ></iframe>
                 ) : (
                   <div
-                    onClick={() => handlePlay(item._id)}
-                    className="h-[200px] w-full rounded shadow mb-3 flex items-center justify-center bg-gray-200 cursor-pointer"
-                  >
-                    ▶️ Bấm để xem video
-                  </div>
+  onClick={() => handlePlay(item._id)}
+  className="relative h-[200px] w-full rounded shadow mb-3 cursor-pointer overflow-hidden group"
+>
+  {item.thumbnailPath ? (
+    <img
+      src={
+        item.thumbnailPath.startsWith("http")
+          ? item.thumbnailPath
+          : `${BaseUrl()}${item.thumbnailPath}`
+      }
+      alt="Thumbnail"
+      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+    />
+  ) : (
+    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm">
+      Không có ảnh thumbnail
+    </div>
+  )}
+  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center text-white font-semibold text-lg transition-opacity group-hover:bg-opacity-50">
+    ▶️ Bấm để xem video
+  </div>
+</div>
+
                 )
               )
             ) : (
@@ -1212,6 +1316,17 @@ const fetchVideoCommentsUsers = async (videoId, videoTitle) => {
             </div>
           </div>
         ))}
+      </div>
+    )}
+    {hasMoreFarmVideos && (
+      <div className="text-center col-span-full">
+        <Button
+          color="blue"
+          onClick={() => showFarmVideos(currentFarmId, selectedFarmName, false)}
+          disabled={loadingVideos}
+        >
+          {loadingVideos ? "Đang tải..." : "Xem thêm Video"}
+        </Button>
       </div>
     )}
   </DialogBody>

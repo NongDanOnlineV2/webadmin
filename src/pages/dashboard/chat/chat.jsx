@@ -139,6 +139,11 @@ const handleRowClick = async (roomId) => {
     alert("Không thể xoá phòng. Vui lòng thử lại.");
   }
 };
+const refreshRoomDetail = async (roomId) => {
+  const updatedDetail = await fetchRoomDetail(roomId);
+  if (updatedDetail) setSelectedRoom(updatedDetail);
+};
+
 const handleAddUserToRoom = async (roomId, userId) => {
   try {
     const token = localStorage.getItem("token");
@@ -154,6 +159,7 @@ const handleAddUserToRoom = async (roomId, userId) => {
 
     if (!res.ok) throw new Error("Thêm người dùng thất bại");
     alert("Đã thêm người dùng vào phòng");
+    await refreshRoomDetail(roomId);
     fetchData(); // cập nhật lại danh sách phòng
   } catch (err) {
     console.error("Lỗi khi thêm user:", err);
@@ -162,7 +168,8 @@ const handleAddUserToRoom = async (roomId, userId) => {
 };
 const handleRemoveUserFromRoom = async (roomId, userId) => {
   // Kiểm tra nếu phòng không phải public thì không cho xoá
-  const room = rooms.find((r) => r.roomId === roomId);
+  const confirmRemove = window.confirm("Bạn có chắc muốn xoá người dùng này khỏi phòng?");
+  if (!confirmRemove) return;
 
   try {
     const token = localStorage.getItem("token");
@@ -178,6 +185,7 @@ const handleRemoveUserFromRoom = async (roomId, userId) => {
 
     if (!res.ok) throw new Error("Xoá người dùng thất bại");
     alert("Đã xoá người dùng khỏi phòng");
+    await refreshRoomDetail(roomId);
     fetchData();
   } catch (err) {
     console.error("Lỗi khi xoá user:", err);
