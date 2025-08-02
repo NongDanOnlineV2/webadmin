@@ -23,22 +23,27 @@ const DialogCommentVideo = ({ open, handleClose, videoId }) => {
     }
   };
 
-const deleteCommentVideo = async () => {
+  const deleteCommentVideo = async (commentId, index) => {
+    if (!window.confirm('Bạn có chắc chắn muốn ẩn bình luận này?')) return;
+
     try {
       setLoading(true);
-      const res = await axios.get(`${BaseUrl()}/video-comment/admin/${videoId}/comment/${index}`,
-        { headers: { Authorization: `Bearer ${token}` } });
+      
+      const res = await axios.delete(`${BaseUrl()}/video-comment/admin/${videoId}/comment/${index}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (res.status === 200) {
-        await getCommentsVideo()
+        alert('Ẩn bình luận thành công!');
+        await getCommentsVideo(); 
       }
     } catch (error) {
-      console.log(error);
+      console.log('Error:', error.response?.data || error.message);
+      alert('Lỗi khi ẩn bình luận!');
     } finally {
       setLoading(false);
     }
   };
 
-console.log(commentVideoById)
   useEffect(() => {
     if (open && videoId) getCommentsVideo();
   }, [open, videoId]);
@@ -52,13 +57,37 @@ console.log(commentVideoById)
         ) : commentVideoById.length > 0 ? (
           <div className="space-y-6">
             {commentVideoById.map((item, idx) => (
-              <div key={item._id || idx} className="p-4 bg-gray-50 rounded-lg shadow flex flex-col gap-2">
+              <div key={item._id || idx} className={`p-4 rounded-lg shadow flex flex-col gap-2 ${
+                item.status === false 
+                  ? 'bg-red-100 border border-red-300 opacity-60' 
+                  : 'bg-gray-50'
+              }`}>
                 <div className="flex items-center gap-2">
-                  <span className="break-all font-semibold text-blue-700">{item.user?.fullName || "Ẩn danh"}</span>
+                  <span className={`break-all font-semibold ${
+                    item.status === false ? 'text-red-500' : 'text-blue-700'
+                  }`}>
+                    {item.user?.fullName || "Ẩn danh"}
+                  </span>
                   <span className="break-all text-xs text-gray-500">({item.user?.email || "Không có email"})</span>
+                  {item.status === false && (
+                    <span className="text-xs bg-red-500 text-white px-2 py-1 rounded">ĐÃ ẨN</span>
+                  )}
                   <span className="break-all ml-auto text-xs text-gray-400">{item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}</span>
+                  <Button
+                    size="sm"
+                    color={item.status === false ? "gray" : "red"}
+                    onClick={() => deleteCommentVideo(item._id, idx)}
+                    className="ml-2 px-2 py-1"
+                    disabled={item.status === false}
+                  >
+                    {item.status === false ? "Đã ẩn" : "Ẩn"}
+                  </Button>
                 </div>
-                <div className="text-gray-900">{item.comment || <span className="italic text-gray-400">Không có nội dung</span>}</div>
+                <div className={`${
+                  item.status === false ? 'text-gray-400 line-through' : 'text-gray-900'
+                }`}>
+                  {item.comment || <span className="italic text-gray-400">Không có nội dung</span>}
+                </div>
               </div>
             ))}
           </div>
