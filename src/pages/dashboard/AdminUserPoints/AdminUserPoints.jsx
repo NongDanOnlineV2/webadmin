@@ -7,80 +7,87 @@ import {
   Spinner, Dialog, DialogHeader, DialogBody
 } from "@material-tailwind/react";
 import Pagination from "@/components/Pagination";
-import { BaseUrl } from "@/ipconfig";
+
 export default function AdminUserPoints() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const defaultLimit = 10;
-  const searchLimit = 100;
-  const [total, setTotal] = useState(0);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   const [sort, setSort] = useState("desc");
+
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [inputSearch, setInputSearch] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+
   const [selectedHistory, setSelectedHistory] = useState(null);
   const [open, setOpen] = useState(false);
 
-
-  const fetchData = async () => {
+  const fetchData = async (customPage = page, customSearch = search) => {
     setLoading(true);
     try {
-      const res = await api.get(`${BaseUrl()}/admin-user-points`, {
+      const res = await api.get("/admin-user-points", {
         params: {
-          limit: isSearching ? searchLimit : defaultLimit,
+          page: customPage,
+          limit,
           sort,
         },
       });
 
       let rawData = res.data?.data || [];
+      const pagination = res.data?.pagination || {};
 
-      if (isSearching && search) {
+      // Tìm kiếm client-side (nếu backend không hỗ trợ)
+      if (customSearch) {
         rawData = rawData.filter(user =>
-          user.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-          user.email?.toLowerCase().includes(search.toLowerCase())
+          user.fullName?.toLowerCase().includes(customSearch.toLowerCase()) ||
+          user.email?.toLowerCase().includes(customSearch.toLowerCase())
         );
       }
 
-      rawData.sort((a, b) =>
-        sort === "asc" ? a.totalPoint - b.totalPoint : b.totalPoint - a.totalPoint
-      );
-
-      setTotal(Math.ceil(rawData.length / defaultLimit));
-      const paginatedData = rawData.slice((page - 1) * defaultLimit, page * defaultLimit);
-      setData(paginatedData);
+      setData(rawData);
+      setTotalPages(pagination.totalPages || 1);
     } catch (err) {
       console.error("Fetch failed:", err);
     } finally {
       setLoading(false);
     }
   };
- const formatAction = (action) => { 
-  switch (action) {
-    case "comment_video":
-      return { label: "💬 Bình luận video", color: "bg-blue-100 text-blue-800" };
-    case "like_video":
-      return { label: "👍 Thích video", color: "bg-green-100 text-green-800" };
-    case "create_post":
-      return { label: "📝 Tạo post", color: "bg-yellow-100 text-yellow-800" };
-    case "like_post":
-      return { label: "❤️ Thích post", color: "bg-pink-100 text-pink-800" };
-    case "create_video":
-      return { label: "📹 Tạo video", color: "bg-purple-100 text-purple-800" };
-    case "comment_post":
-      return { label: "💬 Bình luận post", color: "bg-orange-100 text-orange-800" };
-    default:
-      return { label: "❓ Hành động khác", color: "bg-gray-100 text-gray-800" };
-  }
-};
+
   useEffect(() => {
-    fetchData();
-  }, [page, sort, isSearching]);
+    fetchData(page, search);
+  }, [page, sort, search]);
 
   const handleSearch = () => {
-    setSearch(inputSearch.trim());
     setPage(1);
-    setIsSearching(true);
+    setSearch(searchInput);
+  };
+
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    if (value.trim() === "") {
+      setSearch("");
+      setPage(1);
+    }
+  };
+
+  const formatAction = (action) => {
+    switch (action) {
+      case "comment_video":
+        return { label: "💬 Bình luận video", color: "bg-blue-100 text-blue-800" };
+      case "like_video":
+        return { label: "👍 Thích video", color: "bg-green-100 text-green-800" };
+      case "create_post":
+        return { label: "📝 Tạo post", color: "bg-yellow-100 text-yellow-800" };
+      case "like_post":
+        return { label: "❤️ Thích post", color: "bg-pink-100 text-pink-800" };
+      case "create_video":
+        return { label: "📽 Tạo video", color: "bg-purple-100 text-purple-800" };
+      case "comment_post":
+        return { label: "💬 Bình luận post", color: "bg-orange-100 text-orange-800" };
+      default:
+        return { label: "❓ Hành động khác", color: "bg-gray-100 text-gray-800" };
+    }
   };
 
   const toggleDialog = (history) => {
@@ -95,7 +102,11 @@ export default function AdminUserPoints() {
 
         <div className="flex flex-wrap items-end gap-4 mb-4">
           <div className="w-full md:w-1/3">
-            <Input label="Tìm theo Tên" value={inputSearch} onChange={(e) => setInputSearch(e.target.value)} />
+            <Input
+              label="Tìm theo Tên"
+              value={searchInput}
+              onChange={handleInputChange}
+            />
           </div>
 
           <div className="w-full md:w-1/3">
@@ -141,9 +152,9 @@ export default function AdminUserPoints() {
 
         <div className="mt-4">
           <Pagination
-            total={total}
             current={page}
-            onChange={(value) => setPage(value)}
+            total={totalPages}
+            onChange={(newPage) => setPage(newPage)}
           />
         </div>
 
