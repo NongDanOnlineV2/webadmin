@@ -13,11 +13,11 @@ export default function AdminUserPoints() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [sort, setSort] = useState("desc");
 
-  const [searchInput, setSearchInput] = useState(""); // Gõ ở ô input
-  const [search, setSearch] = useState(""); // Dùng để thực sự lọc
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
 
   const [selectedHistory, setSelectedHistory] = useState(null);
   const [open, setOpen] = useState(false);
@@ -27,14 +27,16 @@ export default function AdminUserPoints() {
     try {
       const res = await api.get("/admin-user-points", {
         params: {
-          limit: 20,
+          page: customPage,
+          limit,
           sort,
         },
       });
 
       let rawData = res.data?.data || [];
+      const pagination = res.data?.pagination || {};
 
-      // Tìm kiếm client-side
+      // Tìm kiếm client-side (nếu backend không hỗ trợ)
       if (customSearch) {
         rawData = rawData.filter(user =>
           user.fullName?.toLowerCase().includes(customSearch.toLowerCase()) ||
@@ -42,14 +44,8 @@ export default function AdminUserPoints() {
         );
       }
 
-      // Sort lại nếu cần (client-side)
-      rawData.sort((a, b) =>
-        sort === "asc" ? a.totalPoint - b.totalPoint : b.totalPoint - a.totalPoint
-      );
-
-      setTotal(Math.ceil(rawData.length / limit));
-      const paginatedData = rawData.slice((customPage - 1) * limit, customPage * limit);
-      setData(paginatedData);
+      setData(rawData);
+      setTotalPages(pagination.totalPages || 1);
     } catch (err) {
       console.error("Fetch failed:", err);
     } finally {
@@ -58,15 +54,12 @@ export default function AdminUserPoints() {
   };
 
   useEffect(() => {
-    if (search === "") {
-      fetchData(page);
-    }
-  }, [page, sort]);
+    fetchData(page, search);
+  }, [page, sort, search]);
 
   const handleSearch = () => {
     setPage(1);
     setSearch(searchInput);
-    fetchData(1, searchInput);
   };
 
   const handleInputChange = (e) => {
@@ -159,9 +152,9 @@ export default function AdminUserPoints() {
 
         <div className="mt-4">
           <Pagination
-            total={total}
             current={page}
-            onChange={(value) => setPage(value)}
+            total={totalPages}
+            onChange={(newPage) => setPage(newPage)}
           />
         </div>
 
