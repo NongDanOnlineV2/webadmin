@@ -67,7 +67,7 @@ export function PostList() {
     const json = await res.json();
 
     if (res.ok) { 
-      const fetchPosts = json.data || [];
+      let fetchPosts = json.data || [];
       if (filterStatus !== "") {
         fetchPosts = fetchPosts.filter((post) => String(post.status) === filterStatus);
       }
@@ -159,7 +159,7 @@ export function PostList() {
       );
 
       const json = await res.json();
-
+      console.log("Server trả về sau PUT:", json);
       if (res.ok) {
         alert("Cập nhật thành công!");
 
@@ -206,7 +206,7 @@ export function PostList() {
       });
       if (res.ok) {
         alert("Xoá thành công!");
-        setPosts(posts.filter((post) => post.id !== id));
+        setPosts(posts.filter((post) => post._id !== id));
       } else {
         const json = await res.json();
         console.log("🔍 API trả về:", json.data);  
@@ -566,7 +566,7 @@ const paginatedPosts = sortedFilteredPosts.slice(
             />
 
             {/* Trạng thái */}
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Trạng thái
               </label>
@@ -583,7 +583,7 @@ const paginatedPosts = sortedFilteredPosts.slice(
                 <option value="true">Đang hoạt động</option>
                 <option value="false">Đã ẩn</option>
               </select>
-            </div>
+            </div> */}
           </div>
 
           {/* Nút hành động */}

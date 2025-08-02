@@ -173,7 +173,7 @@ const fetchFarms = async (signal = null) => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <Input
-            label="Tìm kiếm theo tên, mã, chủ sở hữu..."
+            label="Tìm kiếm theo tên Farm"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="col-span-2"
