@@ -54,7 +54,24 @@ export default function AdminUserPoints() {
       setLoading(false);
     }
   };
-
+ const formatAction = (action) => { 
+  switch (action) {
+    case "comment_video":
+      return { label: "💬 Bình luận video", color: "bg-blue-100 text-blue-800" };
+    case "like_video":
+      return { label: "👍 Thích video", color: "bg-green-100 text-green-800" };
+    case "create_post":
+      return { label: "📝 Tạo post", color: "bg-yellow-100 text-yellow-800" };
+    case "like_post":
+      return { label: "❤️ Thích post", color: "bg-pink-100 text-pink-800" };
+    case "create_video":
+      return { label: "📹 Tạo video", color: "bg-purple-100 text-purple-800" };
+    case "comment_post":
+      return { label: "💬 Bình luận post", color: "bg-orange-100 text-orange-800" };
+    default:
+      return { label: "❓ Hành động khác", color: "bg-gray-100 text-gray-800" };
+  }
+};
   useEffect(() => {
     fetchData();
   }, [page, sort, isSearching]);
