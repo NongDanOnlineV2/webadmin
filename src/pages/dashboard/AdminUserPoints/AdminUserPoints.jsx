@@ -24,7 +24,7 @@ const fetchData = async () => {
   try {
     const res = await api.get("/admin-user-points", {
       params: {
-        limit: 1000, // hoặc bỏ phân trang nếu được
+        limit: 10, // hoặc bỏ phân trang nếu được
         sort,
       },
     });
