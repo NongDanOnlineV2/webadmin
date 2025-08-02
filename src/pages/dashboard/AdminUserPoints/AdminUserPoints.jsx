@@ -26,7 +26,7 @@ export default function AdminUserPoints() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/admin-user-points", {
+      const res = await api.get(`${BaseUrl()}/admin-user-points`, {
         params: {
           limit: isSearching ? searchLimit : defaultLimit,
           sort,
