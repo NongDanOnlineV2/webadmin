@@ -14,7 +14,8 @@ const DialogCommentVideo = ({ open, handleClose, videoId }) => {
       const res = await axios.get(`${BaseUrl()}/video-comment/admin/${videoId}/comments`,
         { headers: { Authorization: `Bearer ${token}` } });
       if (res.status === 200) {
-        setCommentVideoById(res.data.data || []);
+        const sortedComments = (res.data.data || []).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        setCommentVideoById(sortedComments);
       }
     } catch (error) {
       console.log(error);
