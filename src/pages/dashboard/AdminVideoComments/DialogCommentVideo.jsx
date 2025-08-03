@@ -7,13 +7,15 @@ const DialogCommentVideo = ({ open, handleClose, videoId }) => {
   const token = localStorage.getItem('token');
   const [commentVideoById, setCommentVideoById] = useState([]);
   const [loading, setLoading] = useState(true);
-
+console.log(commentVideoById)
   const getCommentsVideo = async () => {
     try {
       setLoading(true);
+      const currentToken = localStorage.getItem('token');
       const res = await axios.get(`${BaseUrl()}/video-comment/admin/${videoId}/comments`,
-        { headers: { Authorization: `Bearer ${token}` } });
+        { headers: { Authorization: `Bearer ${currentToken}` } });
       if (res.status === 200) {
+        console.log('API Response:', res.data); 
         setCommentVideoById(res.data.data || []);
       }
     } catch (error) {
@@ -28,13 +30,13 @@ const DialogCommentVideo = ({ open, handleClose, videoId }) => {
 
     try {
       setLoading(true);
-      
+      const currentToken = localStorage.getItem('token'); 
       const res = await axios.delete(`${BaseUrl()}/video-comment/admin/${videoId}/comment/${index}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${currentToken}` }
       });
       if (res.status === 200) {
         alert('Ẩn bình luận thành công!');
-        await getCommentsVideo(); 
+        await getCommentsVideo();
       }
     } catch (error) {
       console.log('Error:', error.response?.data || error.message);
