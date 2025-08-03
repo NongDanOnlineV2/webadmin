@@ -25,7 +25,8 @@ const DialogCommentVideo = ({ open, handleClose, videoId }) => {
 
   const deleteCommentVideo = async (commentId, index) => {
     if (!window.confirm('Bạn có chắc chắn muốn ẩn bình luận này?')) return;
-
+    console.log("Comment index:", index);
+    console.log("Comment data:", commentVideoById[index]);
     try {
       setLoading(true);
       

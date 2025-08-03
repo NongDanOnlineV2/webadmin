@@ -6,7 +6,7 @@ import DialogCommentVideo from './DialogCommentVideo'
 
 export const CommentVideo = () => {
   const token = localStorage.getItem('token');
-  const [commentVideo, setCommentVideo] = useState([]); // Data hiển thị sau khi filter
+  const [commentVideo, setCommentVideo] = useState([]); 
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedComment, setSelectedComment] = useState(null);
   const [searchUser, setSearchUser] = useState('');
@@ -14,10 +14,10 @@ export const CommentVideo = () => {
   const limit = 20;
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
-  const [searchResults, setSearchResults] = useState([]); // Lưu kết quả search
-  const [isSearchMode, setIsSearchMode] = useState(false); // Trạng thái đang search
+  const [searchResults, setSearchResults] = useState([]); 
+  const [isSearchMode, setIsSearchMode] = useState(false); 
 
-  // Cache theo page để lưu data từ API
+
   const cacheRef = useRef({});
 
   const handleOpenDialog = (comment) => {
@@ -30,11 +30,11 @@ export const CommentVideo = () => {
     setSelectedComment(null);
   };
 
-  // Lấy data từ API theo page và cache lại
+
   const getCommentsVideo = async (pageValue = 1) => {
     const cacheKey = `page_${pageValue}`;
     
-    // Nếu đã có cache cho page này thì không gọi API nữa
+
     if (cacheRef.current[cacheKey]) {
       const cachedData = cacheRef.current[cacheKey];
       setCommentVideo(cachedData.data);
@@ -55,8 +55,7 @@ export const CommentVideo = () => {
         setCommentVideo(data);
         setTotalPages(totalPagesFromAPI);
         setPage(pageValue);
-        
-        // Lưu vào cache theo page
+
         cacheRef.current[cacheKey] = {
           data: data,
           totalPages: totalPagesFromAPI
@@ -70,7 +69,6 @@ export const CommentVideo = () => {
     }
   };
 
-  // Search toàn bộ data và phân trang kết quả
   const searchAllComments = async (searchValue, pageValue = 1) => {
     if (!searchValue.trim()) {
       setIsSearchMode(false);
@@ -82,15 +80,15 @@ export const CommentVideo = () => {
     setIsSearchMode(true);
     
     try {
-      // Gọi API để lấy tất cả comment theo search
-      const res = await axios.get(`${BaseUrl()}/video-comment/admin/comments?page=1&limit=10000&search=${encodeURIComponent(searchValue.trim())}`, {
+
+      const res = await axios.get(`${BaseUrl()}/video-comment/admin/comments?page=1&limit=1000&search=${encodeURIComponent(searchValue.trim())}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       if (res.status === 200) {
         const allSearchData = res.data.data || [];
         
-        // Client-side filter nếu API không hỗ trợ search
+
         const filtered = allSearchData.filter(item => 
           item.user?.fullName?.toLowerCase().includes(searchValue.toLowerCase()) ||
           item.user?.email?.toLowerCase().includes(searchValue.toLowerCase()) ||
@@ -99,7 +97,7 @@ export const CommentVideo = () => {
         
         setSearchResults(filtered);
         
-        // Phân trang kết quả search
+
         const totalPagesCalc = Math.ceil(filtered.length / limit);
         const startIndex = (pageValue - 1) * limit;
         const endIndex = startIndex + limit;

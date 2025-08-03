@@ -566,7 +566,7 @@ const paginatedPosts = sortedFilteredPosts.slice(
             />
 
             {/* Trạng thái */}
-            {/* <div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Trạng thái
               </label>
@@ -583,7 +583,7 @@ const paginatedPosts = sortedFilteredPosts.slice(
                 <option value="true">Đang hoạt động</option>
                 <option value="false">Đã ẩn</option>
               </select>
-            </div> */}
+            </div>
           </div>
 
           {/* Nút hành động */}
