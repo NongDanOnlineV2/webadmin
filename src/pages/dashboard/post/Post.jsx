@@ -217,7 +217,43 @@ export function PostList() {
       alert("Không thể kết nối tới server");
     }
   };
-  
+
+  const unlockPost = async (id) => {
+  const confirmUnlock = window.confirm("Bạn có chắc chắn muốn mở khóa bài viết này?");
+  if (!confirmUnlock) return;
+
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${BaseUrl()}/admin-post-feed/${id}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status: "active" }) // ✅ Sửa đúng format BE yêu cầu
+    });
+
+    const json = await res.json();
+    console.log("Response status:", res.status);
+    console.log("Response body:", json);
+
+    if (res.ok) {
+      alert("Bài viết đã được mở khóa!");
+
+      setPosts((prevPosts) =>
+        prevPosts.map((p) =>
+          p._id === id ? { ...p, status: "active" } : p
+        )
+      );
+    } else {
+      alert(json.message || "Mở khóa thất bại");
+    }
+  } catch (err) {
+    console.error("Unlock post error:", err);
+    alert("Lỗi kết nối server khi mở khóa");
+  }
+};
+
   const getFilteredSortedPosts = () => {
   let result = [...posts];
 
@@ -491,6 +527,17 @@ const paginatedPosts = sortedFilteredPosts.slice(
                       >
                         Sửa
                       </MenuItem>
+                      {!post.status && (
+                        <MenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            unlockPost(post._id);
+                          }}
+                          className="text-green-600"
+                        >
+                          Mở khóa
+                        </MenuItem>
+                      )}
                       <MenuItem
                         onClick={(e) => {
                           e.stopPropagation();
@@ -563,27 +610,7 @@ const paginatedPosts = sortedFilteredPosts.slice(
               onChange={(e) =>
                 setSelectedPost({ ...selectedPost, tagsInput: e.target.value })
               }
-            />
-
-            {/* Trạng thái */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Trạng thái
-              </label>
-              <select
-                value={selectedPost?.status ? "true" : "false"}
-                onChange={(e) =>
-                  setSelectedPost({
-                    ...selectedPost,
-                    status: e.target.value === "true",
-                  })
-                }
-                className="w-full border rounded px-3 py-2"
-              >
-                <option value="true">Đang hoạt động</option>
-                <option value="false">Đã ẩn</option>
-              </select>
-            </div>
+            />     
           </div>
 
           {/* Nút hành động */}
