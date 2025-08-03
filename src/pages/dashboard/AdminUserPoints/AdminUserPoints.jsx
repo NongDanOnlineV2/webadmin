@@ -7,7 +7,7 @@ import {
   Spinner, Dialog, DialogHeader, DialogBody
 } from "@material-tailwind/react";
 import Pagination from "@/components/Pagination";
-
+import { BaseUrl } from "@/ipconfig";
 export default function AdminUserPoints() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,7 @@ export default function AdminUserPoints() {
   const fetchData = async (customPage = page, customSearch = search) => {
     setLoading(true);
     try {
-      const res = await api.get("/admin-user-points", {
+      const res = await api.get(`${BaseUrl()}/admin-user-points`, {
         params: {
           page: customPage,
           limit,

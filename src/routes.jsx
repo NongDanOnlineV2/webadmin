@@ -10,23 +10,29 @@ import {
   ChatBubbleLeftEllipsisIcon,
   ShieldCheckIcon,
   ChatBubbleBottomCenterIcon,
-  MapPinIcon
+  MapPinIcon,
 } from "@heroicons/react/24/solid";
 
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
-import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost,AdminRank, RoomTable, AdminUserPoints  } from "@/pages/dashboard";
+import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost, RoomTable, AdminRank, AdminUserPoints, CommentVideo  } from "@/pages/dashboard";
 import { SignIn, SignUp} from "@/pages/auth";
 import ChinhSach from "@/pages/dashboard/ChinhSach";
 import ChinhSachBaoMat from "@/pages/dashboard/ChinhSachBaoMat";
 import ChinhSachCookie from "@/pages/dashboard/ChinhSachCookie";
 import DieuKhoanDieuKien from "@/pages/dashboard/DieuKhoanDieuKien";
+import ChinhSachTaoTrang from "./pages/dashboard/ChinhSachTaoTrang";
+import ChinhSachCongDong from "./pages/dashboard/ChinhSachCongDong";
+import ChinhSachTreEm from "./pages/dashboard/ChinhSachBVTreEm";
 import ResetPassword from "./pages/auth/ResetPassword";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPasswordPage from "./pages/ResetPassword";
 import Address from "./pages/dashboard/AdminAddress/Address";
+import VerifyOtp from "./pages/VerifyOtp";
+
 import { ViewfinderCircleIcon,VideoCameraIcon,ChatBubbleOvalLeftEllipsisIcon  } from "@heroicons/react/24/outline";
-import { Comment } from "react-loader-spinner";
 import FarmDetail from "@/pages/dashboard/farm/FarmDetail";
-import CommentVideo from "@/pages/dashboard/AdminVideoComments/CommentVideo";
+
+
 const icon = {
   className: "w-5 h-5 text-inherit",
 };
@@ -90,51 +96,39 @@ export const routes = [
         path: "/CommentPost",
          element: <CommentPost />,
 
-      }, 
+      },
       {
         icon: <ChatBubbleBottomCenterIcon {...icon} />,
         name: "Chat",
         path: "/chat",
          element: <RoomTable />,
 
-      }, 
-       {
+      },
+      {
         icon: <MapPinIcon {...icon} />,
         name: "Address",
         path: "/Address",
          element: <Address />,
-       },
+      },
+      {
+        icon: <ReceiptPercentIcon {...icon} />,
+        name: "AdminRank",
+        path: "/AdminRank",
+        element: <AdminRank />,
+      },
+      {
+      icon: <RectangleStackIcon {...icon} />,
+      name: "User Points",
+      path: "/AdminUserPoints",
+      element: <AdminUserPoints />,
+    },
     {
-  icon: <ReceiptPercentIcon {...icon} />,
-  name: "AdminRank",
-  path: "/AdminRank",
-  element: <AdminRank />,
-},
-{
-  icon: <RectangleStackIcon {...icon} />,
-  name: "User Points",
-  path: "/AdminUserPoints",
-  element: <AdminUserPoints />,
-},
-
- {
         icon: <ChatBubbleOvalLeftEllipsisIcon {...icon} />,
         name: "CommentVideo",
         path: "/CommentVideo",
         element: <CommentVideo />,
 
       },
-      
-{
-  icon: <ShieldCheckIcon {...icon} />,
-  name: "CHÍNH SÁCH",
-  collapse: [
-    { name: "CHÍNH SÁCH BẢO MẬT", path: "/chinh-sach/bao-mat", element: <ChinhSachBaoMat /> },
-    { name: "CHÍNH SÁCH COOKIE", path: "/chinh-sach/cookie", element: <ChinhSachCookie /> },
-    { name: "ĐIỀU KHOẢN & ĐIỀU KIỆN", path: "/chinh-sach/dieu-khoan", element: <DieuKhoanDieuKien /> },
-  ],
-}
-      
     ],
   },
   {
@@ -151,12 +145,54 @@ export const routes = [
       path: "forgot-password",
       element: <ForgotPassword />,
     },
-    {
-      path: "reset-password/:token",
-      element: <ResetPassword />,
-    },
     ],
   },
+  {
+    layout: "public",
+    pages: [
+      {
+        name: "Chính sách bảo mật",
+        path: "/chinh-sach/bao-mat",
+        element: <ChinhSachBaoMat />,
+      },
+      {
+        name: "Chính sách cookie",
+        path: "/chinh-sach/cookie",
+        element: <ChinhSachCookie />,
+      },
+      {
+        name: "Điều khoản & điều kiện",
+        path: "/chinh-sach/dieu-khoan",
+        element: <DieuKhoanDieuKien />,
+      },
+      {
+        name: "Chính sách tạo trang trại",
+        path: "/chinh-sach/tao-trang",
+        element: <ChinhSachTaoTrang />,
+      },
+      {
+        name: "Chính sách cộng đồng",
+        path: "/chinh-sach/cong-dong",
+        element: <ChinhSachCongDong />,
+      },
+      {
+        name: "Chính sách bảo vệ trẻ em",
+        path: "/chinh-sach/tre-em",
+        element: <ChinhSachTreEm />,
+      },
+    ],
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
+    pages: [],
+  },
+  {
+    path: "/verify-otp",
+    element: <VerifyOtp />,
+    pages: [],
+  },
+
 ];
 
 export default routes;

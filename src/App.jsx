@@ -1,6 +1,8 @@
 import React, { useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { Dashboard, Auth } from "@/layouts";
+import axios from "axios";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { setToken, useMaterialTailwindController, setAuthStatus } from "./context";
+import { Dashboard, Auth, Public } from "@/layouts";
 import VideoFarmById from "./pages/dashboard/VideoFarms/VideoById";
 import VideoLikeList from "./pages/dashboard/VideoFarms/VideoLikeList";
 import PostDetail from "./pages/dashboard/post/PostDetail";
@@ -9,39 +11,73 @@ import FarmDetail from "./pages/dashboard/farm/FarmDetail";
 import { Farms } from "./pages/dashboard/farm/farms";
 import UserDetail from "./pages/dashboard/user/UserDetail";
 import VideoById from "./pages/dashboard/VideoFarms/VideoById";
-import ResetPasswordWrapper from "@/pages/auth/ResetPasswordWrapper";
-import ResetPassword from "./pages/auth/ResetPassword";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import {AdminRank} from "@/pages/dashboard";
-import AdminUserPoints from "@/pages/dashboard/AdminUserPoints/AdminUserPoints";
+import ChinhSachBaoMat from "./pages/dashboard/ChinhSachBaoMat";
+import ChinhSachCookie from "./pages/dashboard/ChinhSachCookie";
+import DieuKhoanDieuKien from "./pages/dashboard/DieuKhoanDieuKien";
+import ChinhSachTaoTrang from "./pages/dashboard/ChinhSachTaoTrang";
+import ChinhSachCongDong from "./pages/dashboard/ChinhSachCongDong";
+import ResetPassword from "@/pages/auth/ResetPassword";
+import ResetPasswordPage from "./pages/ResetPassword";
+import VerifyOtp from "./pages/VerifyOtp";
+import ChinhSachTreEm from "./pages/dashboard/ChinhSachBVTreEm";
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const [controller, dispatch] = useMaterialTailwindController();
+  const { isAuthenticated, token: contextToken } = controller;
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+  const params = new URLSearchParams(location.search);
+  const skipRedirect = params.get("success") === "true";
 
-    // ✅ Cho phép các trang công khai (sign-in, forgot, reset)
-    const publicAuthPaths = ["/auth/sign-in", "/auth/sign-up", "/auth/forgot-password"];
-    const isResetPassword = window.location.pathname.startsWith("/auth/reset-password");
+  const isResetPasswordWithToken = location.pathname.startsWith("/reset-password") && params.get("token");
+  const isVerifyOtp = location.pathname === "/verify-otp";
+  const token = localStorage.getItem("token");
 
-    if (!token && !publicAuthPaths.includes(window.location.pathname) && !isResetPassword) {
-      navigate("/auth/sign-in");
+
+  const publicAuthPaths = [
+    "/auth/sign-in",
+    "/auth/sign-up",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+    "/verify-otp",
+    "/reset-password",
+  ];
+
+  const isPublicPath = publicAuthPaths.some((path) =>
+    location.pathname.startsWith(path)
+  );
+
+  const isChinhSach = location.pathname.startsWith("/chinh-sach");
+
+  if (!token && !isPublicPath && !isChinhSach && !skipRedirect && !isResetPasswordWithToken && !isVerifyOtp) {
+    navigate("/auth/sign-in");
+  }
+
+    if (token && !contextToken) {
+    setAuthStatus(dispatch, true);
+    setToken(dispatch, token);
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  }
+
+  const handleUnload = () => {
+    if (performance.getEntriesByType("navigation")[0].type !== "reload") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("apiBaseUrl");
     }
+  };
 
-    const handleUnload = () => {
-      if (performance.getEntriesByType("navigation")[0].type !== "reload") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("apiBaseUrl");
-      }
-    };
+  window.addEventListener("beforeunload", handleUnload);
+  return () => window.removeEventListener("beforeunload", handleUnload);
+}, [navigate, location, dispatch, contextToken]);
 
-    window.addEventListener("beforeunload", handleUnload);
-    return () => window.removeEventListener("beforeunload", handleUnload);
-  }, [navigate]);
 
   return (
     <Routes>
+      <Route path="/verify-otp" element={<VerifyOtp />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/dashboard/*" element={<Dashboard />}>
         <Route path="VideoFarmById/:farmId" element={<VideoFarmById />} />
         <Route path="video-like/:videoId" element={<VideoLikeList />} />
@@ -49,17 +85,23 @@ function App() {
         <Route path="CommentPostbyIdPost/:postId" element={<CommentPostbyIdPost />} />
         <Route path="VideoFarms/VideoById/:id" element={<VideoById />} />
         <Route path="users/:id" element={<UserDetail />} />
-        <Route path="user-points" element={<AdminUserPoints />} />
-
       </Route>
 
       <Route path="/auth/*" element={<Auth />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
-  <Route path="/reset-password" element={<ResetPasswordWrapper />} />
       <Route path="/admin/Farms" element={<Farms />} />
       <Route path="/admin/farms/:id" element={<FarmDetail />} />
 
       <Route path="*" element={<Navigate to="/dashboard/home" replace />} />
+
+      <Route path="/chinh-sach/*" element={<Public />}>
+        <Route path="bao-mat" element={<ChinhSachBaoMat />} />
+        <Route path="cookie" element={<ChinhSachCookie />} />
+        <Route path="dieu-khoan" element={<DieuKhoanDieuKien />} />
+        <Route path="tao-trang" element={<ChinhSachTaoTrang />} />
+        <Route path="cong-dong" element={<ChinhSachCongDong />} />
+        <Route path="tre-em" element={<ChinhSachTreEm />} />
+      </Route>
     </Routes>
   );
 }

@@ -1,5 +1,5 @@
 import { Dialog, DialogBody, DialogHeader, DialogFooter, Button, Typography } from "@material-tailwind/react";
-
+import { BaseUrl } from "@/ipconfig";
 export default function PostLikeUserDialog({ open, onClose, postTitle, likeUsers }) {
   return (
     <Dialog open={open} handler={onClose} size="md">
@@ -14,7 +14,7 @@ export default function PostLikeUserDialog({ open, onClose, postTitle, likeUsers
                 src={
                   user.avatar?.startsWith("http")
                     ? user.avatar
-                    : `https://api-ndolv2.nongdanonline.cc${user.avatar}`
+                    : `${BaseUrl()}${user.avatar}`
                 }
                 alt={user.fullName}
                 className="w-10 h-10 rounded-full"
