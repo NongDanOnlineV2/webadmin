@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { BaseUrl } from '@/ipconfig'
 import { Audio } from 'react-loader-spinner'
 import LikeButton from './LikeButton'
 import VideoLikeList from './VideoLikeList'
 import CommentVideo from './commentVideo';
- export const VideoById = ({openDialog,handleCloseDialog,video}) => {
+ export const VideoById = ({video}) => {
    const [selectedVideoId, setSelectedVideoId] = useState(null)
     const [openComment, setOpenComment] = useState(false);
    const [openLike, setOpenlike] = useState(false);
@@ -16,7 +17,7 @@ import CommentVideo from './commentVideo';
      const tokenUser = localStorage.getItem('token');
 const getVideoDetail = async(videoId)=>{
   try {
-    const res= await axios.get(`${BaseUrl}/admin-video-farm/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
+    const res= await axios.get(`${BaseUrl()}/admin-video-farm/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
 if(res.status===200){
 setVideoDetail(res.data)
 setLoading(false)
@@ -29,7 +30,7 @@ setLoading(false)
 }
 const getCommentVideo = async(videoId)=>{
   try {
-    const res= await axios.get(`${BaseUrl}/video-comment/${videoId}/comments`,{headers:{Authorization: `Bearer ${tokenUser}`}})
+    const res= await axios.get(`${BaseUrl()}/video-comment/${videoId}/comments`,{headers:{Authorization: `Bearer ${tokenUser}`}})
 if(res.status===200){
 setVideoComment(res.data)
 setLoading(false)
@@ -75,11 +76,13 @@ const totalCommentCount = Array.isArray(videoComment)
   const handleSaveEdit = async(videoId)=>{
 try {
       const updatedValue = { status: "uploaded" }; 
-    const res= await axios.post(`${BaseUrl}/admin-video-farm/upload-s3/${videoId}`, updatedValue,{
+     
+    const res= await axios.post(`${BaseUrl()}/admin-video-farm/upload-s3/${videoId}`, updatedValue,{
+    
         headers: { Authorization: `Bearer ${tokenUser}` }})
 if(res.status===200){
   alert("Cập nhật thành công")
-    await  getVideoDetail(videoId);     
+    await  getVideoDetail();     
   }else {
       alert("Có lỗi trong lúc duyệt")
     }
@@ -90,18 +93,15 @@ if(res.status===200){
 const deletevideo = async(videoId)=>{
       if (!window.confirm('Bạn có chắc muốn xóa video này?')) return;
   try {
-    const res= await axios.delete(`${BaseUrl}/admin-video-farm/delete-s3/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
+    const res= await axios.delete(`${BaseUrl()}/admin-video-farm/delete-s3/${videoId}`,{headers:{Authorization: `Bearer ${tokenUser}`}})
 if(res.status===200){
-await getVideoDetail(videoId)
+await getVideoDetail()
 alert("Xóa thành công")
 }
   } catch (error) {
     console.log("Lỗi nè:",error)
   }
 }
-
-
-
 
 useEffect(() => {
     if (video && video._id) {
@@ -135,6 +135,7 @@ useEffect(() => {
  {item.status === "pending" ? (
         <button
           onClick={async (e) => {
+         
             e.stopPropagation();
             await handleSaveEdit(item._id);
           }}
@@ -162,7 +163,7 @@ useEffect(() => {
  src={
     item.localFilePath.startsWith('http')
       ? item.localFilePath
-      : `${BaseUrl}${item.localFilePath}`
+      : `${BaseUrl()}${item.localFilePath}`
   }
     controls
     className=" h-[360px]  w-full rounded shadow"
@@ -258,5 +259,46 @@ videoId={selectedVideoId}
 
   )
 }
+
+export const deletevideo = async (videoId, callback) => {
+  const tokenUser = localStorage.getItem('token');
+  
+  try {
+    const res = await axios.delete(`${BaseUrl()}/admin-video-farm/delete-s3/${videoId}`, {
+      headers: { Authorization: `Bearer ${tokenUser}` }
+    });
+    
+    if (res.status === 200) {
+      if (callback && typeof callback === 'function') {
+        await callback();
+      }
+      return { success: true, message: "Xóa thành công" };
+    }
+  } catch (error) {
+    console.log("Lỗi khi xóa video:", error);
+    return { success: false, message: "Lỗi khi xóa video", error };
+  }
+};
+
+export const approvevideo = async (videoId, callback) => {
+  const tokenUser = localStorage.getItem('token');
+  
+  try {
+    const url = `${BaseUrl()}/admin-video-farm/upload-s3/${videoId}`;
+    const payload = { status: 'uploaded' };
+    const headers = { Authorization: `Bearer ${tokenUser}` };    
+    const res = await axios.post(url, payload, { headers });
+    if (res.status === 200) {
+      if (callback && typeof callback === 'function') {
+        await callback();
+      }
+      return { success: true, message: "Duyệt video thành công" };
+    } else {
+      return { success: false, message: `API trả về status: ${res.status}` };
+    }
+  } catch (error) {
+    console.log("Lỗi khi duyệt video:", error);
+  }
+};
 
 export default VideoById

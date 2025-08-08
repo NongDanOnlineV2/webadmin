@@ -1,3 +1,4 @@
+// ==== START OF FILE ====
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
@@ -20,56 +21,44 @@ import {
 
 import FarmForm from "../user/FarmForm";
 import FarmDetail from "./FarmDetail";
-
-const BASE_URL = "https://api-ndolv2.nongdanonline.cc";
+import { BaseUrl } from "@/ipconfig";
 const getOpts = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 });
 
 export function Farms() {
   const [farms, setFarms] = useState([]);
-  const [allFarms, setAllFarms] = useState([]);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const [tab, setTab] = useState("all");
-  const [search, setSearch] = useState("");
-
   const [openForm, setOpenForm] = useState(false);
   const [editingFarm, setEditingFarm] = useState(null);
-
   const [openMenuId, setOpenMenuId] = useState(null);
   const [openDetail, setOpenDetail] = useState(false);
   const [selectedFarmId, setSelectedFarmId] = useState(null);
-
+  const [totalPages, setTotalPage] = useState(1);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingFarmId, setDeletingFarmId] = useState(null);
-
+  const [farmCache, setFarmCache] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // ✅ Fetch tất cả nông trại (client lọc)
-  const fetchFarms = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${BASE_URL}/adminfarms`, {
-        ...getOpts(),
-        params: {
-          limit: 10000, // lấy tất cả
-        },
-      });
-      const farms = res.data?.data || [];
-      setAllFarms(farms);
-    } catch (err) {
-      setError(err.response?.data?.message || err.message);
-    } finally {
-      setLoading(false);
+  const handleSearch = () => {
+    if (searchQuery !== searchInput) {
+      setSearchQuery(searchInput);
+      setCurrentPage(1);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
   };
 
   const addFarm = async (data) => {
     try {
-      await axios.post(`${BASE_URL}/adminfarms`, data, getOpts());
+      await axios.post(`${BaseUrl()}/adminfarms`, data, getOpts());
       await fetchFarms();
       alert("Tạo farm thành công!");
     } catch (err) {
@@ -79,7 +68,7 @@ export function Farms() {
 
   const editFarm = async (id, data) => {
     try {
-      await axios.put(`${BASE_URL}/adminfarms/${id}`, data, getOpts());
+      await axios.put(`${BaseUrl()}/adminfarms/${id}`, data, getOpts());
       await fetchFarms();
     } catch (err) {
       alert("Lỗi sửa: " + (err.response?.data?.message || err.message));
@@ -87,64 +76,93 @@ export function Farms() {
   };
 
   const deleteFarm = async (id) => {
-    try {
-      await axios.delete(`${BASE_URL}/adminfarms/${id}`, getOpts());
-      await fetchFarms();
-    } catch (err) {
-      alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
-    }
-  };
+  setIsDeleting(true);
+  try {
+    await axios.delete(`${BaseUrl()}/adminfarms/${id}`, getOpts());
+    await fetchFarms();
+  } catch (err) {
+    alert("Lỗi xoá: " + (err.response?.data?.message || err.message));
+  } finally {
+    setIsDeleting(false);
+  }
+};
+
 
   const changeStatus = async (id, action) => {
-    const actionMap = {
-      activate: "kích hoạt",
-      deactivate: "khóa",
-    };
-
-    if (!window.confirm(`Bạn có chắc chắn muốn ${actionMap[action] || action} farm này không?`)) return;
-
-    try {
-      await axios.patch(`${BASE_URL}/adminfarms/${id}/${action}`, null, getOpts());
-      await fetchFarms();
-    } catch (err) {
-      alert(`Lỗi ${actionMap[action] || action}: ` + (err.response?.data?.message || err.message));
-    }
+  const actionMap = {
+    activate: "kích hoạt",
+    deactivate: "khóa",
   };
+
+  if (!window.confirm(`Bạn có chắc chắn muốn ${actionMap[action] || action} farm này không?`)) return;
+
+  try {
+    await axios.patch(`${BaseUrl()}/adminfarms/${id}/${action}`, null, getOpts());
+
+    alert(`Farm đã được ${actionMap[action]} thành công!`);
+    await fetchFarms(); 
+  } catch (err) {
+    alert(`Lỗi ${actionMap[action] || action}: ` + (err.response?.data?.message || err.message));
+  }
+};
+
 
   const handleOpenDetail = (id) => {
     setSelectedFarmId(id);
     setOpenDetail(true);
   };
+useEffect(() => {
+  const controller = new AbortController();
+  const { signal } = controller;
 
-  // ✅ Lọc client-side
-  useEffect(() => {
-    const keyword = search.toLowerCase();
-    const filtered = allFarms
-      .filter((farm) => (tab === "all" || farm.status === tab))
-      .filter((farm) => {
-        return (
-          farm.name?.toLowerCase().includes(keyword) ||
-          farm.code?.toLowerCase().includes(keyword) ||
-          farm.ownerInfo?.name?.toLowerCase().includes(keyword) ||
-          farm.phone?.toLowerCase().includes(keyword) ||
-          farm.location?.toLowerCase().includes(keyword) ||
-          farm.province?.toLowerCase().includes(keyword) ||
-          farm.district?.toLowerCase().includes(keyword) ||
-          farm.ward?.toLowerCase().includes(keyword) ||
-          farm.street?.toLowerCase().includes(keyword) ||
-          String(farm.area).includes(keyword)
-        );
-      });
-    setFarms(filtered);
-    setCurrentPage(1);
-  }, [search, tab, allFarms]);
+  fetchFarms(signal);
 
-  useEffect(() => {
-    fetchFarms();
-  }, []);
+  return () => controller.abort();
+}, [currentPage, tab, searchQuery]);
 
-  const paginatedFarms = farms.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(farms.length / itemsPerPage);
+const fetchFarms = async (signal = null) => {
+  const cacheKey = `${tab}_${searchQuery}_${currentPage}`;
+  if (farmCache[cacheKey]) {
+    setFarms(farmCache[cacheKey].farms);
+    setTotalPage(farmCache[cacheKey].totalPages);
+    setLoading(false);
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const res = await axios.get(`${BaseUrl()}/adminfarms`, {
+      ...getOpts(),
+      params: {
+        limit: itemsPerPage,
+        page: currentPage,
+        status: tab === "all" ? undefined : tab,
+        name: searchQuery || undefined,
+      },
+      signal,
+    });
+
+    let farms = (res.data?.data || []).sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    farms = farms.map((farm) => ({
+      ...farm,
+      ownerInfo: farm.ownerInfo || null,
+    }));
+
+    const total = res.data?.total || 0;
+
+    setFarms(farms);
+    setTotalPage(Math.ceil(total / itemsPerPage));
+  } catch (err) {
+    if (!axios.isCancel(err)) {
+      setError(err.response?.data?.message || err.message);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <>
@@ -155,13 +173,13 @@ export function Farms() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <Input
-            label="Tìm kiếm theo tên, mã, chủ sở hữu..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            label="Tìm kiếm theo tên Farm"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="col-span-2"
           />
-          <Button onClick={fetchFarms} className="w-full md:w-fit bg-black text-white">
-            TẢI LẠI
+          <Button onClick={handleSearch} className="w-full md:w-fit bg-black text-white">
+            TÌM KIẾM
           </Button>
         </div>
 
@@ -186,28 +204,42 @@ export function Farms() {
               <thead>
                 <tr className="bg-blue-gray-50 text-blue-gray-700 text-sm">
                   <th className="px-2 py-2 font-semibold uppercase">Tên</th>
+                  <th className="px-2 py-2 font-semibold uppercase">Ngày tạo</th>
                   <th className="px-2 py-2 font-semibold uppercase">Mã</th>
                   <th className="px-2 py-2 font-semibold uppercase">Chủ sở hữu</th>
                   <th className="px-2 py-2 font-semibold uppercase">SĐT</th>
                   <th className="px-2 py-2 font-semibold uppercase">Địa chỉ</th>
                   <th className="px-2 py-2 font-semibold uppercase">Diện tích</th>
+                  <th className="px-2 py-2 font-semibold uppercase">Số video</th>
                   <th className="px-2 py-2 font-semibold uppercase">Trạng thái</th>
                   <th className="px-2 py-2 font-semibold uppercase">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedFarms.map((farm) => (
+                {farms.map((farm) => (
                   <tr
                     key={farm._id}
                     className="border-b hover:bg-indigo-50 transition text-base cursor-pointer"
                     onClick={() => handleOpenDetail(farm._id)}
                   >
                     <td className="px-2 py-2">{farm.name}</td>
+                    <td className="px-2 py-2">
+                      {farm.createdAt
+                        ? new Date(farm.createdAt).toLocaleDateString("vi-VN", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })
+                        : "—"}
+                    </td>
                     <td className="px-2 py-2">{farm.code}</td>
                     <td className="px-2 py-2">{farm.ownerInfo?.name || "—"}</td>
                     <td className="px-2 py-2">{farm.phone || "—"}</td>
-                    <td className="px-2 py-2">{farm.location}</td>
+                    <td className="px-2 py-2">
+                      {farm.location?.length > 10 ? farm.location.slice(0, 10) + "..." : farm.location}
+                    </td>
                     <td className="px-2 py-2">{farm.area} m²</td>
+                    <td className="px-2 py-2">{farm.videoCount ?? "—"}</td>
                     <td className="px-2 py-2">
                       <Chip
                         value={
@@ -230,9 +262,7 @@ export function Farms() {
                     <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
                       <Menu
                         open={openMenuId === farm._id}
-                        handler={() =>
-                          setOpenMenuId(openMenuId === farm._id ? null : farm._id)
-                        }
+                        handler={() => setOpenMenuId(openMenuId === farm._id ? null : farm._id)}
                         allowHover={false}
                         placement="left-start"
                       >
@@ -253,16 +283,6 @@ export function Farms() {
                             }}
                           >
                             Sửa
-                          </MenuItem>
-                          <MenuItem
-                            className="text-red-500 font-semibold"
-                            onClick={() => {
-                              setDeletingFarmId(farm._id);
-                              setDeleteConfirmOpen(true);
-                              setOpenMenuId(null);
-                            }}
-                          >
-                            Xoá
                           </MenuItem>
                           {farm.status === "pending" && (
                             <>
@@ -285,41 +305,45 @@ export function Farms() {
             </table>
 
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-4 text-sm">
-                <Button
-                  size="sm"
-                  variant="outlined"
-                  className="rounded-md px-4 py-1"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                >
-                  <span className={currentPage === 1 ? "text-gray-400 font-semibold" : "font-semibold"}>
-                    TRANG TRƯỚC
-                  </span>
-                </Button>
+  <div className="flex justify-center items-center gap-1 mt-4">
+    <Button
+      size="sm"
+      variant="outlined"
+      className="px-3 py-1"
+      disabled={currentPage === 1}
+      onClick={() => handlePageChange(currentPage - 1)}
+    >
+      «
+    </Button>
 
-                <Typography variant="small" className="text-black font-medium">
-                  Trang {currentPage} / {totalPages}
-                </Typography>
+    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+      <Button
+        key={page}
+        size="sm"
+        variant={currentPage === page ? "filled" : "outlined"}
+        className={`px-3 py-1 ${currentPage === page ? "bg-black text-white" : ""}`}
+        onClick={() => handlePageChange(page)}
+      >
+        {page}
+      </Button>
+    ))}
 
-                <Button
-                  size="sm"
-                  variant="outlined"
-                  className="rounded-md px-4 py-1"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                >
-                  <span className={currentPage === totalPages ? "text-gray-400 font-semibold" : "font-semibold"}>
-                    TRANG SAU
-                  </span>
-                </Button>
-              </div>
-            )}
+    <Button
+      size="sm"
+      variant="outlined"
+      className="px-3 py-1"
+      disabled={currentPage === totalPages}
+      onClick={() => handlePageChange(currentPage + 1)}
+    >
+      »
+    </Button>
+  </div>
+)}
+
           </div>
         )}
       </div>
 
-      {/* Form tạo/sửa */}
       <FarmForm
         open={openForm}
         onClose={() => {
@@ -333,7 +357,6 @@ export function Farms() {
         }}
       />
 
-      {/* Chi tiết nông trại */}
       <Dialog open={openDetail} size="xl" handler={setOpenDetail} dismiss={{ outsidePress: false }}>
         <DialogHeader className="justify-between">
           Chi tiết nông trại
@@ -344,7 +367,6 @@ export function Farms() {
         </DialogBody>
       </Dialog>
 
-      {/* Xác nhận xoá */}
       <Dialog open={deleteConfirmOpen} handler={setDeleteConfirmOpen} size="sm">
         <DialogHeader>Xác nhận xoá</DialogHeader>
         <DialogBody>

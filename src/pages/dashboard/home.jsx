@@ -2,16 +2,16 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Typography, Card, CardBody } from "@material-tailwind/react";
 import { UserIcon } from "@heroicons/react/24/solid";
-
+import { BaseUrl } from "@/ipconfig";
 export default function Home() {
   const [loginStats, setLoginStats] = useState(null);
 
   useEffect(() => {
     const fetchLoginStats = async () => {
       try {
-        const token = localStorage.getItem("token");  // nhớ lưu token trước đó
+        const token = localStorage.getItem("token");  
         const response = await axios.get(
-          "https://api-ndolv2.nongdanonline.cc/user-dashboard/login-stats",
+          `${BaseUrl()}/user-dashboard/login-stats`,
           {
             headers: { Authorization: `Bearer ${token}` }
           }

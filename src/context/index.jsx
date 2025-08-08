@@ -27,6 +27,12 @@ export function reducer(state, action) {
     case "AUTH_STATUS": {
       return { ...state, isAuthenticated: action.value}
     }
+    case "SET_TOKEN": { 
+      return { ...state, token: action.value };
+    }
+    case "SET_INITIALIZING": {
+      return { ...state, isInitializing: action.value };
+    }
     default: {
       throw new Error(`Unhandled action type: ${action.type}`);
     }
@@ -42,13 +48,22 @@ export function MaterialTailwindControllerProvider({ children }) {
     fixedNavbar: false,
     openConfigurator: false,
     isAuthenticated: Boolean(localStorage.getItem("token")),
+    token: localStorage.getItem("token"),
+    isInitializing: true,
   };
 
-  const [controller, dispatch] = React.useReducer(reducer, initialState);
-  const value = React.useMemo(
-    () => [controller, dispatch],
-    [controller, dispatch]
-  );
+    const [controller, dispatch] = React.useReducer(reducer, initialState);
+
+  React.useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      dispatch({ type: "SET_TOKEN", value: token });
+      dispatch({ type: "AUTH_STATUS", value: true });
+    }
+    dispatch({ type: "SET_INITIALIZING", value: false });
+  }, []);
+
+  const value = React.useMemo(() => [controller, dispatch], [controller, dispatch]);
 
   return (
     <MaterialTailwind.Provider value={value}>
@@ -89,3 +104,5 @@ export const setOpenConfigurator = (dispatch, value) =>
   dispatch({ type: "OPEN_CONFIGURATOR", value });
 export const setAuthStatus = (dispatch, value) => 
   dispatch({type: "AUTH_STATUS", value})
+export const setToken = (dispatch, value) =>
+  dispatch({ type: "SET_TOKEN", value });

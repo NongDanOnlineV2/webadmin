@@ -13,7 +13,7 @@ export default function LikeButton({ videoId,onOpenLike }) {
 
 const getLikeVideo = async()=>{
   try {
-    const res= await axios.get(`${BaseUrl}/video-like/${videoId}/users`,{headers:{Authorization: `Bearer ${token}`}})
+    const res= await axios.get(`${BaseUrl()}/video-like/${videoId}/users`,{headers:{Authorization: `Bearer ${token}`}})
 if(res.status===200){
 setVideoLike(res.data)
 setLoading(false)
@@ -24,7 +24,6 @@ setLoading(false)
 
   }
 }
-
   // const handleLikeToggle = async () => {
   //   if (!videoId || !token) return;
   //   setLoading(true);

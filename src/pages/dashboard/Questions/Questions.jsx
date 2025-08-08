@@ -3,54 +3,48 @@ import axios from 'axios';
 import { BaseUrl } from '@/ipconfig';
 import { Oval } from 'react-loader-spinner';
 import AddQuestion from './AddQuestion';
-import AnswersTable from './answerstable';
 import {
-  Dialog,
-  DialogBody,
-  DialogHeader,
-  DialogFooter,
-  Button,
+  MenuHandler, Menu, IconButton, MenuList, MenuItem,
+ Button
 } from '@material-tailwind/react';
+import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import EditQuestion from './EditQuestion';
-export const Questions = () => {
 
-  const [loading, setLoading] = useState(true);
+export const Questions = () => {
   const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [openDialog, setOpenDialog] = useState(false);
   const [editData, setEditData] = useState(null);
   const [editValue, setEditValue] = useState({ options: [] });
-  const [currentPage, setCurrentPage] = useState(1);
-const questionsPerPage = 5;
   const [addDialog, setAddDialog] = useState(false);
   const [addValue, setAddValue] = useState({ text: '', options: [''], type: 'option', link: '' });
-
-  const [showAnswersDialog, setShowAnswersDialog] = useState(false);
-
   const tokenUser = localStorage.getItem('token');
-const indexOfLastQuestion = currentPage * questionsPerPage;
-const indexOfFirstQuestion = indexOfLastQuestion - questionsPerPage;
-const paginatedQuestions = questions.slice(indexOfFirstQuestion, indexOfLastQuestion);
-const totalPages = Math.ceil(questions.length / questionsPerPage);
-
-
-  const getData = async () => {
+   const limit=5
+  const getData = async (page = 1) => {
+    setLoading(true);
     try {
-      const res = await axios.get(`${BaseUrl}/admin-questions?limit=30`, {
-        headers: { Authorization: `Bearer ${tokenUser}` },
-      });
+      const res = await axios.get(
+        `${BaseUrl()}/admin-questions?page=${page}&limit=${limit}`,
+        { headers: { Authorization: `Bearer ${tokenUser}` } }
+      );
       if (res.status === 200) {
         setQuestions(res.data.data);
+        setTotalPages(res.data.totalPages || 1);
       }
     } catch (error) {
-      console.log('Lỗi nè:', error);
+      console.log('Lỗi khi lấy dữ liệu:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    getData();
-  }, []);
+    getData(currentPage);
+  }, [currentPage]);
+ 
+
   const handleOpenDialog = (item) => {
     setEditData(item);
     setEditValue({
@@ -58,6 +52,8 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
       options: Array.isArray(item.options) ? [...item.options] : [],
       type: item.type,
       link: item.link || '',
+      isRequired: item.isRequired || false,
+      allowOtherText: ['single-choice', 'multi-choice', 'multiple-choice'].includes(item.type) ? true : false
     });
     setOpenDialog(true);
   };
@@ -69,11 +65,7 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
   };
 
   const handleEditChange = (e, idx) => {
-    if (
-      editData &&
-      ['option', 'single-choice', 'multiple-choice', 'multi-choice'].includes(editData.type) &&
-      typeof idx === 'number'
-    ) {
+    if (['option', 'single-choice', 'multiple-choice', 'multi-choice'].includes(editData?.type) && typeof idx === 'number') {
       const newOptions = [...editValue.options];
       newOptions[idx] = e.target.value;
       setEditValue({ ...editValue, options: newOptions });
@@ -82,29 +74,31 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
     }
   };
 
-  const handleSave = async () => {
-    if (
-      ['option', 'single-choice', 'multiple-choice', 'multi-choice'].includes(editData.type) &&
-      Array.isArray(editValue.options) &&
-      editValue.options.some(opt => !opt || opt.trim() === '')
-    ) {
-      alert('Vui lòng điền đủ tất cả các đáp án!');
-      return;
-    } else if (!editValue.text || editValue.text.trim() === '') {
+  const handleSave = async (customEditValue) => {
+    const valueToSave = customEditValue || editValue;
+    if (!valueToSave.text || valueToSave.text.trim() === '') {
       alert('Vui lòng nhập nội dung câu hỏi!');
       return;
     }
+    if (
+      ['option', 'single-choice', 'multiple-choice', 'multi-choice'].includes(valueToSave.type) &&
+      valueToSave.options.some(opt => !opt || opt.trim() === '')
+    ) {
+      alert('Vui lòng điền đủ tất cả các đáp án!');
+      return;
+    }
+    const payload = {
+      ...valueToSave,
+      options: valueToSave.options,
+      allowOtherText: false 
+    };
     try {
-      await axios.put(
-        `${BaseUrl}/admin-questions/${editData._id}`,
-        editValue,
-        {
-          headers: { Authorization: `Bearer ${tokenUser}` },
-        }
-      );
+      await axios.put(`${BaseUrl()}/admin-questions/${editData._id}`, payload, {
+        headers: { Authorization: `Bearer ${tokenUser}` },
+      });
       alert("Lưu thành công");
       handleCloseDialog();
-      getData();
+      getData(currentPage);
     } catch (error) {
       console.log('Lỗi khi cập nhật:', error);
     }
@@ -113,11 +107,11 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc muốn xóa câu hỏi này?')) return;
     try {
-      await axios.delete(`${BaseUrl}/admin-questions/${id}`, {
+      await axios.delete(`${BaseUrl()}/admin-questions/${id}`, {
         headers: { Authorization: `Bearer ${tokenUser}` },
       });
-      alert('Xóa thành công!');
-      getData();
+      alert('Xoá thành công!');
+      getData(currentPage);
     } catch (error) {
       alert('Lỗi khi xóa!');
       console.log('Lỗi khi xóa:', error);
@@ -125,7 +119,14 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
   };
 
   const handleOpenAddDialog = () => {
-    setAddValue({ text: '', options: [''], type: 'option', link: '' });
+    setAddValue({
+      text: '',
+      options: [''], // mặc định 1 đáp án thường
+      type: 'option',
+      link: '',
+      isRequired: false,
+      isOther: false // thêm trạng thái cho option "Khác"
+    });
     setAddDialog(true);
   };
 
@@ -135,7 +136,20 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
   };
 
   const handleAddChange = (e, idx) => {
-    if (["option", "single-choice", "multiple-choice", "multi-choice"].includes(addValue.type) && typeof idx === "number") {
+    // Nếu chọn option "Khác", chuyển sang trạng thái isOther
+    if (e.target.name === "type" && e.target.value === "other") {
+      setAddValue({
+        ...addValue,
+        type: "other",
+        isOther: true,
+        options: [] 
+      });
+      return;
+    }
+    if (
+      ["option", "single-choice", "multiple-choice", "multi-choice"].includes(addValue.type) &&
+      typeof idx === "number"
+    ) {
       const newOptions = [...addValue.options];
       newOptions[idx] = e.target.value;
       setAddValue({ ...addValue, options: newOptions });
@@ -145,168 +159,212 @@ const totalPages = Math.ceil(questions.length / questionsPerPage);
   };
 
   const handleAddSave = async () => {
+    if (addValue.type === "other") {
+      if (!addValue.text || addValue.text.trim() === '') {
+        alert('Vui lòng nhập nội dung câu hỏi!');
+        return;
+      }
+      try {
+        await axios.post(`${BaseUrl()}/admin-questions`, {
+          ...addValue,
+          options: [],
+          allowOtherText: true
+        }, {
+          headers: { Authorization: `Bearer ${tokenUser}` },
+        });
+        alert('Thêm thành công!');
+        handleCloseAddDialog();
+        getData(currentPage);
+      } catch (error) {
+        alert('Lỗi khi thêm!');
+        console.log('Lỗi khi thêm:', error);
+      }
+      return;
+    }
+    let options = addValue.options;
+    if (
+      ["option", "single-choice", "multiple-choice", "multi-choice"].includes(addValue.type)
+    ) {
+      if (!options.includes('{text}')) {
+        options = [...options, '{text}'];
+      }
+    }
     if (!addValue.text || addValue.text.trim() === '') {
       alert('Vui lòng nhập nội dung câu hỏi!');
       return;
     }
-    if (["option", "single-choice", "multiple-choice", "multi-choice"].includes(addValue.type) && addValue.options.some(opt => !opt || opt.trim() === '')) {
+    if (
+      ["option", "single-choice", "multiple-choice", "multi-choice","other"].includes(addValue.type) &&
+      options.filter(opt => opt !== '{text}').some(opt => !opt || opt.trim() === '')
+    ) {
       alert('Vui lòng điền đủ tất cả các đáp án!');
       return;
     }
     try {
-      await axios.post(`${BaseUrl}/admin-questions`, addValue, {
+      await axios.post(`${BaseUrl()}/admin-questions`, { ...addValue, options }, {
         headers: { Authorization: `Bearer ${tokenUser}` },
       });
       alert('Thêm thành công!');
       handleCloseAddDialog();
-      getData();
+      getData(currentPage);
     } catch (error) {
       alert('Lỗi khi thêm!');
       console.log('Lỗi khi thêm:', error);
     }
   };
 
+  const [searchInput, setSearchInput] = useState('');
+  const [filterInput, setFilterInput] = useState('');
+
+  const filteredQuestions = questions.filter((item) => {
+    const matchesSearch = item.text.toLowerCase().includes(searchInput.toLowerCase());
+    const matchesType = filterInput === '' || item.type === filterInput;
+    return matchesSearch && matchesType;
+  });
+
   return (
     <div>
-      <div className="flex justify-between mb-4">
-        <AddQuestion
-          handleAddChange={handleAddChange}
-          handleAddSave={handleAddSave}
-          handleCloseAddDialog={handleCloseAddDialog}
-          handleOpenAddDialog={handleOpenAddDialog}
-          addDialog={addDialog}
-          addValue={addValue}
-          setAddValue={setAddValue}
+      <div className="flex items-center gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Tìm kiếm câu hỏi..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="h-10 w-64 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none text-sm"
         />
+        {/* Loại câu hỏi cho filter */}
+        <select
+          className="h-10 w-48 px-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+          value={filterInput}
+          onChange={(e) => setFilterInput(e.target.value)}
+        >
+          <option value="">Tất cả loại</option>
+         {/* <option value="other">Khác (user tự nhập đáp án)</option> */}
+          <option value="single-choice">Chọn 1 đáp án</option>
+          <option value="multi-choice">Chọn nhiều đáp án</option>
+          <option value="text">Nhập thông tin</option>
+          <option value="upload">Upload ảnh</option>
+        </select>
+      </div>
 
+      <div className="flex justify-end my-4">
         <Button
           color="blue"
-          onClick={() => setShowAnswersDialog(true)}
+          onClick={handleOpenAddDialog}
+          className="px-6 py-2"
         >
-          Danh sách câu trả lời
+          Thêm câu hỏi
         </Button>
       </div>
 
-      <Dialog open={showAnswersDialog} handler={() => setShowAnswersDialog(false)} size="xl">
-        <DialogHeader>Danh sách câu trả lời</DialogHeader>
-        <DialogBody className="max-h-[70vh] overflow-y-auto">
-          <AnswersTable />
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="text" onClick={() => setShowAnswersDialog(false)}>
-            Đóng
-          </Button>
-        </DialogFooter>
-      </Dialog>
-
       {loading ? (
         <div className="flex justify-center items-center h-40">
-          <Oval
-            height={80}
-            width={80}
-            color="blue"
-            visible={true}
-            ariaLabel="oval-loading"
-            secondaryColor="lightblue"
-            strokeWidth={2}
-            strokeWidthSecondary={2}
-          />
+          <Oval height={80} width={80} color="blue" visible={true} ariaLabel="oval-loading" />
         </div>
-      ) : paginatedQuestions.length === 0 ? (
-        <div className="text-center text-gray-500 mt-8">
-          Không có câu hỏi nào.
-        </div>
+      ) : filteredQuestions.length === 0 ? (
+        <div className="text-center text-gray-500 mt-8">Không có câu hỏi phù hợp.</div>
       ) : (
-        paginatedQuestions.map((item) => (
-          <div
-            key={item._id}
-            className="mb-6 p-4 border rounded-lg bg-white shadow"
-          >
+        filteredQuestions.map((item) => (
+          <div key={item._id} className="mb-6 p-4 border rounded-lg bg-white shadow">
             <div className="flex justify-between">
               <div className="font-semibold mb-2">{item.text}</div>
-              <div className="flex gap-2">
-                <button
-                  className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded shadow text-sm"
-                  onClick={() => handleOpenDialog(item)}
-                >
-                  Cập nhật
-                </button>
-                <button
-                  className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded shadow text-sm"
-                  onClick={() => handleDelete(item._id)}
-                >
-                  Xóa
-                </button>
-              </div>
+              <Menu placement="left-start">
+                <MenuHandler>
+                  <IconButton variant="text">
+                    <EllipsisVerticalIcon className="h-5 w-5" />
+                  </IconButton>
+                </MenuHandler>
+                <MenuList>
+                  <MenuItem onClick={() => handleOpenDialog(item)}>Cập nhật</MenuItem>
+                  <MenuItem onClick={() => handleDelete(item._id)} className="text-red-500">Xoá</MenuItem>
+                </MenuList>
+              </Menu>
             </div>
-            <div className="flex gap-4 mt-8">
-              {["single-choice", "multiple-choice", "multi-choice"].includes(item.type) && Array.isArray(item.options) && item.options.length > 0 ? (
-                item.options.map((opt, idx) => (
-                  <button
-                    key={idx}
-                    className="px-4 py-2 bg-blue-400 hover:bg-blue-600 text-white rounded"
-                  >
-                    {opt}
-                  </button>
+            <div className="flex gap-4 mt-8 flex-wrap">
+              {["single-choice", "multiple-choice", "multi-choice", "option","other"].includes(item.type) ? (
+                item.options?.map((opt, idx) => (
+                  <React.Fragment key={idx}>
+                    {opt === '{text}' || item.allowOtherText ? (
+                      <div className="flex items-center gap-2">
+                        <span className="px-4 py-2 bg-blue-50 text-blue-700 rounded font-semibold border border-blue-200 italic">
+                          Khác (người dùng sẽ nhập đáp án)
+                        </span>
+                        <input
+                          type="text"
+                          className="border px-3 py-2 rounded w-full max-w-xs focus:ring-2 focus:ring-blue-400 outline-none"
+                          placeholder="Nhập đáp án khác..."
+                          disabled
+                        />
+                      </div>
+                    ) : (
+                      <button className="px-4 py-2 bg-blue-gray-400 hover:bg-blue-gray-600 text-white rounded font-medium shadow">
+                        {opt}
+                      </button>
+                    )}
+                  </React.Fragment>
                 ))
               ) : item.type === 'upload' ? (
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="border px-3 py-2 rounded w-full max-w-xs"
-                  disabled
-                />
+                <input type="file" accept="image/*" className="border px-3 py-2 rounded w-full max-w-xs" disabled />
               ) : item.type === 'link' ? (
-                <input
-                  type="url"
-                  className="border px-3 py-2 rounded w-full max-w-xs"
-                  placeholder="Nhập đường dẫn..."
-                  disabled
-                />
+                <input type="url" className="border px-3 py-2 rounded w-full max-w-xs" placeholder="Nhập đường dẫn..." disabled />
               ) : item.type === 'text' ? (
-                <input
-                  type="text"
-                  className="border px-3 py-2 rounded w-full max-w-xs"
-                  placeholder="Nhập câu trả lời..."
-                  disabled
-                />
+                <input type="text" className="border px-3 py-2 rounded w-full max-w-xs" placeholder="Nhập câu trả lời..." disabled />
               ) : null}
             </div>
           </div>
         ))
-)}
+      )}
 
-<div className="flex justify-center items-center gap-2 mt-4">
-  <button
-    className="px-3 py-1 rounded bg-blue-500 text-white disabled:bg-gray-300"
-    disabled={currentPage === 1}
-    onClick={() => setCurrentPage(currentPage - 1)}
-  >
-    Trang trước
-  </button>
-  <span>
-    {currentPage} / {totalPages}
-  </span>
-  <button
-    className="px-3 py-1 rounded bg-blue-500 text-white disabled:bg-gray-300"
-    disabled={currentPage === totalPages || totalPages === 0}
-    onClick={() => setCurrentPage(currentPage + 1)}
-  >
-    Trang sau
-  </button>
-</div>
+      {/* Phân trang */}
+      <div className="flex justify-center items-center gap-2 mt-6">
+        <Button
+          size="sm"
+          variant="outlined"
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+        >
+          Trang trước
+        </Button>
+        <span className="text-sm text-gray-700">
+          Trang <strong>{currentPage}</strong> / {totalPages}
+        </span>
+        <Button
+          size="sm"
+          variant="outlined"
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+          disabled={currentPage >= totalPages}
+        >
+          Trang sau
+        </Button>
+      </div>
 
-<EditQuestion
-setEditValue={setEditValue}
-editData={editData}
-editValue={editValue}
-handleCloseDialog={handleCloseDialog}
-handleEditChange={handleEditChange}
-handleSave={handleSave}
-openDialog={openDialog}
-/>  
+      <EditQuestion
+        editData={editData}
+        editValue={editValue}
+        setEditValue={setEditValue}
+        setEditData={setEditData}
+        handleCloseDialog={handleCloseDialog}
+        handleEditChange={handleEditChange}
+        handleSave={handleSave}
+        open={openDialog}
+      />
+
+      <AddQuestion
+        handleAddChange={handleAddChange}
+        handleAddSave={handleAddSave}
+        handleCloseAddDialog={handleCloseAddDialog}
+        handleOpenAddDialog={handleOpenAddDialog}
+        open={addDialog}
+        addValue={addValue}
+        setAddValue={setAddValue}
+      />
+
+
     </div>
   );
 };
+
+
+
 
 export default Questions;

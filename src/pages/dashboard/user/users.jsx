@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/utils/axiosInstance"; // thay axios = api
+import axios from 'axios';
 import {
   Typography, IconButton, Menu, MenuHandler, MenuList, MenuItem,
   Dialog, DialogHeader, DialogBody, DialogFooter,
@@ -7,8 +8,11 @@ import {
 } from "@material-tailwind/react";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
-import CreatableSelect from 'react-select/creatable';
+import { BaseUrl } from '@/ipconfig';
 
+const allFarms = { current: [] };
+const allVideos = { current: [] };
+const allPosts = { current: [] };
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -19,150 +23,251 @@ export default function Users() {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
-    fullName: "", email: "", phone: "", isActive: true, addresses: [""]
+    fullName: "", email: "", phone: "", isActive: true,
   });
   const [selectedRole, setSelectedRole] = useState("Farmer");
-console.log(formData)
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
+  const [cacheUsers, setCacheUsers] = useState([]);
 
   const [filterRole, setFilterRole] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [searchText, setSearchText] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [userAddresses, setUserAddresses] = useState([]);
+  const fallbackAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  const apiUrl = "https://api-ndolv2.nongdanonline.cc";
 
+const fetchAllData = async () => {
+    try {
+      const getAllPages = async (endpoint) => {
+        let page = 1;
+        let items = [];
+        while (true) {
+          const res = await axios.get(`${BaseUrl()}/${endpoint}?page=${page}&limit=100`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = res.data?.data || [];
+          if (!data.length) break;
+          items = [...items, ...data];
+          page++;
+        }
+        return items;
+      };
+
+    } catch (err) {
+      console.error("Lỗi tải toàn bộ farms/videos/posts:", err);
+    }
+  };
   // Fetch users + counts
-  const fetchUsers = async () => {
+    const fetchUsers = async () => {
     if (!token) return;
     setLoading(true);
     try {
-      const params = { page, limit };
+      const params = { page, limit: 10 };
       if (filterRole) params.role = filterRole;
       if (filterStatus) params.isActive = filterStatus === "Active";
 
-      const res = await axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params });
-      const usersData = Array.isArray(res.data.data) ? res.data.data : [];
-      setUsers(usersData);
+    const res = await api.get(`${BaseUrl()}/admin-users`, { params }); 
+    const usersData = res.data?.data || [];
 
-      // Tự động lấy danh sách role duy nhất từ users
-      const uniqueRoles = Array.from(
-  new Set(
-    usersData
-      .flatMap(user => Array.isArray(user.role) ? user.role : [user.role])
-      .map(role => role.toLowerCase()) // chuẩn hóa về lowercase
-  )
-).map(role => role.charAt(0).toUpperCase() + role.slice(1)); // Viết hoa chữ cái đầu
-setRoles(uniqueRoles);
-
-      setTotalPages(res.data.totalPages || 1);
-
-      // counts
-      const [farmsRes, videosRes, postsRes] = await Promise.all([
-        axios.get(`${apiUrl}/adminfarms?page=${page}&limit=1000`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${apiUrl}/admin-video-farm?page=${page}&limit=1000`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${apiUrl}/admin-post-feed?page=1&limit=1000`, { headers: { Authorization: `Bearer ${token}` } })
-      ]);
-
-      const farms = farmsRes.data?.data || [];
-      const videos = videosRes.data?.data || [];
-      const posts = postsRes.data?.data || [];
-
-      const postCountsMap = {};
-      posts.forEach(p => {
-        const uid = p.userId || p.authorId;
-        if (uid) postCountsMap[uid] = (postCountsMap[uid] || 0) + 1;
+      const postMap = {};
+      allPosts.current.forEach(p => {
+        const uid = p.userId || p.authorId?.id;
+        if (uid) postMap[uid] = (postMap[uid] || 0) + 1;
       });
 
-      const countsObj = {};
-      usersData.forEach(user => {
-        countsObj[user.id] = {
-          farms: farms.filter(f => f.ownerId === user.id).length,
-          videos: videos.filter(v => v.uploadedBy?.id === user.id).length,
-          posts: postCountsMap[user.id] || 0
+      const countsMap = {};
+      usersData.forEach(u => {
+        countsMap[u.id] = {
+          posts: postMap[u.id] || 0,
+          farms: allFarms.current.filter(f => f.ownerId === u.id).length,
+          videos: allVideos.current.filter(v => v.uploadedBy?.id === u.id).length
         };
       });
-      setCounts(countsObj);
+
+      setUsers(usersData);
+      setCounts(countsMap);
+      setTotalPages(res.data.totalPages || 1);
+      setCacheUsers(prev => [...prev, {
+        page,
+        role: filterRole,
+        status: filterStatus,
+        searchText,
+        users: usersData,
+        totalPages: res.data.totalPages || 1,
+        counts: countsMap
+      }]);
+      const formatRole = (r) => r?.trim().charAt(0).toUpperCase() + r?.trim().slice(1).toLowerCase();
+      const allRoles = Array.from(new Set(
+        usersData
+          .flatMap(u => Array.isArray(u.role) ? u.role : [u.role])
+          .filter(Boolean)
+          .map(formatRole)
+      ));
+
+    setRoles(allRoles);
     } catch (err) {
-      console.error("Lỗi khi tải users:", err);
-      setError("Lỗi khi tải danh sách người dùng.");
+      console.error("Lỗi fetch users:", err);
+      setError("Không thể tải danh sách người dùng");
     } finally {
       setLoading(false);
     }
   };
 
+ useEffect(() => {
+  if (!token) return;
+  setRoles(["Admin", "Farmer", "Staff", "Customer"]);
+  fetchAllData()
+    .catch((err) => {
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
+    });
+}, []);
   // Search
-  const handleSearch = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const paramsCommon = { page: 1, limit: 10 };
-      if (filterRole) paramsCommon.role = filterRole;
-      if (filterStatus) paramsCommon.isActive = filterStatus === "Active";
+const handleSearch = async () => {
+  if (!token) return;
+  setLoading(true);
+  setIsSearching(true);
+  setPage(1); // đảm bảo về trang 1
+  try {
+    const params = {
+      page: 1,
+      limit: 10,
+    };
+    if (filterRole) params.role = filterRole;
+    if (filterStatus) params.isActive = filterStatus === "Active";
+    if (searchText.trim()) params.fullName = searchText.trim();
 
-      const [byName, byEmail, byPhone] = await Promise.all([
-        axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, fullName: searchText } }),
-        axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, email: searchText } }),
-        axios.get(`${apiUrl}/admin-users`, { headers: { Authorization: `Bearer ${token}` }, params: { ...paramsCommon, phone: searchText } }),
-      ]);
-      const merged = [...(byName.data.data || []), ...(byEmail.data.data || []), ...(byPhone.data.data || [])];
-      const unique = merged.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-      setUsers(unique);
-      setTotalPages(1);
-      setPage(1);
-      setIsSearching(true);
-    } catch (err) {
-      console.error("Lỗi tìm kiếm:", err);
-      setError("Lỗi khi tìm kiếm.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const res = await api.get(`${BaseUrl()}/admin-users`, { params });
+    const usersData = res.data?.data || [];
 
-  useEffect(() => {
-    if (!token) {
-      setError("Không tìm thấy token!");
-      setLoading(false);
-      return;
-    }
-    if (!isSearching) fetchUsers();
-  }, [token, page, filterRole, filterStatus, isSearching]);
+    // đếm số lượng như cũ
+    const postMap = {};
+    allPosts.current.forEach(p => {
+      const uid = p.userId || p.authorId?.id;
+      if (uid) postMap[uid] = (postMap[uid] || 0) + 1;
+    });
+
+    const countsMap = {};
+    usersData.forEach(u => {
+      countsMap[u.id] = {
+        posts: postMap[u.id] || 0,
+        farms: allFarms.current.filter(f => f.ownerId === u.id).length,
+        videos: allVideos.current.filter(v => v.uploadedBy?.id === u.id).length,
+      };
+    });
+
+    setUsers(usersData);
+    setCounts(countsMap);
+    setTotalPages(res.data.totalPages || 1);
+
+    // 🛠 Giữ chế độ tìm kiếm cho đến khi người dùng "xoá tìm kiếm"
+    // Không setIsSearching(false) ở đây
+  } catch (err) {
+    console.error("Lỗi tìm kiếm người dùng:", err);
+    alert("Không thể tìm kiếm người dùng!");
+    setIsSearching(false); // nếu lỗi thì tắt chế độ
+  } finally {
+    setLoading(false);
+  }
+};
+
+ useEffect(() => {
+  if (!token) {
+    setError("Không tìm thấy token!");
+    setLoading(false);
+    return;
+  }
+
+  if (isSearching) return;
+
+  // const cached = cacheUsers.find(
+  //   (entry) =>
+  //     entry.page === page &&
+  //     entry.role === filterRole &&
+  //     entry.status === filterStatus &&
+  //     entry.searchText === searchText
+  // );
+
+  // if (cached) {
+  //   // ⚡ Load từ cache nếu đã có
+  //   setUsers(cached.users);
+  //   setTotalPages(cached.totalPages || 1);
+  //   setCounts(cached.counts || {});
+  //   setLoading(false);
+  // } else {
+  //   // 🚀 Nếu chưa cache thì mới fetch
+    fetchUsers();
+  // }
+}, [token, page, filterRole, filterStatus, isSearching]);
+
 
   // Edit
   const openEdit = (user) => {
-    setSelectedUser(user);
-    setFormData({
-      fullName: user.fullName, email: user.email,
-      phone: user.phone || "", isActive: user.isActive,
-      addresses: user?.addresses?.map(a => a.address) || [""],
-    });
-    setEditOpen(true);
-  };
-console.log(users)
+  setSelectedUser(user);
+  setFormData({
+    fullName: user.fullName,
+    email: user.email,
+    phone: user.phone || "",
+    isActive: user.isActive
+  });
+  setEditOpen(true);
+};
+
+  
 // CẬP NHẬT NGƯỜI DÙNG + ĐỊA CHỈ
- const handleUpdate = async () => {
-    if (!token || !selectedUser) return;
-    try {
-      await axios.put(`${apiUrl}/admin-users/${selectedUser.id}`, { fullName: formData.fullName, phone: formData.phone }, { headers: { Authorization: `Bearer ${token}` } });
+const handleUpdate = async () => {
+  if (!token || !selectedUser) return;
 
-      if (formData.isActive !== selectedUser.isActive) {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/active`, {}, { headers: { Authorization: `Bearer ${token}` } });
-      }
+  const phoneValid = /^\d{10}$/.test(formData.phone);
+  if (!phoneValid) {
+    alert("Số điện thoại phải đủ 10 chữ số!");
+    return; // không cho tiếp tục
+  }
 
-      if (selectedUser.addresses?.[0]?.id) {
-        await axios.put(`${apiUrl}/user-addresses/${selectedUser.addresses[0].id}`, { address: formData.addresses[0] }, { headers: { Authorization: `Bearer ${token}` } });
+  const hasStatusChanged = formData.isActive !== selectedUser.isActive;
+
+  try {
+    await axios.put(
+      `${BaseUrl()}/admin-users/${selectedUser._id}`,
+      {
+        fullName: formData.fullName,
+        phone: formData.phone,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
       }
-      alert("Cập nhật thành công!");
-      fetchUsers();
-      setEditOpen(false);
-    } catch {
-      alert("Cập nhật thất bại!");
+    );
+
+    if (hasStatusChanged) {
+      await axios.patch(
+        `${BaseUrl()}/admin-users/${selectedUser._id}/active`,
+        {
+          isActive: formData.isActive,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
     }
-  };
+
+    alert("Cập nhật thành công!");
+    fetchUsers();
+    setEditOpen(false);
+  } catch (error) {
+    console.error("❌ Lỗi khi cập nhật:", error);
+    const message =
+      error.response?.data?.message || "Cập nhật thất bại! Vui lòng thử lại.";
+    alert(message);
+  }
+};
+
 
  const handleToggleActive = async (val) => {
   if (!token || !selectedUser) return;
@@ -177,13 +282,13 @@ console.log(users)
   }
 
   try {
-    await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/active`, {}, {
+    await axios.patch(`${BaseUrl()}/admin-users/${selectedUser._id}/active`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
     setFormData(prev => ({ ...prev, isActive: newIsActive }));
     setUsers(prev =>
-      prev.map(u => u.id === selectedUser.id ? { ...u, isActive: newIsActive } : u)
+      prev.map(u => u.id === selectedUser._id ? { ...u, isActive: newIsActive } : u)
     );
 
     alert("Cập nhật trạng thái thành công!");
@@ -191,25 +296,62 @@ console.log(users)
     alert("Cập nhật trạng thái thất bại!");
   }
 };
+const handleSetActive = async (userId) => {
+  if (!window.confirm("Bạn chắc chắn muốn kích hoạt lại user này?")) return;
 
-  const handleDelete = async (userId) => {
-    if (!window.confirm("Bạn chắc chắn muốn xoá?")) return;
-    try {
-      await axios.delete(`${apiUrl}/admin-users/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
-      alert("Đã xoá người dùng!");
-      fetchUsers();
-    } catch {
-      alert("Xoá thất bại!");
-    }
-  };
+  try {
+    await axios.put(
+      `${BaseUrl()}/admin-users/${userId}`,
+      { isActive: true },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    alert("Đã kích hoạt lại người dùng!");
+    fetchUsers(); // Reload danh sách để cập nhật trạng thái
+  } catch (err) {
+    console.error("Lỗi kích hoạt:", err?.response?.data || err.message);
+    alert("Kích hoạt thất bại!");
+  }
+};
+
+const handleDelete = async (userId) => {
+  if (!window.confirm("Bạn chắc chắn muốn vô hiệu hoá user này?")) return;
+
+  try {
+    await axios.put(
+      `${BaseUrl()}/admin-users/${userId}`,
+      { isActive: false },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    alert("Đã vô hiệu hoá user!");
+
+    // ✅ GỌI LẠI
+    fetchUsers();
+  } catch (err) {
+    console.error("Lỗi:", err);
+    alert("Không thể vô hiệu hoá user!");
+  }
+};
+
+
+
 
   const handleAddRole = async () => {
     if (!token || !selectedUser) return;
     try {
       if (selectedRole === "Farmer") {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${BaseUrl()}/admin-users/${selectedUser._id}/add-farmer`, {}, { headers: { Authorization: `Bearer ${token}` } });
       } else {
-        await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.patch(`${BaseUrl()}/admin-users/${selectedUser._id}/add-role`, { role: selectedRole }, { headers: { Authorization: `Bearer ${token}` } });
       }
       alert("Thêm role thành công!");
       fetchUsers();
@@ -221,7 +363,7 @@ console.log(users)
   const handleRemoveRole = async (role) => {
     if (!token || !selectedUser) return;
     try {
-      await axios.patch(`${apiUrl}/admin-users/${selectedUser.id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.patch(`${BaseUrl()}/admin-users/${selectedUser._id}/remove-roles`, { roles: [role] }, { headers: { Authorization: `Bearer ${token}` } });
       alert("Xoá role thành công!");
       fetchUsers();
     } catch {
@@ -236,14 +378,33 @@ console.log(users)
      <div className="flex flex-wrap items-center gap-4 mb-4">
   <div className="w-64">
     <Input
-      label="Tìm kiếm..."
-      value={searchText}
-      onChange={(e) => setSearchText(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") handleSearch();
-      }}
-    />
+  label="Tìm kiếm..."
+  value={searchText}
+  onChange={(e) => {
+    const val = e.target.value;
+    setSearchText(val);
+
+    if (val.trim() === "") {
+      setIsSearching(false);   // Reset chế độ tìm
+      setPage(1);              // Reset về trang 1
+      fetchUsers();            // Gọi lại API mặc định
+    }
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") handleSearch();
+  }}
+/>
+
   </div>
+  <div className="w-52">
+  <Select label="Role" value={filterRole} onChange={val => setFilterRole(val || "")}>
+    <Option value="">Tất cả</Option>
+    <Option value="Admin">Admin</Option>
+    <Option value="Staff">Staff</Option>
+    <Option value="Customer">Customer</Option>
+    <Option value="Farmer">Farmer</Option>
+  </Select>
+</div>
 
   <div className="w-52">
     <Select label="Trạng thái" value={filterStatus} onChange={val => setFilterStatus(val || "")}>
@@ -253,24 +414,9 @@ console.log(users)
     </Select>
   </div>
 
-  <div className="w-52">
-   <Select
-  label="Lọc theo role"
-  value={filterRole}
-  onChange={(val) => setFilterRole(val ?? "")}
->
-  <Option value="">Tất cả</Option>
-  {roles.map(role => (
-    <Option key={role} value={role}>{role}</Option>
-  ))}
-</Select>
-
-
-
-  </div>
 
   <div>
-    <Button className="bg-blue-500" onClick={handleSearch}>
+    <Button className="bg-black text-white" onClick={handleSearch}>
       TÌM KIẾM
     </Button>
   </div>
@@ -285,106 +431,143 @@ console.log(users)
         <table className="min-w-full border">
           <thead>
             <tr className="bg-gray-100">
-              {["Avatar", "Tên", "Email", "Phone", "Role", "Posts", "Farms", "Videos", "Trạng thái", "Thao tác"].map(head => (
+              {["Avatar", "Tên", "Email", "Phone", "Role", 
+              "Posts", "Farms", "Videos"
+              , "Trạng thái", "Thao tác"].map(head => (
                 <th key={head} className="p-2 text-left text-xs font-semibold">{head}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {users.map(user => (
-              <tr key={user.id} className="border-t hover:bg-blue-50 cursor-pointer"
-                  onClick={() => navigate(`/dashboard/users/${user.id}`)}>
-                <td className="p-2"><Avatar src={user.avatar ? `https://api-ndolv2.nongdanonline.cc${user.avatar}` : ""} size="sm" /></td>
-                <td className="p-2">{user.fullName}</td>
-                <td className="p-2">{user.email}</td>
-                <td className="p-2">{user.phone || "N/A"}</td>
-                <td className="p-2 text-xs">{Array.isArray(user.role) ? user.role.join(", ") : user.role}</td>
-                <td className="p-2">{counts[user.id]?.posts ?? 0}</td>
-                <td className="p-2">{counts[user.id]?.farms ?? 0}</td>
-                <td className="p-2">{counts[user.id]?.videos ?? 0}</td>
-                <td className="p-2">
-                  {user.isActive
-                    ? <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded">Active</span>
-                    : <span className="bg-gray-500 text-white text-xs px-2 py-0.5 rounded">Inactive</span>}
-                </td>
-                <td className="p-2" onClick={e => e.stopPropagation()}>
-                  <Menu placement="left-start">
-                    <MenuHandler>
-                      <IconButton variant="text"><EllipsisVerticalIcon className="h-5 w-5" /></IconButton>
-                    </MenuHandler>
-                    <MenuList>
-                      <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
-                      <MenuItem onClick={() => handleDelete(user.id)} className="text-red-500">Xoá</MenuItem>
-                    </MenuList>
-                  </Menu>
-                </td>
-              </tr>
+            {Array.isArray(users) && users.map(user => (
+            <tr key={user.id || user._id} className="border-t hover:bg-blue-50 cursor-pointer" onClick={() => navigate(`/dashboard/users/${user._id}`)}>
+            <td className="p-2">
+              <Avatar
+                src={user.avatar ? `${BaseUrl()}${user.avatar}` : fallbackAvatar}
+                alt={user.fullName}
+                size="sm"
+                onError={(e) => (e.target.src = fallbackAvatar)}
+              />
+            </td>
+              <td className="p-2">{user.fullName}</td>
+              <td className="p-2">{user.email}</td>
+              <td className="p-2">{user.phone || "N/A"}</td>
+              <td className="p-2 text-xs">{Array.isArray(user.role) ? user.role.join(", ") : user.role}</td>
+
+              {/* Dữ liệu đếm - có thể dùng trực tiếp từ user nếu API trả về luôn */}
+              <td className="p-2">{user.postCount ?? 0}</td>
+              <td className="p-2">{user.farmCount ?? 0}</td>
+              <td className="p-2">{user.videoCount ?? 0}</td>
+
+              <td className="p-2">
+                {user.isActive
+                  ? <span className="bg-teal-600 text-white text-xs px-2 py-1 rounded">Active</span>
+                  : <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">Inactive</span>}
+              </td>
+              <td className="p-2" onClick={e => e.stopPropagation()}>
+                <Menu placement="left-start">
+                  <MenuHandler>
+                    <IconButton variant="text"><EllipsisVerticalIcon className="h-5 w-5" /></IconButton>
+                  </MenuHandler>
+                  <MenuList>
+                    <MenuItem onClick={() => openEdit(user)}>Sửa</MenuItem>
+                    {user.isActive ? (
+    <MenuItem
+      onClick={() => handleDelete(user._id)}
+      className="text-red-500"
+    >
+      Xoá
+    </MenuItem>
+  ) : (
+    <MenuItem onClick={() => handleSetActive(user._id)}>
+      Active
+    </MenuItem>
+  )}
+  
+                  </MenuList>
+                </Menu>
+              </td>
+            </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {!isSearching && (
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <Button size="sm" variant="outlined" disabled={page <= 1} onClick={() => setPage(prev => prev - 1)}>Trang trước</Button>
-          <span>Trang {page} / {totalPages}</span>
-          <Button size="sm" variant="outlined" disabled={page >= totalPages} onClick={() => setPage(prev => prev + 1)}>Trang sau</Button>
-        </div>
-      )}
+     {!isSearching && (
+  <div className="flex justify-center items-center gap-1 mt-4 flex-wrap">
+  <button
+    disabled={page <= 1}
+    className="px-3 py-1 border border-black rounded disabled:opacity-50"
+    onClick={() => setPage(page - 1)}
+  >
+    &laquo;
+  </button>
+
+  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+    <button
+      key={p}
+      className={`px-3 py-1 border border-black rounded ${
+        p === page
+          ? "bg-black text-white"
+          : "bg-white text-black hover:bg-black hover:text-white"
+      }`}
+      onClick={() => setPage(p)}
+    >
+      {p}
+    </button>
+  ))}
+
+  <button
+    disabled={page >= totalPages}
+    className="px-3 py-1 border border-black rounded disabled:opacity-50"
+    onClick={() => setPage(page + 1)}
+  >
+    &raquo;
+  </button>
+</div>
+)}
+
 
     <Dialog open={editOpen} handler={setEditOpen} size="sm">
   <DialogHeader>Chỉnh sửa người dùng</DialogHeader>
   <DialogBody className="space-y-4">
-    <Input
-      label="Full Name"
-      value={formData.fullName}
-      onChange={e => setFormData({ ...formData, fullName: e.target.value })}
-    />
+  <Input
+  label="Full Name"
+  value={formData.fullName}
+  onChange={e => setFormData({ ...formData, fullName: e.target.value })}
+  disabled={!/^\d{10}$/.test(formData.phone)} // chỉ cho sửa nếu phone đúng định dạng
+/>
+
     <Input label="Email" value={formData.email} disabled />
     <Input
-      label="Phone"
-      value={formData.phone}
-      onChange={e => setFormData({ ...formData, phone: e.target.value })}
-    />
-  <Select
-  label="Trạng thái"
-  value={formData.isActive ? "Đã cấp quyền" : "Chưa cấp quyền"}
-  onChange={val => setFormData({ ...formData, isActive: val === "Đã cấp quyền" })}
->
-  <Option value="Đã cấp quyền">Đã cấp quyền</Option>
-  <Option value="Chưa cấp quyền">Chưa cấp quyền</Option>
-</Select>
-
-    <Typography className="font-bold">Địa chỉ</Typography>
-<CreatableSelect
-  isClearable
-  placeholder="Nhập hoặc chọn địa chỉ mới..."
-  value={formData.addresses[0] ? { label: formData.addresses[0], value: formData.addresses[0] } : null}
-  options={
-    selectedUser?.addresses?.map(addr => ({
-      label: addr.address,
-      value: addr.address
-    })) || []
-  }
-  onChange={(selected) => {
-    setFormData({
-      ...formData,
-      addresses: selected ? [selected.value] : [],
-    });
-  }}
-  formatCreateLabel={(inputValue) => `+ Thêm mới: "${inputValue}"`}
+  label="Phone"
+  value={formData.phone}
+  error={formData.phone && !/^\d{10}$/.test(formData.phone)}
+  onChange={e => setFormData({ ...formData, phone: e.target.value })}
 />
 
 
-    <Typography className="font-bold">Quản lý role</Typography>
-    <Select label="Thêm role" value={selectedRole} onChange={setSelectedRole}>
-      {roles.map(role => (
-        <Option key={role} value={role}>{role}</Option>
-      ))}
-    </Select>
-    <Button size="sm" variant="outlined" onClick={handleAddRole}>
-      + Thêm Role
-    </Button>
+    <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+      <div className="w-full sm:w-60">
+        <Select
+          label="Chọn role để thêm"
+          value={selectedRole}
+          onChange={(val) => setSelectedRole(val)}
+        >
+          {["Admin", "Farmer", "Staff", "Customer"].map((r) => (
+            <Option key={r} value={r}>{r}</Option>
+          ))}
+        </Select>
+      </div>
+      <Button
+        size="sm"
+        className="h-10 px-4 bg-black text-white"
+        onClick={handleAddRole}
+      >
+        THÊM
+      </Button>
+    </div>
+
     <div className="flex flex-wrap gap-2 mt-2">
       {(Array.isArray(selectedUser?.role) ? selectedUser.role : [selectedUser?.role])
         .filter(Boolean)

@@ -10,11 +10,13 @@ export function SignIn() {
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [env, setEnv] = useState("dev");
   const navigate = useNavigate();
   const [, dispatch] = useMaterialTailwindController();
   const emailRef = useRef();
   const passwordRef = useRef();
+  const [useDefaultApi, setUseDefaultApi] = useState(true);
+  const [customApiUrl, setCustomApiUrl] = useState("");
+
 
 
   const handleLogin = async (e) => {
@@ -36,22 +38,32 @@ export function SignIn() {
     }
 
     try {
-      const BASE_URL = env === "dev"? "https://api-ndolv2.nongdanonline.cc" : "https://api-ndol-v2-prod.nongdanonline.cc/";
+      const BASE_URL = useDefaultApi
+        ? "https://api-ndolv2.nongdanonline.cc"
+        : customApiUrl.trim();
+      if (!BASE_URL) {
+        alert("Vui lòng nhập URL API tùy chỉnh.");
+        return;
+      }
       localStorage.setItem("apiBaseUrl", BASE_URL);
-
-      const res = await fetch("https://api-ndolv2.nongdanonline.cc/auth/login", {
+     console.log(BASE_URL)
+      const res = await fetch(`${BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
-
       if (res.ok) {
-        localStorage.setItem("token", data.accessToken);
-        localStorage.setItem("refreshToken", data.refreshToken);
-        setAuthStatus(dispatch, true);
-        navigate("/dashboard/home");
+        const roles = data.user?.role || [];
+        const isAllowed = roles.includes("Admin") || roles.includes("Staff");
+        if(isAllowed){
+          localStorage.setItem("token", data.accessToken);
+          localStorage.setItem("refreshToken", data.refreshToken);
+          setAuthStatus(dispatch, true);
+          navigate("/dashboard/home");
+        }else {
+        alert("Bạn không có quyền đăng nhập.");
+      } 
       } else {
         alert(data.message || "Đăng nhập thất bại");
       }
@@ -110,41 +122,52 @@ export function SignIn() {
             <Typography variant="small" className="font-medium mb-2">
               Chọn môi trường API:
             </Typography>
-            <div className="flex gap-4">
-              <Radio
-                id="env-dev"
-                name="environment"
-                label="Dev (Mặc định)"
-                value="dev"
-                checked={env === "dev"}
-                onChange={() => setEnv("dev")}
+            <div className="flex flex-col gap-2">
+              <Checkbox
+                label="Sử dụng API mặc định (Dev)"
+                checked={useDefaultApi}
+                onChange={() => setUseDefaultApi(!useDefaultApi)}
               />
-              <Radio
-                id="env-prod"
-                name="environment"
-                label="Production"
-                value="prod"
-                checked={env === "prod"}
-                onChange={() => setEnv("prod")}
-              />
+              {!useDefaultApi && (
+                <>
+                  <Typography variant="small" color="blue-gray" className="font-medium">
+                    Nhập URL API tùy chỉnh:
+                  </Typography>
+                  <Input
+                    size="lg"
+                    placeholder="https://your-custom-api.com"
+                    value={customApiUrl}
+                    onChange={(e) => setCustomApiUrl(e.target.value)}
+                    className=" !border-t-blue-gray-200 focus:!border-t-gray-900"
+                    labelProps={{ className: "before:content-none after:content-none" }}
+                  />
+                </>
+              )}
             </div>
           </div>
-
 
           <Button className="mt-6" type="submit" fullWidth>Sign In</Button>
 
           <div className="flex items-center justify-between gap-2 mt-6">
-            <Checkbox
+            {/* <Checkbox
               label={
                 <Typography variant="small" color="gray" className="flex items-center justify-start font-medium">
                   Subscribe me to newsletter
                 </Typography>
               }
               containerProps={{ className: "-ml-2.5" }}
-            />
-            <Typography variant="small" className="font-medium text-gray-900">
-              <Link to="/auth/forgot-password">Forgot Password</Link>
-            </Typography>
+            /> */}
+      <div className="text-center mt-2">
+  <Typography variant="small" className="font-medium text-gray-900">
+    <Link to="/auth/forgot-password" className="text-sm text-blue-500 hover:underline">
+      Quên mật khẩu?
+    </Link>
+  </Typography>
+</div>
+ <Typography variant="small" className="font-medium text-gray-900"> 
+  <Link to="/auth/reset-password" className="text-sm text-blue-500 hover:underline"> Đổi mật khẩu </Link> 
+  </Typography> 
+
           </div>
         </form>
       </div>
@@ -156,3 +179,5 @@ export function SignIn() {
 }
 
 export default SignIn;
+
+
