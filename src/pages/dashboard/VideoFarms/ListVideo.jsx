@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import HlsPlayer from './HlsPlayer';
 import axios from 'axios';
 import { BaseUrl } from '@/ipconfig';
@@ -10,10 +10,11 @@ import VideoLikeList from './VideoLikeList';
 import CommentVideo from './commentVideo';
 import { deletevideo, approvevideo } from './VideoById';
 import Pagination from './Pagination';
+
 const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
   const token = localStorage.getItem('token');
 
-  const actualLimit = (searchTerm || status) ? 100 : limit;
+  const actualLimit = (searchTerm || status) ? 500 : limit;
 
   const params = new URLSearchParams({
     page: (searchTerm || status) ? 1 : page.toString(),
@@ -40,7 +41,6 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
       );
     }
 
-    // Lọc theo status trên client
     if (status && status !== '') {
       const s = status.toLowerCase();
       videos = videos.filter(v => (v.status || '').toLowerCase() === s);
@@ -48,7 +48,6 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
 
     videos = videos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Nếu có search hoặc filter, thực hiện phân trang client-side
     if (searchTerm || status) {
       const totalPages = Math.ceil(videos.length / limit);
       const startIndex = (page - 1) * limit;
@@ -66,12 +65,11 @@ const fetchVideos = async (page, limit, searchTerm = '', status = '') => {
       totalPages: res.data.totalPages || 1
     };
   } catch (error) {
-
     return { videos: [], totalPages: 1 };
   }
 };
 
-const fetchAllStatuses = async () => {
+const fetchAllStatuses = () => {
   return ['pending', 'uploaded', 'failed', 'deleted'];
 };
 
@@ -93,10 +91,9 @@ export const ListVideo = () => {
   const [playingVideos, setPlayingVideos] = useState({});
   const [videoCache, setVideoCache] = useState({});
   const [searchCache, setSearchCache] = useState({});
-
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchMode, setIsSearchMode] = useState(false);
-  console.log(videos)
+  console.log(videos);
   const limit = 9;
 
   const getStatusInVietnamese = (status) => {
@@ -126,17 +123,12 @@ export const ListVideo = () => {
     setLoading(true);
 
     try {
-      const result = await fetchVideos(1, 100, searchTerm, filterStatus);
+      const result = await fetchVideos(customPage, limit, searchTerm, filterStatus);
       const allSearchResults = result.videos || [];
       setSearchResults(allSearchResults);
       setIsSearchMode(true);
-      const totalPages = Math.ceil(allSearchResults.length / limit);
-      const startIndex = (customPage - 1) * limit;
-      const endIndex = startIndex + limit;
-      const pagedVideos = allSearchResults.slice(startIndex, endIndex);
-
-      setVideos(pagedVideos);
-      setTotalPages(totalPages);
+      setVideos(result.videos);
+      setTotalPages(result.totalPages);
     } catch (error) {
       setVideos([]);
       setTotalPages(1);
@@ -152,18 +144,12 @@ export const ListVideo = () => {
     setLoading(true);
 
     try {
-      const result = await fetchVideos(1, 100, actualSearchTerm, filterStatus);
+      const result = await fetchVideos(customPage, limit, actualSearchTerm, filterStatus);
       const allSearchResults = result.videos || [];
       setSearchResults(allSearchResults);
       setIsSearchMode(true);
-
-      const totalPages = Math.ceil(allSearchResults.length / limit);
-      const startIndex = (customPage - 1) * limit;
-      const endIndex = startIndex + limit;
-      const pagedVideos = allSearchResults.slice(startIndex, endIndex);
-
-      setVideos(pagedVideos);
-      setTotalPages(totalPages);
+      setVideos(result.videos);
+      setTotalPages(result.totalPages);
     } catch (error) {
       setVideos([]);
       setTotalPages(1);
@@ -198,19 +184,12 @@ export const ListVideo = () => {
     setLoading(true);
 
     try {
-      const result = await fetchVideos(1, 100, searchTerm, status);
-
+      const result = await fetchVideos(customPage, limit, searchTerm, status);
       const allSearchResults = result.videos || [];
       setSearchResults(allSearchResults);
       setIsSearchMode(true);
-
-      const totalPages = Math.ceil(allSearchResults.length / limit);
-      const startIndex = (customPage - 1) * limit;
-      const endIndex = startIndex + limit;
-      const pagedVideos = allSearchResults.slice(startIndex, endIndex);
-
-      setVideos(pagedVideos);
-      setTotalPages(totalPages);
+      setVideos(result.videos);
+      setTotalPages(result.totalPages);
     } catch (error) {
       setVideos([]);
       setTotalPages(1);
@@ -246,6 +225,7 @@ export const ListVideo = () => {
   };
 
   const handlePageChange = (newPage) => {
+    if (newPage === page || newPage < 1 || newPage > totalPages) return;
     setPage(newPage);
     if (actualSearchTerm || filterStatus) {
       if (filterStatus) {
@@ -254,11 +234,6 @@ export const ListVideo = () => {
         performSearch(newPage);
       }
     }
-  };
-
-  const onChangePage = (newPage) => {
-    if (newPage === page || newPage < 1 || newPage > totalPages) return;
-    handlePageChange(newPage);
   };
 
   useEffect(() => {
@@ -314,10 +289,6 @@ export const ListVideo = () => {
             newCache[key] = prev[key];
           }
         });
-
-        if (Object.keys(newCache).length !== Object.keys(prev).length) {
-        }
-
         return newCache;
       });
     };
@@ -369,11 +340,6 @@ export const ListVideo = () => {
     }
   };
 
-  const refreshList = async () => {
-    const updatedVideos = await fetchVideos(page, limit, actualSearchTerm, filterStatus);
-    setVideos(updatedVideos.videos);
-    setTotalPages(updatedVideos.totalPages);
-  };
   const togglePlayVideo = (videoId) => {
     setPlayingVideos((prev) => ({
       ...prev,
@@ -402,9 +368,7 @@ export const ListVideo = () => {
   };
 
   const openConfirmDialog = (type, video) => {
-    if (!video || !video._id) {
-      return null
-    }
+    if (!video || !video._id) return;
     setConfirmDialog({ open: true, type, video });
   };
 
@@ -531,7 +495,6 @@ export const ListVideo = () => {
                   Xóa bộ lọc
                 </Button>
               )}
-              {/* Báo lỗi rõ ràng khi không có kết quả tìm kiếm */}
               {actualSearchTerm && videos.length === 0 && (
                 <div className="mt-2 text-red-600 font-semibold">
                   Không tìm thấy kết quả nào cho từ khóa: <span className="font-bold">"{actualSearchTerm}"</span>
@@ -541,7 +504,7 @@ export const ListVideo = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Array.isArray(videos) &&
-                videos // Không cần filter nữa vì đã lọc trong fetchVideos
+                videos
                   .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                   .map((item, index) => (
                     <div key={item._id || index} className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow">
@@ -615,8 +578,6 @@ export const ListVideo = () => {
                                   src={item.thumbnailPath.startsWith('http') ? item.thumbnailPath : `${BaseUrl()}${item.thumbnailPath}`}
                                   alt={item.title || 'Video thumbnail'}
                                   className="w-full h-full object-cover rounded-t-lg"
-
-
                                 />
                                 <div className="absolute inset-0 bg-black bg-opacity-30 flex justify-center items-center opacity-0 hover:opacity-100 transition-opacity">
                                   <div className="text-center text-white">
@@ -678,7 +639,7 @@ export const ListVideo = () => {
                                   Duyệt video
                                 </MenuItem>
                               )}
-                              {item.status === 'uploaded' || item.status === "pending" ? (
+                              {item.status !== 'deleted' ? (
                                 <MenuItem
                                   onClick={() => openConfirmDialog('delete', item)}
                                   className="flex items-center gap-2 text-red-600"
@@ -688,20 +649,17 @@ export const ListVideo = () => {
                                   </svg>
                                   Xóa video
                                 </MenuItem>
-                              ) :
-                                (
-                                  <MenuItem
-                                    disabled
-                                    className="flex items-center gap-2 text-red-600 cursor-not-allowed"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                    Đã xóa
-                                  </MenuItem>
-                                )
-
-                              }
+                              ) : (
+                                <MenuItem
+                                  disabled
+                                  className="flex items-center gap-2 text-red-600 cursor-not-allowed"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Đã xóa
+                                </MenuItem>
+                              )}
                             </MenuList>
                           </Menu>
                         </div>
@@ -759,8 +717,6 @@ export const ListVideo = () => {
                           >
                             <span>💬</span>
                             <span>Bình luận</span>
-
-                            {/* <span className="text-sm">{item.commentCount||0}</span> */}
                           </button>
                         </div>
                       </div>
@@ -772,7 +728,7 @@ export const ListVideo = () => {
       )}
 
       {Array.isArray(videos) && videos.length > 0 && (
-        <Pagination page={page} totalPages={totalPages} onPageChange={onChangePage} />
+        <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
       )}
 
       {openLikeDialog && selectedVideoForLike && (
@@ -852,7 +808,5 @@ export const ListVideo = () => {
     </div>
   );
 };
-
-
 
 export default ListVideo;
