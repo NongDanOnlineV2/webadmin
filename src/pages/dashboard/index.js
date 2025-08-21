@@ -4,6 +4,7 @@ export * from "@/pages/dashboard/farm/farms";
 export * from "@/pages/dashboard/Questions/Questions";
 export * from "@/pages/dashboard/VideoFarms/ListVideo";
 export * from "@/pages/dashboard/post/Post";
+export { default as YouTube } from "./YouTube/YouTube";
 export { default as AdminReports } from "@/pages/dashboard/AdminReports/AdminReports"
 export * from "@/pages/dashboard/AdminCommentPost/CommentPost";
 export { default as RoomTable } from "./chat/chat";

@@ -14,7 +14,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 import VideoLikeList from "@/pages/dashboard/VideoFarms/VideoLikeList";
-import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost, RoomTable, AdminRank, AdminUserPoints, CommentVideo  } from "@/pages/dashboard";
+import { Home, Users, Farms, Questions, AnswersTable, ListVideo, PostList, AdminReports,CommentPost, RoomTable, AdminRank, AdminUserPoints, CommentVideo, YouTube  } from "@/pages/dashboard";
 import { SignIn, SignUp} from "@/pages/auth";
 import ChinhSach from "@/pages/dashboard/ChinhSach";
 import ChinhSachBaoMat from "@/pages/dashboard/ChinhSachBaoMat";
@@ -83,6 +83,12 @@ export const routes = [
         name: "PostList",
         path: "/PostList",
         element: <PostList />,
+      },
+      {
+        icon: <VideoCameraIcon {...icon} />,
+        name: "YouTube",
+        path: "/YouTube",
+        element: <YouTube />,
       },
       {
         icon: <ReceiptPercentIcon {...icon} />,
